@@ -77,7 +77,9 @@ parens     = Token.parens     lexer
 integer    = Token.integer    lexer 
 semi       = Token.semi       lexer 
 whiteSpace = Token.whiteSpace lexer 
-brackets   = Token.brackets lexer 
-comma      = Token.comma lexer 
-colon      = Token.colon lexer 
-dot        = Token.dot lexer 
+brackets   = Token.brackets   lexer 
+comma      = Token.comma      lexer 
+colon      = Token.colon      lexer 
+dot        = Token.dot        lexer 
+
+
