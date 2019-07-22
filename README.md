@@ -1,6 +1,6 @@
 # PCLCompiler
 
-tools:	Alex for lexer  
-        Happy for parsing
+tools: Alex for lexer  
+       Happy for parsing
 
 Επιλέξαμε τα παραπάνω εργαλεία γιατί μερικές πράξεις στη γλώσσα χρειάζεται να είναι αριστερά προσεταιριστικές οπότε εργαλεία όπως το Parsec υστερούν,διότι η γλώσσα μας δεν είναι LL(1).
