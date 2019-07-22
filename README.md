@@ -1,4 +1,4 @@
-# haskellCompiler
+# PCLCompiler
 
 tools:	Alex for lexer
 	Happy for parsing
