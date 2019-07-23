@@ -1,14 +1,16 @@
 {
-  module Main (main) where
+  module Main where
 }
 
 %wrapper "basic"
 
-$digit  = [0-9]
-$letter = [A-Za-z]
-$special=[\.\;\,\$\|\*\+\?\#\~\-\{\}\(\)\^\/\_\\\@]
-
-@id = $letter[A-Za-z_]*
+$digit  = 0-9
+$letter = [a-zA-Z]
+$incomment = $printable # [\*]
+$commentcont = $printable # [\)]
+$escapesequence = [ntr0\\\'\"]
+$notsafe = [\\\'\"]
+@id =$letter [$letter \_]*
 @intconst = $digit+
 @realconst =  $digit+\.$digit+
            |  $digit+\.$digit+e$digit+
@@ -17,17 +19,17 @@ $special=[\.\;\,\$\|\*\+\?\#\~\-\{\}\(\)\^\/\_\\\@]
            |  $digit+\.$digit+E\+$digit+
            |  $digit+\.$digit+e\-$digit+
            |  $digit+\.$digit+E\-$digit+
-@comment = (\*[$printable # [\*]]*\*)
-@stringconst = \"[$printable # [\"]]*\"
+@comment = \(\*($incomment*(\*$commentcont)?)*(\*)+\)
+@charconst = \'([$printable # $notsafe] | \\$escapesequence)\'
+@stringconst = \"([$printable # [\"]] | \\$escapesequence)*\"
 
 tokens :-
-
-  $white*               ;
-  and                   {\s->TAnd}
-  array                 {\s->TArray}
-  begin                 {\s->TBegin}
-  boolean               {\s->TBoolean}
-  char                  {\s->TChar}
+  $white+                   ;
+  and                       { \s -> TAnd  }
+  array                     {\s->TArray}
+  begin                     {\s->TBegin}
+  boolean                   {\s->TBoolean}
+  char                      {\s->TChar}
   dispose               {\s->TDispose}
   div                   {\s->TDivInt}
   do                    {\s->TDo}
@@ -55,11 +57,12 @@ tokens :-
   true                  {\s->TTrue}
   var                   {\s->TVar}
   while                 {\s->TWhile}
-  @id                   {\s->TId}
-  @intconst             {\s->TIntconst}
-  @realconst            {\s->TRealconst}
-  @stringconst          {\s->TStringconst}
-  @comment              ;
+  @id                       { \s -> TId s }
+  @intconst                 { \s -> TIntconst (read s)}
+  @realconst                {\s->TRealconst s}
+  @comment                  ;
+  @charconst            {\s -> TCharconst (read s)}
+  @stringconst              { \s -> TStringconst s}
   \=                    {\s->TLogiceq}
   \>                    {\s->TGreater}
   \<                    {\s->TSmaller}
@@ -81,10 +84,11 @@ tokens :-
   \,                    {\s->TComma}
   \[                    {\s->TLeftbracket}
   \]                    {\s->TRightbracket}
+  .                         { \s -> Error }
 
 {
-data Token = 
-  TAnd    |
+data Token =
+  TAnd        |
   TArray    |
   TBegin    |
   TBoolean    |
@@ -116,31 +120,33 @@ data Token =
   TTrue   |
   TVar    |
   TWhile    |
-  TId   |
-  TIntconst   |
-  TRealconst    |
-  TStringconst    |
-  TLogiceq    |
-  TGreater    |
-  TSmaller    |
-  TDifferent    |
-  TGreaterequal   |
-  TSmallerequal   |
-  TAdd    |
-  TMinus    |
-  TMul    |
-  TDivReal    |
-  TPointer    |
-  TAdress   |
-  TEq   |
+  TId String  |
+  TIntconst Int |
+  TRealconst String |
+  TCharconst  Char  |
+  TStringconst String |
+  TLogiceq  |
+  TGreater  |
+  TSmaller  |
+  TDifferent  |
+  TGreaterequal |
+  TSmallerequal |
+  TAdd          |
+  TMinus        |
+  TMul          |
+  TDivReal      |
+  TPointer      |
+  TAdress       |
+  TEq           |
   TSeperator    |
-  TDot    |
+  TDot          |
   TLeftparen    |
   TRightparen   |
-  TUpdown   |
-  TComma    |
-  TLeftbracket    |
-  TRightbracket  
+  TUpdown       |
+  TComma        |
+  TLeftbracket  |
+  TRightbracket |
+  Error
   deriving (Eq,Show)
 
 main = do
