@@ -8,20 +8,23 @@ $digit  = [0-9]
 $letter = [A-Za-z]
 $special=[\.\;\,\$\|\*\+\?\#\~\-\{\}\(\)\^\/\_\\\@]
 
-
-@id = [A-Za-z][A-Za-z_]*
+@id = $letter[A-Za-z_]*
 @intconst = $digit+
 @realconst =  $digit+\.$digit+
            |  $digit+\.$digit+e$digit+
+           |  $digit+\.$digit+E$digit+
            |  $digit+\.$digit+e\+$digit+
+           |  $digit+\.$digit+E\+$digit+
            |  $digit+\.$digit+e\-$digit+
-@stringconst = \"[$printable # [\"]]\"
+           |  $digit+\.$digit+E\-$digit+
+@comment = (\*[$printable # [\*]]*\*)
+@stringconst = \"[$printable # [\"]]*\"
 
 tokens :-
 
-  $white* ;
-  and                   {TAnd}
-  array                 {TArray}
+  $white*               ;
+  and                   {\s->TAnd}
+  array                 {\s->TArray}
   begin                 {TBegin}
   boolean               {TBoolean}
   char                  {TChar}
@@ -56,3 +59,29 @@ tokens :-
   @intconst             {TIntconst}
   @realconst            {TRealconst}
   @stringconst          {TStringconst}
+  @comment              ;
+  \=                    {TLogiceq}
+  \>                    {TGreater}
+  \<                    {TSmaller}
+  \<\>                  {TDifferent}
+  \>\=                  {TGreaterequal}
+  \<\=                  {TSmallerequal}
+  \+                    {TAdd}
+  \-                    {TMinus}
+  \*                    {TMul}
+  \/                    {TDiv}
+  \^                    {TPointer}
+  \@                    {TAdress}
+  \:\=                  {TEq}
+  \;                    {TSeperator}
+  \.                    {TDot}
+  \(                    {TLeftparen}
+  \)                    {TRightparen}
+  \:                    {TUpdown}
+  \,                    {TComma}
+  \[                    {TLeftbracket}
+  \]                    {TRightbracket}
+
+{
+
+}
