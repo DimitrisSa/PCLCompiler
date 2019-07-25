@@ -1,5 +1,5 @@
 {
-  module Main where
+  module Lexer (Token(..), AlexPosn(..), alexScanTokens) where
 }
 
 %wrapper "posn"
@@ -149,7 +149,4 @@ data Token =
   TRightbracket         
   deriving (Eq,Show)
 
-main = do
-  s <- getContents
-  print $ alexScanTokens s
 }

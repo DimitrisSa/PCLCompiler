@@ -1,5 +1,6 @@
 {
   module Main where
+  import Lexer
 }
 
 %name calc
@@ -67,5 +68,33 @@
     ']'                 { TRightbracket }
 
 %%
+
+Program : program id ';' Body '.' { Program $2 $4 }
+
+Body : Local Body                 { $1 $2 }  
+     | Block                      { $1 }
+
+Local : var 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
