@@ -7,7 +7,7 @@ lexer2:
 	ghc Lexer.hs
 
 parser1:
-	happy Parser.y
+	happy -i Parser.y
 
 parser2:
 	ghc Parser.hs

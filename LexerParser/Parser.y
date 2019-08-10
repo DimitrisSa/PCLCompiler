@@ -5,6 +5,7 @@ import Lexer
 
 %name calc
 %tokentype { Token }
+%error { parseError }
 
 %token 
     and                 { TAnd }
@@ -87,7 +88,7 @@ Local : var Variables                                 { LoVar $2 }
       | Header ';' Body ';'                           { LoHeadBod $1 $3 }
       | forward Header ';'                            { LoForward $2 }
 
-Variables : Variables id Morevariables ':' Type ';'   { (($5,$2 : $3) : $1) }
+Variables : Variables id Morevariables ':' Type ';'   { ($5,$2 : $3) : $1 }
           | id Morevariables ':' Type ';'             { [($4,$1 : $2)] }
 
 Morevariables : Morevariables ',' id                  { $3 : $1 }
@@ -103,7 +104,7 @@ Arguments1 : {-empty-}                                { [] }
            | Arguments2                               { $1 }
 
 Arguments2 : Arguments2 ';' Formal                    { $3 : $1 }
-           | Formal                                   { $1 }
+           | Formal                                   { [ $1 ] }
 
 Formal : Vars id Labels ':' Type                      { ($5,$2:$3) }
  
@@ -129,10 +130,10 @@ Stmt : {-empty-}                                      { SEmpty }
      | LValue equal Expr                              { SEqual $1 $3 }
      | Block                                          { SBlock $1 }
      | Call                                           { SCall $1 }
-     | if Expr then Stmt Else                         { SIf $1 $4 $5 }     
+     | if Expr then Stmt Else                         { SIf $2 $4 $5 }     
      | while Expr do Stmt                             { SWhile $2 $4 }
      | id ':' Stmt                                    { SId $1 $3 }
-     | goto id                                        { SGoto $1 }
+     | goto id                                        { SGoto (tokenizer $1) }
      | return                                         { SReturn }
      | new New LValue                                 { SNew $2 $3 }
      | dispose Dispose LValue                         { SDispose $3 }
@@ -196,17 +197,26 @@ Binop : '+'                                           { BPlus }
       | smeq                                          { BSmeq }
 
 {
+
+parseError _ = error ("Parse error\n")
+
+tokenizer :: Token -> String
+tokenizer token = show token
+
 data Program =
   P String Body
+  deriving(Show)
 
 data Body =
   B [Local] Block
+  deriving(Show)
 
 data Local =
   LoVar Variables         |
   LoLabel [String]        |
   LoHeadBod Header Body   |
   LoForward Header
+  deriving(Show)
 
 type Id = String
 type MoreVariables = [Id]
@@ -216,6 +226,7 @@ type Labels = MoreVariables
 data Header =
   Procedure String Arguments1 |
   Function String Arguments1 Type
+  deriving(Show)
 
 type Arguments1 = [Formal]
 type Arguments2 = Arguments1
@@ -229,12 +240,14 @@ data Type =
   Tchar         |
   ArrayT Type   |
   PointerT Type 
+  deriving(Show)
 
 
 type Stmts = [Stmt]
 
 data Block =
   Bl Stmts
+  deriving(Show)
   
 data Stmt = 
   SEmpty             | 
@@ -249,11 +262,13 @@ data Stmt =
   SNew Expr LValue   |
   SDispose LValue    |
   SElse Stmt
+  deriving(Show)
 
 data Expr =
  L LValue |
  R RValue |
  EEmpty
+ deriving(Show)
 
 data LValue =
   LId Id                 |
@@ -261,13 +276,14 @@ data LValue =
   LString String         |
   LValueExpr LValue Expr |
   LExpr Expr             |
-  LParen LValue 
+  LParen LValue
+  deriving(Show)
 
 data RValue =
   RInt Int         |
   RTrue            |
   RFalse           |
-  RReal Real       |
+  RReal Double     |
   RChar Char       |
   RParen RValue    |
   RNil             |
@@ -275,14 +291,17 @@ data RValue =
   RPapaki LValue   |
   RUnop Unop Expr  |
   RBinop Expr Binop Expr
+  deriving(Show)
 
 data Call =
   CId Id [Expr]
+  deriving(Show)
 
 data Unop =
   UNot |
   UPos |
   UNeg 
+  deriving(Show)
 
 data Binop =
   BPlus    |
@@ -299,4 +318,7 @@ data Binop =
   BGreater |
   BGreq    |
   BSmeq 
+  deriving(Show)
+
+main = getContents >>= print . calc . alexScanTokens 
 }
