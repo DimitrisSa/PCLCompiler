@@ -15,8 +15,8 @@ $sign      = [\- \+]
 @power     = ($e $sign? @int)? 
 @real      = @int \. @int @power  
 
-$inCom     = $printable # \*
-$comCont   = $printable # \)
+$inCom     = [$printable $white] # \*
+$comCont   = [$printable $white] # \)
 @comS      = \( \*
 @comment   = @comS ( $inCom | \* $comCont )* \*+ \)
 
