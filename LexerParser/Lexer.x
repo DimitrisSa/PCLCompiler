@@ -22,8 +22,8 @@ $comCont   = [$printable $white] # \)
 
 $printChar = $printable # [\\ ' "]
 @escSeq    = \\ [n t r 0 \\ ' "]
-@char      = \' ($printChar | @escSeq) \'
-@string    = \" ($printChar | @escSeq)* \"
+@char      = ' ($printChar | @escSeq) '
+@string    = " ($printChar | @escSeq)* "
 
 tokens :-
   $white+               ;
@@ -65,24 +65,24 @@ tokens :-
   @comment              ;
   @char                 { \p s -> TCharconst (read s) }
   @string               { \p s -> TStringconst s }
-  \=                    { \p s -> TLogiceq }
-  \>                    { \p s -> TGreater }
+  =                     { \p s -> TLogiceq }
+  >                     { \p s -> TGreater }
   \<                    { \p s -> TSmaller }
-  \<\>                  { \p s -> TDifferent }
-  \>\=                  { \p s -> TGreaterequal }
-  \<\=                  { \p s -> TSmallerequal }
+  \<>                   { \p s -> TDifferent }
+  >=                    { \p s -> TGreaterequal }
+  \<=                   { \p s -> TSmallerequal }
   \+                    { \p s -> TAdd }
   \-                    { \p s -> TMinus }
   \*                    { \p s -> TMul }
   \/                    { \p s -> TDivReal }
   \^                    { \p s -> TPointer }
-  \@                    { \p s -> TAdress }
-  \:\=                  { \p s -> TEq }
+  @                     { \p s -> TAdress }
+  :=                    { \p s -> TEq }
   \;                    { \p s -> TSeperator }
   \.                    { \p s -> TDot }
   \(                    { \p s -> TLeftparen }
   \)                    { \p s -> TRightparen }
-  \:                    { \p s -> TUpdown }
+  :                     { \p s -> TUpdown }
   \,                    { \p s -> TComma }
   \[                    { \p s -> TLeftbracket }
   \]                    { \p s -> TRightbracket }
