@@ -20,10 +20,10 @@ $comCont   = [$printable $white] # \)
 @comS      = \( \*
 @comment   = @comS ( $inCom | \* $comCont )* \*+ \)
 
-$printChar = $printable # [\\ ' "]
-@escSeq    = \\ [n t r 0 \\ ' "]
-@char      = ' ($printChar | @escSeq) '
-@string    = " ($printChar | @escSeq)* "
+$printChar = $printable # [\\ \' \"]
+@escSeq    = \\ [n t r 0 \\ \' \"]
+@char      = \' ($printChar | @escSeq) \'
+@string    = \" ($printChar | @escSeq)* \"
 
 tokens :-
   $white+               ;
@@ -64,7 +64,7 @@ tokens :-
   @real                 { \p s -> TRealconst (read s) }
   @comment              ;
   @char                 { \p s -> TCharconst (read s) }
-  @string               { \p s -> TStringconst s }
+  @string               { \p s -> TStringconst (read s) }
   =                     { \p s -> TLogiceq }
   >                     { \p s -> TGreater }
   \<                    { \p s -> TSmaller }
