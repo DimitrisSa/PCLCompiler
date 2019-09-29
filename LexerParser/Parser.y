@@ -167,7 +167,9 @@ RValue : intconst                                     { RInt $1 }
        | Call                                         { RCall $1 }
        | '@' LValue %prec NEG                         { RPapaki $2 }
        | Unop Expr                                    { RUnop $1 $2 }
-       | Expr Binop Expr                              { RBinop $1 $2 $3 }
+       | Expr '+' Expr                                { RPlus $1 $3 }
+       | Expr '*' Expr                                { RMul $1 $3 }
+       | Expr Binop Expr                              { RBinop $1 $2 $3}
        
 Call : id '(' Call2 ')'                               { CId $1 $3 }
 
@@ -181,9 +183,7 @@ Unop : not                                            { UNot }
      | '+'  %prec POS                                 { UPos }
      | '-'  %prec NEG                                 { UNeg }
     
-Binop : '+'                                           { BPlus }
-      | '-'                                           { BMinus }
-      | '*'                                           { BMul }
+Binop : '-'                                           { BMinus }
       | '/'                                           { BRealDiv }
       | div                                           { BDiv }
       | mod                                           { BMod }
@@ -290,6 +290,8 @@ data RValue =
   RCall Call       |
   RPapaki LValue   |
   RUnop Unop Expr  |
+  RPlus Expr Expr  |
+  RMul  Expr Expr  |
   RBinop Expr Binop Expr
   deriving(Show)
 
