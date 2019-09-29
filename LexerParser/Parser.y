@@ -157,19 +157,33 @@ LValue : id                                           { LId $1 }
        | Expr '^'                                     { LExpr $1 }
        | '(' LValue ')'                               { LParen $2 }
 
-RValue : intconst                                     { RInt $1 }
-       | true                                         { RTrue }
-       | false                                        { RFalse } 
-       | realconst                                    { RReal $1 }
-       | charconst                                    { RChar $1 }
-       | '(' RValue ')'                               { RParen $2 }
-       | nil                                          { RNil }
-       | Call                                         { RCall $1 }
-       | '@' LValue %prec NEG                         { RPapaki $2 }
-       | Unop Expr                                    { RUnop $1 $2 }
-       | Expr '+' Expr                                { RPlus $1 $3 }
-       | Expr '*' Expr                                { RMul $1 $3 }
-       | Expr Binop Expr                              { RBinop $1 $2 $3}
+RValue : intconst                                     { RInt     $1 }
+       | true                                         { RTrue       }
+       | false                                        { RFalse      } 
+       | realconst                                    { RReal    $1 }
+       | charconst                                    { RChar    $1 }
+       | '(' RValue ')'                               { RParen   $2 }
+       | nil                                          { RNil        }
+       | Call                                         { RCall    $1 }
+       | '@' LValue %prec NEG                         { RPapaki  $2 }
+       | not  Expr                                    { RNot     $2 }
+       | '+'  Expr %prec POS                          { RPos     $2 }
+       | '-'  Expr %prec NEG                          { RNeg     $2 }
+       | Expr '+'  Expr                               { RPlus    $1 $3 }
+       | Expr '*'  Expr                               { RMul     $1 $3 }
+       | Expr '-'  Expr                               { RMinus   $1 $3 }
+       | Expr '/'  Expr                               { RRealDiv $1 $3 }
+       | Expr div  Expr                               { RDiv     $1 $3 }
+       | Expr mod  Expr                               { RMod     $1 $3 }
+       | Expr or   Expr                               { ROr      $1 $3 }
+       | Expr and  Expr                               { RAnd     $1 $3 }
+       | Expr '='  Expr                               { REq      $1 $3 }
+       | Expr diff Expr                               { RDiff    $1 $3 }
+       | Expr '<'  Expr                               { RLess    $1 $3 }
+       | Expr '>'  Expr                               { RGreater $1 $3 }
+       | Expr greq Expr                               { RGreq    $1 $3 }
+       | Expr smeq Expr                               { RSmeq    $1 $3 }
+
        
 Call : id '(' Call2 ')'                               { CId $1 $3 }
 
@@ -179,23 +193,7 @@ Call2 : {-empty-}                                     { [] }
 Call3 : Call3 ',' Expr                                { $3 : $1 } 
       | {-empty-}                                     { [] }
 
-Unop : not                                            { UNot }
-     | '+'  %prec POS                                 { UPos }
-     | '-'  %prec NEG                                 { UNeg }
     
-Binop : '-'                                           { BMinus }
-      | '/'                                           { BRealDiv }
-      | div                                           { BDiv }
-      | mod                                           { BMod }
-      | or                                            { BOr }
-      | and                                           { BAnd }
-      | '='                                           { BEq }
-      | diff                                          { BDiff }
-      | '<'                                           { BLess }
-      | '>'                                           { BGreater }
-      | greq                                          { BGreq }
-      | smeq                                          { BSmeq }
-
 {
 
 parseError _ = error ("Parse error\n")
@@ -280,46 +278,36 @@ data LValue =
   deriving(Show)
 
 data RValue =
-  RInt Int         |
-  RTrue            |
-  RFalse           |
-  RReal Double     |
-  RChar Char       |
-  RParen RValue    |
-  RNil             |
-  RCall Call       |
-  RPapaki LValue   |
-  RUnop Unop Expr  |
-  RPlus Expr Expr  |
-  RMul  Expr Expr  |
-  RBinop Expr Binop Expr
+  RInt Int           |
+  RTrue              |
+  RFalse             |
+  RReal Double       |
+  RChar Char         |
+  RParen RValue      |
+  RNil               |
+  RCall Call         |
+  RPapaki LValue     |
+  RNot     Expr      |
+  RPos     Expr      |
+  RNeg     Expr      |
+  RPlus    Expr Expr |
+  RMul     Expr Expr |
+  RMinus   Expr Expr |
+  RRealDiv Expr Expr |
+  RDiv     Expr Expr |
+  RMod     Expr Expr |
+  ROr      Expr Expr |
+  RAnd     Expr Expr |
+  REq      Expr Expr |
+  RDiff    Expr Expr |
+  RLess    Expr Expr |
+  RGreater Expr Expr |
+  RGreq    Expr Expr |
+  RSmeq    Expr Expr
   deriving(Show)
 
 data Call =
   CId Id [Expr]
-  deriving(Show)
-
-data Unop =
-  UNot |
-  UPos |
-  UNeg 
-  deriving(Show)
-
-data Binop =
-  BPlus    |
-  BMinus   |
-  BMul     |
-  BRealDiv |
-  BDiv     |
-  BMod     |
-  BOr      |
-  BAnd     |
-  BEq      |
-  BDiff    |
-  BLess    |
-  BGreater |
-  BGreq    |
-  BSmeq 
   deriving(Show)
 
 main = getContents >>= print . calc . alexScanTokens 
