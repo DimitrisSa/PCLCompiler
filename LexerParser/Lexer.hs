@@ -250,124 +250,124 @@ alex_accept = listArray (0::Int,193) [AlexAccNone,AlexAccNone,AlexAccNone,AlexAc
 {-# LINE 90 "Lexer.x" #-}
 
 data Token =
-  TAnd                  |
-  TArray                |
-  TBegin                |
-  TBoolean              |
-  TChar                 |
-  TDispose              |
-  TDivInt               |
-  TDo                   |
-  TElse                 |
-  TEnd                  |
-  TFalse                |
-  TForward              |
-  TFunction             |
-  TGoto                 |
-  TIf                   |
-  TInteger              |
-  TLabel                |
-  TMod                  |
-  TNew                  |
-  TNil                  |
-  TNot                  |
-  TOf                   |
-  TOr                   |
-  TProcedure            |
-  TProgram              |
-  TReal                 |
-  TResult               |
-  TReturn               |
-  TThen                 |
-  TTrue                 |
-  TVar                  |
-  TWhile                |
-  TId String            |
-  TIntconst Int         |
-  TRealconst Double     |
-  TCharconst  Char      |
-  TStringconst String   |
-  TLogiceq              |
-  TGreater              |
-  TSmaller              |
-  TDifferent            |
-  TGreaterequal         |
-  TSmallerequal         |
-  TAdd                  |
-  TMinus                |
-  TMul                  |
-  TDivReal              |
-  TPointer              |
-  TAdress               |
-  TEq                   |
-  TSeperator            |
-  TDot                  |
-  TLeftparen            |
-  TRightparen           |
-  TUpdown               |
-  TComma                |
-  TLeftbracket          |
+  TAnd                |
+  TArray              |
+  TBegin              |
+  TBoolean            |
+  TChar               |
+  TDispose            |
+  TDivInt             |
+  TDo                 |
+  TElse               |
+  TEnd                |
+  TFalse              |
+  TForward            |
+  TFunction           |
+  TGoto               |
+  TIf                 |
+  TInteger            |
+  TLabel              |
+  TMod                |
+  TNew                |
+  TNil                |
+  TNot                |
+  TOf                 |
+  TOr                 |
+  TProcedure          |
+  TProgram            |
+  TReal               |
+  TResult             |
+  TReturn             |
+  TThen               |
+  TTrue               |
+  TVar                |
+  TWhile              |
+  TId String          |
+  TIntconst Int       |
+  TRealconst Double   |
+  TCharconst  Char    |
+  TStringconst String |
+  TLogiceq            |
+  TGreater            |
+  TSmaller            |
+  TDifferent          |
+  TGreaterequal       |
+  TSmallerequal       |
+  TAdd                |
+  TMinus              |
+  TMul                |
+  TDivReal            |
+  TPointer            |
+  TAdress             |
+  TEq                 |
+  TSeperator          |
+  TDot                |
+  TLeftparen          |
+  TRightparen         |
+  TUpdown             |
+  TComma              |
+  TLeftbracket        |
   TRightbracket         
   deriving (Eq,Show)
 
 
-alex_action_1 =  \p s -> TAnd 
-alex_action_2 =  \p s -> TArray 
-alex_action_3 =  \p s -> TBegin 
-alex_action_4 =  \p s -> TBoolean 
-alex_action_5 =  \p s -> TChar 
-alex_action_6 =  \p s -> TDispose 
-alex_action_7 =  \p s -> TDivInt 
-alex_action_8 =  \p s -> TDo 
-alex_action_9 =  \p s -> TElse 
-alex_action_10 =  \p s -> TEnd 
-alex_action_11 =  \p s -> TFalse 
-alex_action_12 =  \p s -> TForward 
-alex_action_13 =  \p s -> TFunction 
-alex_action_14 =  \p s -> TGoto 
-alex_action_15 =  \p s -> TIf 
-alex_action_16 =  \p s -> TInteger 
-alex_action_17 =  \p s -> TLabel 
-alex_action_18 =  \p s -> TMod 
-alex_action_19 =  \p s -> TNew 
-alex_action_20 =  \p s -> TNil 
-alex_action_21 =  \p s -> TNot 
-alex_action_22 =  \p s -> TOf 
-alex_action_23 =  \p s -> TOr 
+alex_action_1 =  \p s -> TAnd       
+alex_action_2 =  \p s -> TArray     
+alex_action_3 =  \p s -> TBegin     
+alex_action_4 =  \p s -> TBoolean   
+alex_action_5 =  \p s -> TChar      
+alex_action_6 =  \p s -> TDispose   
+alex_action_7 =  \p s -> TDivInt    
+alex_action_8 =  \p s -> TDo        
+alex_action_9 =  \p s -> TElse      
+alex_action_10 =  \p s -> TEnd       
+alex_action_11 =  \p s -> TFalse     
+alex_action_12 =  \p s -> TForward   
+alex_action_13 =  \p s -> TFunction  
+alex_action_14 =  \p s -> TGoto      
+alex_action_15 =  \p s -> TIf        
+alex_action_16 =  \p s -> TInteger   
+alex_action_17 =  \p s -> TLabel     
+alex_action_18 =  \p s -> TMod       
+alex_action_19 =  \p s -> TNew       
+alex_action_20 =  \p s -> TNil       
+alex_action_21 =  \p s -> TNot       
+alex_action_22 =  \p s -> TOf        
+alex_action_23 =  \p s -> TOr        
 alex_action_24 =  \p s -> TProcedure 
-alex_action_25 =  \p s -> TProgram 
-alex_action_26 =  \p s -> TReal 
-alex_action_27 =  \p s -> TResult 
-alex_action_28 =  \p s -> TReturn 
-alex_action_29 =  \p s -> TThen 
-alex_action_30 =  \p s -> TTrue 
-alex_action_31 =  \p s -> TVar 
-alex_action_32 =  \p s -> TWhile 
-alex_action_33 =  \p s -> TId s  
+alex_action_25 =  \p s -> TProgram   
+alex_action_26 =  \p s -> TReal      
+alex_action_27 =  \p s -> TResult    
+alex_action_28 =  \p s -> TReturn    
+alex_action_29 =  \p s -> TThen      
+alex_action_30 =  \p s -> TTrue      
+alex_action_31 =  \p s -> TVar       
+alex_action_32 =  \p s -> TWhile     
+alex_action_33 =  \p s -> TId s      
 alex_action_34 =  \p s -> TIntconst (read s) 
 alex_action_35 =  \p s -> TRealconst (read s) 
 alex_action_37 =  \p s -> TCharconst (read s) 
 alex_action_38 =  \p s -> TStringconst (read s) 
-alex_action_39 =  \p s -> TLogiceq 
-alex_action_40 =  \p s -> TGreater 
-alex_action_41 =  \p s -> TSmaller 
-alex_action_42 =  \p s -> TDifferent 
+alex_action_39 =  \p s -> TLogiceq      
+alex_action_40 =  \p s -> TGreater      
+alex_action_41 =  \p s -> TSmaller      
+alex_action_42 =  \p s -> TDifferent    
 alex_action_43 =  \p s -> TGreaterequal 
 alex_action_44 =  \p s -> TSmallerequal 
-alex_action_45 =  \p s -> TAdd 
-alex_action_46 =  \p s -> TMinus 
-alex_action_47 =  \p s -> TMul 
-alex_action_48 =  \p s -> TDivReal 
-alex_action_49 =  \p s -> TPointer 
-alex_action_50 =  \p s -> TAdress 
-alex_action_51 =  \p s -> TEq 
-alex_action_52 =  \p s -> TSeperator 
-alex_action_53 =  \p s -> TDot 
-alex_action_54 =  \p s -> TLeftparen 
-alex_action_55 =  \p s -> TRightparen 
-alex_action_56 =  \p s -> TUpdown 
-alex_action_57 =  \p s -> TComma 
-alex_action_58 =  \p s -> TLeftbracket 
+alex_action_45 =  \p s -> TAdd          
+alex_action_46 =  \p s -> TMinus        
+alex_action_47 =  \p s -> TMul          
+alex_action_48 =  \p s -> TDivReal      
+alex_action_49 =  \p s -> TPointer      
+alex_action_50 =  \p s -> TAdress       
+alex_action_51 =  \p s -> TEq           
+alex_action_52 =  \p s -> TSeperator    
+alex_action_53 =  \p s -> TDot          
+alex_action_54 =  \p s -> TLeftparen    
+alex_action_55 =  \p s -> TRightparen   
+alex_action_56 =  \p s -> TUpdown       
+alex_action_57 =  \p s -> TComma        
+alex_action_58 =  \p s -> TLeftbracket  
 alex_action_59 =  \p s -> TRightbracket 
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
