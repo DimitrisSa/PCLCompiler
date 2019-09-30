@@ -104,7 +104,7 @@ Ids        :: { Ids }
            | {-empty-}                          { []    }
 
 Header     :: { Header }
-           : procedure id '(' Args ')'          { Procedure $2 $4    } 
+           : procedure id '(' Args ')'          { Procedure $2 $4    }
            | function  id '(' Args ')' ':' Type { Function  $2 $4 $7 }
 
 Args       :: { Args }
@@ -239,7 +239,7 @@ data Local =
   LoLabel Ids           |
   LoHeadBod Header Body |
   LoForward Header
-deriving(Show)
+  deriving(Show)
 --instance Show Local where
 --  show l = "Local" 
 

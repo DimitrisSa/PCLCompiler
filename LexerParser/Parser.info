@@ -59,40 +59,40 @@ Grammar
 	New ->                                             (48)
 	Dispose -> '[' ']'                                 (49)
 	Dispose ->                                         (50)
-	Expr -> LValue                                     (51)
-	Expr -> RValue                                     (52)
-	LValue -> id                                       (53)
-	LValue -> result                                   (54)
-	LValue -> stringconst                              (55)
-	LValue -> LValue '[' Expr ']'                      (56)
-	LValue -> Expr '^'                                 (57)
-	LValue -> '(' LValue ')'                           (58)
-	RValue -> intconst                                 (59)
-	RValue -> true                                     (60)
-	RValue -> false                                    (61)
-	RValue -> realconst                                (62)
-	RValue -> charconst                                (63)
-	RValue -> '(' RValue ')'                           (64)
-	RValue -> nil                                      (65)
-	RValue -> Call                                     (66)
-	RValue -> '@' LValue                               (67)
-	RValue -> not Expr                                 (68)
-	RValue -> '+' Expr                                 (69)
-	RValue -> '-' Expr                                 (70)
-	RValue -> Expr '+' Expr                            (71)
-	RValue -> Expr '*' Expr                            (72)
-	RValue -> Expr '-' Expr                            (73)
-	RValue -> Expr '/' Expr                            (74)
-	RValue -> Expr div Expr                            (75)
-	RValue -> Expr mod Expr                            (76)
-	RValue -> Expr or Expr                             (77)
-	RValue -> Expr and Expr                            (78)
-	RValue -> Expr '=' Expr                            (79)
-	RValue -> Expr diff Expr                           (80)
-	RValue -> Expr '<' Expr                            (81)
-	RValue -> Expr '>' Expr                            (82)
-	RValue -> Expr greq Expr                           (83)
-	RValue -> Expr smeq Expr                           (84)
+	RValue -> intconst                                 (51)
+	RValue -> true                                     (52)
+	RValue -> false                                    (53)
+	RValue -> realconst                                (54)
+	RValue -> charconst                                (55)
+	RValue -> '(' RValue ')'                           (56)
+	RValue -> nil                                      (57)
+	RValue -> Call                                     (58)
+	RValue -> '@' LValue                               (59)
+	RValue -> not Expr                                 (60)
+	RValue -> '+' Expr                                 (61)
+	RValue -> '-' Expr                                 (62)
+	RValue -> Expr '+' Expr                            (63)
+	RValue -> Expr '*' Expr                            (64)
+	RValue -> Expr '-' Expr                            (65)
+	RValue -> Expr '/' Expr                            (66)
+	RValue -> Expr div Expr                            (67)
+	RValue -> Expr mod Expr                            (68)
+	RValue -> Expr or Expr                             (69)
+	RValue -> Expr and Expr                            (70)
+	RValue -> Expr '=' Expr                            (71)
+	RValue -> Expr diff Expr                           (72)
+	RValue -> Expr '<' Expr                            (73)
+	RValue -> Expr '>' Expr                            (74)
+	RValue -> Expr greq Expr                           (75)
+	RValue -> Expr smeq Expr                           (76)
+	Expr -> LValue                                     (77)
+	Expr -> RValue                                     (78)
+	LValue -> id                                       (79)
+	LValue -> result                                   (80)
+	LValue -> stringconst                              (81)
+	LValue -> LValue '[' Expr ']'                      (82)
+	LValue -> Expr '^'                                 (83)
+	LValue -> '(' LValue ')'                           (84)
 	Call -> id '(' ArgExprs ')'                        (85)
 	ArgExprs -> Expr Exprs                             (86)
 	ArgExprs ->                                        (87)
@@ -185,9 +185,9 @@ Non-terminals
 	Else            rules 45, 46
 	New             rules 47, 48
 	Dispose         rules 49, 50
-	Expr            rules 51, 52
-	LValue          rules 53, 54, 55, 56, 57, 58
-	RValue          rules 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84
+	RValue          rules 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76
+	Expr            rules 77, 78
+	LValue          rules 79, 80, 81, 82, 83, 84
 	Call            rule  85
 	ArgExprs        rules 86, 87
 	Exprs           rules 88, 89
@@ -323,9 +323,9 @@ State 11
 
 	Block          goto state 25
 	Stmt           goto state 26
-	Expr           goto state 27
-	LValue         goto state 28
-	RValue         goto state 29
+	RValue         goto state 27
+	Expr           goto state 28
+	LValue         goto state 29
 	Call           goto state 30
 
 State 12
@@ -461,21 +461,50 @@ State 26
 
 State 27
 
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	Expr -> RValue .                                    (rule 78)
+
+	and            reduce using rule 78
+	div            reduce using rule 78
+	do             reduce using rule 78
+	else           reduce using rule 78
+	end            reduce using rule 78
+	mod            reduce using rule 78
+	or             reduce using rule 78
+	then           reduce using rule 78
+	'='            reduce using rule 78
+	'>'            reduce using rule 78
+	'<'            reduce using rule 78
+	diff           reduce using rule 78
+	greq           reduce using rule 78
+	smeq           reduce using rule 78
+	'+'            reduce using rule 78
+	'-'            reduce using rule 78
+	'*'            reduce using rule 78
+	'/'            reduce using rule 78
+	'^'            reduce using rule 78
+	';'            reduce using rule 78
+	')'            reduce using rule 78
+	','            reduce using rule 78
+	']'            reduce using rule 78
+
+
+State 28
+
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 
 	and            shift, and enter state 73
 	div            shift, and enter state 74
@@ -494,82 +523,53 @@ State 27
 	'^'            shift, and enter state 87
 
 
-State 28
-
-	Stmt -> LValue . equal Expr                         (rule 35)
-	Expr -> LValue .                                    (rule 51)
-	LValue -> LValue . '[' Expr ']'                     (rule 56)
-
-	and            reduce using rule 51
-	div            reduce using rule 51
-	mod            reduce using rule 51
-	or             reduce using rule 51
-	'='            reduce using rule 51
-	'>'            reduce using rule 51
-	'<'            reduce using rule 51
-	diff           reduce using rule 51
-	greq           reduce using rule 51
-	smeq           reduce using rule 51
-	'+'            reduce using rule 51
-	'-'            reduce using rule 51
-	'*'            reduce using rule 51
-	'/'            reduce using rule 51
-	'^'            reduce using rule 51
-	equal          shift, and enter state 71
-	'['            shift, and enter state 72
-
-
 State 29
 
-	Expr -> RValue .                                    (rule 52)
+	Stmt -> LValue . equal Expr                         (rule 35)
+	Expr -> LValue .                                    (rule 77)
+	LValue -> LValue . '[' Expr ']'                     (rule 82)
 
-	and            reduce using rule 52
-	div            reduce using rule 52
-	do             reduce using rule 52
-	else           reduce using rule 52
-	end            reduce using rule 52
-	mod            reduce using rule 52
-	or             reduce using rule 52
-	then           reduce using rule 52
-	'='            reduce using rule 52
-	'>'            reduce using rule 52
-	'<'            reduce using rule 52
-	diff           reduce using rule 52
-	greq           reduce using rule 52
-	smeq           reduce using rule 52
-	'+'            reduce using rule 52
-	'-'            reduce using rule 52
-	'*'            reduce using rule 52
-	'/'            reduce using rule 52
-	'^'            reduce using rule 52
-	';'            reduce using rule 52
-	')'            reduce using rule 52
-	','            reduce using rule 52
-	']'            reduce using rule 52
+	and            reduce using rule 77
+	div            reduce using rule 77
+	mod            reduce using rule 77
+	or             reduce using rule 77
+	'='            reduce using rule 77
+	'>'            reduce using rule 77
+	'<'            reduce using rule 77
+	diff           reduce using rule 77
+	greq           reduce using rule 77
+	smeq           reduce using rule 77
+	'+'            reduce using rule 77
+	'-'            reduce using rule 77
+	'*'            reduce using rule 77
+	'/'            reduce using rule 77
+	'^'            reduce using rule 77
+	equal          shift, and enter state 71
+	'['            shift, and enter state 72
 
 
 State 30
 
 	Stmt -> Call .                                      (rule 37)
-	RValue -> Call .                                    (rule 66)
+	RValue -> Call .                                    (rule 58)
 
-	and            reduce using rule 66
-	div            reduce using rule 66
+	and            reduce using rule 58
+	div            reduce using rule 58
 	else           reduce using rule 37
 	end            reduce using rule 37
-	mod            reduce using rule 66
-	or             reduce using rule 66
-	'='            reduce using rule 66
-	'>'            reduce using rule 66
-	'<'            reduce using rule 66
-	diff           reduce using rule 66
-	greq           reduce using rule 66
-	smeq           reduce using rule 66
-	'+'            reduce using rule 66
-	'-'            reduce using rule 66
-	'*'            reduce using rule 66
-	'/'            reduce using rule 66
-	'^'            reduce using rule 66
+	mod            reduce using rule 58
+	or             reduce using rule 58
+	'='            reduce using rule 58
+	'>'            reduce using rule 58
+	'<'            reduce using rule 58
+	diff           reduce using rule 58
+	greq           reduce using rule 58
+	smeq           reduce using rule 58
+	'+'            reduce using rule 58
+	'-'            reduce using rule 58
+	'*'            reduce using rule 58
+	'/'            reduce using rule 58
+	'^'            reduce using rule 58
 	';'            reduce using rule 37
 
 
@@ -597,31 +597,31 @@ State 31
 
 State 32
 
-	RValue -> false .                                   (rule 61)
+	RValue -> false .                                   (rule 53)
 
-	and            reduce using rule 61
-	div            reduce using rule 61
-	do             reduce using rule 61
-	else           reduce using rule 61
-	end            reduce using rule 61
-	mod            reduce using rule 61
-	or             reduce using rule 61
-	then           reduce using rule 61
-	'='            reduce using rule 61
-	'>'            reduce using rule 61
-	'<'            reduce using rule 61
-	diff           reduce using rule 61
-	greq           reduce using rule 61
-	smeq           reduce using rule 61
-	'+'            reduce using rule 61
-	'-'            reduce using rule 61
-	'*'            reduce using rule 61
-	'/'            reduce using rule 61
-	'^'            reduce using rule 61
-	';'            reduce using rule 61
-	')'            reduce using rule 61
-	','            reduce using rule 61
-	']'            reduce using rule 61
+	and            reduce using rule 53
+	div            reduce using rule 53
+	do             reduce using rule 53
+	else           reduce using rule 53
+	end            reduce using rule 53
+	mod            reduce using rule 53
+	or             reduce using rule 53
+	then           reduce using rule 53
+	'='            reduce using rule 53
+	'>'            reduce using rule 53
+	'<'            reduce using rule 53
+	diff           reduce using rule 53
+	greq           reduce using rule 53
+	smeq           reduce using rule 53
+	'+'            reduce using rule 53
+	'-'            reduce using rule 53
+	'*'            reduce using rule 53
+	'/'            reduce using rule 53
+	'^'            reduce using rule 53
+	';'            reduce using rule 53
+	')'            reduce using rule 53
+	','            reduce using rule 53
+	']'            reduce using rule 53
 
 
 State 33
@@ -650,9 +650,9 @@ State 34
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 67
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 35
@@ -679,36 +679,36 @@ State 35
 
 State 36
 
-	RValue -> nil .                                     (rule 65)
+	RValue -> nil .                                     (rule 57)
 
-	and            reduce using rule 65
-	div            reduce using rule 65
-	do             reduce using rule 65
-	else           reduce using rule 65
-	end            reduce using rule 65
-	mod            reduce using rule 65
-	or             reduce using rule 65
-	then           reduce using rule 65
-	'='            reduce using rule 65
-	'>'            reduce using rule 65
-	'<'            reduce using rule 65
-	diff           reduce using rule 65
-	greq           reduce using rule 65
-	smeq           reduce using rule 65
-	'+'            reduce using rule 65
-	'-'            reduce using rule 65
-	'*'            reduce using rule 65
-	'/'            reduce using rule 65
-	'^'            reduce using rule 65
-	';'            reduce using rule 65
-	')'            reduce using rule 65
-	','            reduce using rule 65
-	']'            reduce using rule 65
+	and            reduce using rule 57
+	div            reduce using rule 57
+	do             reduce using rule 57
+	else           reduce using rule 57
+	end            reduce using rule 57
+	mod            reduce using rule 57
+	or             reduce using rule 57
+	then           reduce using rule 57
+	'='            reduce using rule 57
+	'>'            reduce using rule 57
+	'<'            reduce using rule 57
+	diff           reduce using rule 57
+	greq           reduce using rule 57
+	smeq           reduce using rule 57
+	'+'            reduce using rule 57
+	'-'            reduce using rule 57
+	'*'            reduce using rule 57
+	'/'            reduce using rule 57
+	'^'            reduce using rule 57
+	';'            reduce using rule 57
+	')'            reduce using rule 57
+	','            reduce using rule 57
+	']'            reduce using rule 57
 
 
 State 37
 
-	RValue -> not . Expr                                (rule 68)
+	RValue -> not . Expr                                (rule 60)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -725,40 +725,40 @@ State 37
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 64
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 38
 
-	LValue -> result .                                  (rule 54)
+	LValue -> result .                                  (rule 80)
 
-	and            reduce using rule 54
-	div            reduce using rule 54
-	do             reduce using rule 54
-	else           reduce using rule 54
-	end            reduce using rule 54
-	mod            reduce using rule 54
-	or             reduce using rule 54
-	then           reduce using rule 54
-	'='            reduce using rule 54
-	'>'            reduce using rule 54
-	'<'            reduce using rule 54
-	diff           reduce using rule 54
-	greq           reduce using rule 54
-	smeq           reduce using rule 54
-	'+'            reduce using rule 54
-	'-'            reduce using rule 54
-	'*'            reduce using rule 54
-	'/'            reduce using rule 54
-	'^'            reduce using rule 54
-	equal          reduce using rule 54
-	';'            reduce using rule 54
-	')'            reduce using rule 54
-	','            reduce using rule 54
-	'['            reduce using rule 54
-	']'            reduce using rule 54
+	and            reduce using rule 80
+	div            reduce using rule 80
+	do             reduce using rule 80
+	else           reduce using rule 80
+	end            reduce using rule 80
+	mod            reduce using rule 80
+	or             reduce using rule 80
+	then           reduce using rule 80
+	'='            reduce using rule 80
+	'>'            reduce using rule 80
+	'<'            reduce using rule 80
+	diff           reduce using rule 80
+	greq           reduce using rule 80
+	smeq           reduce using rule 80
+	'+'            reduce using rule 80
+	'-'            reduce using rule 80
+	'*'            reduce using rule 80
+	'/'            reduce using rule 80
+	'^'            reduce using rule 80
+	equal          reduce using rule 80
+	';'            reduce using rule 80
+	')'            reduce using rule 80
+	','            reduce using rule 80
+	'['            reduce using rule 80
+	']'            reduce using rule 80
 
 
 State 39
@@ -772,31 +772,31 @@ State 39
 
 State 40
 
-	RValue -> true .                                    (rule 60)
+	RValue -> true .                                    (rule 52)
 
-	and            reduce using rule 60
-	div            reduce using rule 60
-	do             reduce using rule 60
-	else           reduce using rule 60
-	end            reduce using rule 60
-	mod            reduce using rule 60
-	or             reduce using rule 60
-	then           reduce using rule 60
-	'='            reduce using rule 60
-	'>'            reduce using rule 60
-	'<'            reduce using rule 60
-	diff           reduce using rule 60
-	greq           reduce using rule 60
-	smeq           reduce using rule 60
-	'+'            reduce using rule 60
-	'-'            reduce using rule 60
-	'*'            reduce using rule 60
-	'/'            reduce using rule 60
-	'^'            reduce using rule 60
-	';'            reduce using rule 60
-	')'            reduce using rule 60
-	','            reduce using rule 60
-	']'            reduce using rule 60
+	and            reduce using rule 52
+	div            reduce using rule 52
+	do             reduce using rule 52
+	else           reduce using rule 52
+	end            reduce using rule 52
+	mod            reduce using rule 52
+	or             reduce using rule 52
+	then           reduce using rule 52
+	'='            reduce using rule 52
+	'>'            reduce using rule 52
+	'<'            reduce using rule 52
+	diff           reduce using rule 52
+	greq           reduce using rule 52
+	smeq           reduce using rule 52
+	'+'            reduce using rule 52
+	'-'            reduce using rule 52
+	'*'            reduce using rule 52
+	'/'            reduce using rule 52
+	'^'            reduce using rule 52
+	';'            reduce using rule 52
+	')'            reduce using rule 52
+	','            reduce using rule 52
+	']'            reduce using rule 52
 
 
 State 41
@@ -818,128 +818,99 @@ State 41
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 63
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 42
 
 	Stmt -> id . ':' Stmt                               (rule 40)
-	LValue -> id .                                      (rule 53)
+	LValue -> id .                                      (rule 79)
 	Call -> id . '(' ArgExprs ')'                       (rule 85)
 
-	and            reduce using rule 53
-	div            reduce using rule 53
-	mod            reduce using rule 53
-	or             reduce using rule 53
-	'='            reduce using rule 53
-	'>'            reduce using rule 53
-	'<'            reduce using rule 53
-	diff           reduce using rule 53
-	greq           reduce using rule 53
-	smeq           reduce using rule 53
-	'+'            reduce using rule 53
-	'-'            reduce using rule 53
-	'*'            reduce using rule 53
-	'/'            reduce using rule 53
-	'^'            reduce using rule 53
-	equal          reduce using rule 53
+	and            reduce using rule 79
+	div            reduce using rule 79
+	mod            reduce using rule 79
+	or             reduce using rule 79
+	'='            reduce using rule 79
+	'>'            reduce using rule 79
+	'<'            reduce using rule 79
+	diff           reduce using rule 79
+	greq           reduce using rule 79
+	smeq           reduce using rule 79
+	'+'            reduce using rule 79
+	'-'            reduce using rule 79
+	'*'            reduce using rule 79
+	'/'            reduce using rule 79
+	'^'            reduce using rule 79
+	equal          reduce using rule 79
 	'('            shift, and enter state 61
 	':'            shift, and enter state 62
-	'['            reduce using rule 53
+	'['            reduce using rule 79
 
 
 State 43
 
-	RValue -> intconst .                                (rule 59)
+	RValue -> intconst .                                (rule 51)
 
-	and            reduce using rule 59
-	div            reduce using rule 59
-	do             reduce using rule 59
-	else           reduce using rule 59
-	end            reduce using rule 59
-	mod            reduce using rule 59
-	or             reduce using rule 59
-	then           reduce using rule 59
-	'='            reduce using rule 59
-	'>'            reduce using rule 59
-	'<'            reduce using rule 59
-	diff           reduce using rule 59
-	greq           reduce using rule 59
-	smeq           reduce using rule 59
-	'+'            reduce using rule 59
-	'-'            reduce using rule 59
-	'*'            reduce using rule 59
-	'/'            reduce using rule 59
-	'^'            reduce using rule 59
-	';'            reduce using rule 59
-	')'            reduce using rule 59
-	','            reduce using rule 59
-	']'            reduce using rule 59
+	and            reduce using rule 51
+	div            reduce using rule 51
+	do             reduce using rule 51
+	else           reduce using rule 51
+	end            reduce using rule 51
+	mod            reduce using rule 51
+	or             reduce using rule 51
+	then           reduce using rule 51
+	'='            reduce using rule 51
+	'>'            reduce using rule 51
+	'<'            reduce using rule 51
+	diff           reduce using rule 51
+	greq           reduce using rule 51
+	smeq           reduce using rule 51
+	'+'            reduce using rule 51
+	'-'            reduce using rule 51
+	'*'            reduce using rule 51
+	'/'            reduce using rule 51
+	'^'            reduce using rule 51
+	';'            reduce using rule 51
+	')'            reduce using rule 51
+	','            reduce using rule 51
+	']'            reduce using rule 51
 
 
 State 44
 
-	RValue -> realconst .                               (rule 62)
+	RValue -> realconst .                               (rule 54)
 
-	and            reduce using rule 62
-	div            reduce using rule 62
-	do             reduce using rule 62
-	else           reduce using rule 62
-	end            reduce using rule 62
-	mod            reduce using rule 62
-	or             reduce using rule 62
-	then           reduce using rule 62
-	'='            reduce using rule 62
-	'>'            reduce using rule 62
-	'<'            reduce using rule 62
-	diff           reduce using rule 62
-	greq           reduce using rule 62
-	smeq           reduce using rule 62
-	'+'            reduce using rule 62
-	'-'            reduce using rule 62
-	'*'            reduce using rule 62
-	'/'            reduce using rule 62
-	'^'            reduce using rule 62
-	';'            reduce using rule 62
-	')'            reduce using rule 62
-	','            reduce using rule 62
-	']'            reduce using rule 62
+	and            reduce using rule 54
+	div            reduce using rule 54
+	do             reduce using rule 54
+	else           reduce using rule 54
+	end            reduce using rule 54
+	mod            reduce using rule 54
+	or             reduce using rule 54
+	then           reduce using rule 54
+	'='            reduce using rule 54
+	'>'            reduce using rule 54
+	'<'            reduce using rule 54
+	diff           reduce using rule 54
+	greq           reduce using rule 54
+	smeq           reduce using rule 54
+	'+'            reduce using rule 54
+	'-'            reduce using rule 54
+	'*'            reduce using rule 54
+	'/'            reduce using rule 54
+	'^'            reduce using rule 54
+	';'            reduce using rule 54
+	')'            reduce using rule 54
+	','            reduce using rule 54
+	']'            reduce using rule 54
 
 
 State 45
 
-	RValue -> charconst .                               (rule 63)
-
-	and            reduce using rule 63
-	div            reduce using rule 63
-	do             reduce using rule 63
-	else           reduce using rule 63
-	end            reduce using rule 63
-	mod            reduce using rule 63
-	or             reduce using rule 63
-	then           reduce using rule 63
-	'='            reduce using rule 63
-	'>'            reduce using rule 63
-	'<'            reduce using rule 63
-	diff           reduce using rule 63
-	greq           reduce using rule 63
-	smeq           reduce using rule 63
-	'+'            reduce using rule 63
-	'-'            reduce using rule 63
-	'*'            reduce using rule 63
-	'/'            reduce using rule 63
-	'^'            reduce using rule 63
-	';'            reduce using rule 63
-	')'            reduce using rule 63
-	','            reduce using rule 63
-	']'            reduce using rule 63
-
-
-State 46
-
-	LValue -> stringconst .                             (rule 55)
+	RValue -> charconst .                               (rule 55)
 
 	and            reduce using rule 55
 	div            reduce using rule 55
@@ -960,17 +931,46 @@ State 46
 	'*'            reduce using rule 55
 	'/'            reduce using rule 55
 	'^'            reduce using rule 55
-	equal          reduce using rule 55
 	';'            reduce using rule 55
 	')'            reduce using rule 55
 	','            reduce using rule 55
-	'['            reduce using rule 55
 	']'            reduce using rule 55
+
+
+State 46
+
+	LValue -> stringconst .                             (rule 81)
+
+	and            reduce using rule 81
+	div            reduce using rule 81
+	do             reduce using rule 81
+	else           reduce using rule 81
+	end            reduce using rule 81
+	mod            reduce using rule 81
+	or             reduce using rule 81
+	then           reduce using rule 81
+	'='            reduce using rule 81
+	'>'            reduce using rule 81
+	'<'            reduce using rule 81
+	diff           reduce using rule 81
+	greq           reduce using rule 81
+	smeq           reduce using rule 81
+	'+'            reduce using rule 81
+	'-'            reduce using rule 81
+	'*'            reduce using rule 81
+	'/'            reduce using rule 81
+	'^'            reduce using rule 81
+	equal          reduce using rule 81
+	';'            reduce using rule 81
+	')'            reduce using rule 81
+	','            reduce using rule 81
+	'['            reduce using rule 81
+	']'            reduce using rule 81
 
 
 State 47
 
-	RValue -> '+' . Expr                                (rule 69)
+	RValue -> '+' . Expr                                (rule 61)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -987,14 +987,14 @@ State 47
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 60
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 48
 
-	RValue -> '-' . Expr                                (rule 70)
+	RValue -> '-' . Expr                                (rule 62)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1011,14 +1011,14 @@ State 48
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 58
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 49
 
-	RValue -> '@' . LValue                              (rule 67)
+	RValue -> '@' . LValue                              (rule 59)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1035,15 +1035,15 @@ State 49
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
-	Expr           goto state 27
+	RValue         goto state 27
+	Expr           goto state 28
 	LValue         goto state 57
-	RValue         goto state 29
 	Call           goto state 55
 
 State 50
 
-	LValue -> '(' . LValue ')'                          (rule 58)
-	RValue -> '(' . RValue ')'                          (rule 64)
+	RValue -> '(' . RValue ')'                          (rule 56)
+	LValue -> '(' . LValue ')'                          (rule 84)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1060,9 +1060,9 @@ State 50
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
-	Expr           goto state 27
-	LValue         goto state 53
-	RValue         goto state 54
+	RValue         goto state 53
+	Expr           goto state 28
+	LValue         goto state 54
 	Call           goto state 55
 
 State 51
@@ -1088,292 +1088,292 @@ State 52
 
 State 53
 
-	Expr -> LValue .                                    (rule 51)
-	LValue -> LValue . '[' Expr ']'                     (rule 56)
-	LValue -> '(' LValue . ')'                          (rule 58)
+	RValue -> '(' RValue . ')'                          (rule 56)
+	Expr -> RValue .                                    (rule 78)
 
-	and            reduce using rule 51
-	div            reduce using rule 51
-	mod            reduce using rule 51
-	or             reduce using rule 51
-	'='            reduce using rule 51
-	'>'            reduce using rule 51
-	'<'            reduce using rule 51
-	diff           reduce using rule 51
-	greq           reduce using rule 51
-	smeq           reduce using rule 51
-	'+'            reduce using rule 51
-	'-'            reduce using rule 51
-	'*'            reduce using rule 51
-	'/'            reduce using rule 51
-	'^'            reduce using rule 51
+	and            reduce using rule 78
+	div            reduce using rule 78
+	mod            reduce using rule 78
+	or             reduce using rule 78
+	'='            reduce using rule 78
+	'>'            reduce using rule 78
+	'<'            reduce using rule 78
+	diff           reduce using rule 78
+	greq           reduce using rule 78
+	smeq           reduce using rule 78
+	'+'            reduce using rule 78
+	'-'            reduce using rule 78
+	'*'            reduce using rule 78
+	'/'            reduce using rule 78
+	'^'            reduce using rule 78
 	')'            shift, and enter state 132
-	'['            shift, and enter state 72
 
 
 State 54
 
-	Expr -> RValue .                                    (rule 52)
-	RValue -> '(' RValue . ')'                          (rule 64)
+	Expr -> LValue .                                    (rule 77)
+	LValue -> LValue . '[' Expr ']'                     (rule 82)
+	LValue -> '(' LValue . ')'                          (rule 84)
 
-	and            reduce using rule 52
-	div            reduce using rule 52
-	mod            reduce using rule 52
-	or             reduce using rule 52
-	'='            reduce using rule 52
-	'>'            reduce using rule 52
-	'<'            reduce using rule 52
-	diff           reduce using rule 52
-	greq           reduce using rule 52
-	smeq           reduce using rule 52
-	'+'            reduce using rule 52
-	'-'            reduce using rule 52
-	'*'            reduce using rule 52
-	'/'            reduce using rule 52
-	'^'            reduce using rule 52
+	and            reduce using rule 77
+	div            reduce using rule 77
+	mod            reduce using rule 77
+	or             reduce using rule 77
+	'='            reduce using rule 77
+	'>'            reduce using rule 77
+	'<'            reduce using rule 77
+	diff           reduce using rule 77
+	greq           reduce using rule 77
+	smeq           reduce using rule 77
+	'+'            reduce using rule 77
+	'-'            reduce using rule 77
+	'*'            reduce using rule 77
+	'/'            reduce using rule 77
+	'^'            reduce using rule 77
 	')'            shift, and enter state 131
+	'['            shift, and enter state 72
 
 
 State 55
 
-	RValue -> Call .                                    (rule 66)
+	RValue -> Call .                                    (rule 58)
 
-	and            reduce using rule 66
-	div            reduce using rule 66
-	do             reduce using rule 66
-	else           reduce using rule 66
-	end            reduce using rule 66
-	mod            reduce using rule 66
-	or             reduce using rule 66
-	then           reduce using rule 66
-	'='            reduce using rule 66
-	'>'            reduce using rule 66
-	'<'            reduce using rule 66
-	diff           reduce using rule 66
-	greq           reduce using rule 66
-	smeq           reduce using rule 66
-	'+'            reduce using rule 66
-	'-'            reduce using rule 66
-	'*'            reduce using rule 66
-	'/'            reduce using rule 66
-	'^'            reduce using rule 66
-	';'            reduce using rule 66
-	')'            reduce using rule 66
-	','            reduce using rule 66
-	']'            reduce using rule 66
+	and            reduce using rule 58
+	div            reduce using rule 58
+	do             reduce using rule 58
+	else           reduce using rule 58
+	end            reduce using rule 58
+	mod            reduce using rule 58
+	or             reduce using rule 58
+	then           reduce using rule 58
+	'='            reduce using rule 58
+	'>'            reduce using rule 58
+	'<'            reduce using rule 58
+	diff           reduce using rule 58
+	greq           reduce using rule 58
+	smeq           reduce using rule 58
+	'+'            reduce using rule 58
+	'-'            reduce using rule 58
+	'*'            reduce using rule 58
+	'/'            reduce using rule 58
+	'^'            reduce using rule 58
+	';'            reduce using rule 58
+	')'            reduce using rule 58
+	','            reduce using rule 58
+	']'            reduce using rule 58
 
 
 State 56
 
-	LValue -> id .                                      (rule 53)
+	LValue -> id .                                      (rule 79)
 	Call -> id . '(' ArgExprs ')'                       (rule 85)
 
-	and            reduce using rule 53
-	div            reduce using rule 53
-	do             reduce using rule 53
-	else           reduce using rule 53
-	end            reduce using rule 53
-	mod            reduce using rule 53
-	or             reduce using rule 53
-	then           reduce using rule 53
-	'='            reduce using rule 53
-	'>'            reduce using rule 53
-	'<'            reduce using rule 53
-	diff           reduce using rule 53
-	greq           reduce using rule 53
-	smeq           reduce using rule 53
-	'+'            reduce using rule 53
-	'-'            reduce using rule 53
-	'*'            reduce using rule 53
-	'/'            reduce using rule 53
-	'^'            reduce using rule 53
-	';'            reduce using rule 53
+	and            reduce using rule 79
+	div            reduce using rule 79
+	do             reduce using rule 79
+	else           reduce using rule 79
+	end            reduce using rule 79
+	mod            reduce using rule 79
+	or             reduce using rule 79
+	then           reduce using rule 79
+	'='            reduce using rule 79
+	'>'            reduce using rule 79
+	'<'            reduce using rule 79
+	diff           reduce using rule 79
+	greq           reduce using rule 79
+	smeq           reduce using rule 79
+	'+'            reduce using rule 79
+	'-'            reduce using rule 79
+	'*'            reduce using rule 79
+	'/'            reduce using rule 79
+	'^'            reduce using rule 79
+	';'            reduce using rule 79
 	'('            shift, and enter state 61
-	')'            reduce using rule 53
-	','            reduce using rule 53
-	'['            reduce using rule 53
-	']'            reduce using rule 53
+	')'            reduce using rule 79
+	','            reduce using rule 79
+	'['            reduce using rule 79
+	']'            reduce using rule 79
 
 
 State 57
 
-	Expr -> LValue .                                    (rule 51)
-	LValue -> LValue . '[' Expr ']'                     (rule 56)
-	RValue -> '@' LValue .                              (rule 67)
+	RValue -> '@' LValue .                              (rule 59)
+	Expr -> LValue .                                    (rule 77)
+	LValue -> LValue . '[' Expr ']'                     (rule 82)
 
-	and            reduce using rule 67
-			(reduce using rule 51)
+	and            reduce using rule 77
+			(reduce using rule 59)
 
-	div            reduce using rule 67
-			(reduce using rule 51)
+	div            reduce using rule 77
+			(reduce using rule 59)
 
-	do             reduce using rule 67
-	else           reduce using rule 67
-	end            reduce using rule 67
-	mod            reduce using rule 67
-			(reduce using rule 51)
+	do             reduce using rule 59
+	else           reduce using rule 59
+	end            reduce using rule 59
+	mod            reduce using rule 77
+			(reduce using rule 59)
 
-	or             reduce using rule 67
-			(reduce using rule 51)
+	or             reduce using rule 77
+			(reduce using rule 59)
 
-	then           reduce using rule 67
-	'='            reduce using rule 67
-			(reduce using rule 51)
+	then           reduce using rule 59
+	'='            reduce using rule 77
+			(reduce using rule 59)
 
-	'>'            reduce using rule 67
-			(reduce using rule 51)
+	'>'            reduce using rule 77
+			(reduce using rule 59)
 
-	'<'            reduce using rule 67
-			(reduce using rule 51)
+	'<'            reduce using rule 77
+			(reduce using rule 59)
 
-	diff           reduce using rule 67
-			(reduce using rule 51)
+	diff           reduce using rule 77
+			(reduce using rule 59)
 
-	greq           reduce using rule 67
-			(reduce using rule 51)
+	greq           reduce using rule 77
+			(reduce using rule 59)
 
-	smeq           reduce using rule 67
-			(reduce using rule 51)
+	smeq           reduce using rule 77
+			(reduce using rule 59)
 
-	'+'            reduce using rule 67
-			(reduce using rule 51)
+	'+'            reduce using rule 77
+			(reduce using rule 59)
 
-	'-'            reduce using rule 67
-			(reduce using rule 51)
+	'-'            reduce using rule 77
+			(reduce using rule 59)
 
-	'*'            reduce using rule 67
-			(reduce using rule 51)
+	'*'            reduce using rule 77
+			(reduce using rule 59)
 
-	'/'            reduce using rule 67
-			(reduce using rule 51)
+	'/'            reduce using rule 77
+			(reduce using rule 59)
 
-	'^'            reduce using rule 67
-			(reduce using rule 51)
+	'^'            reduce using rule 77
+			(reduce using rule 59)
 
-	';'            reduce using rule 67
-	')'            reduce using rule 67
-	','            reduce using rule 67
+	';'            reduce using rule 59
+	')'            reduce using rule 59
+	','            reduce using rule 59
 	'['            shift, and enter state 72
-	']'            reduce using rule 67
+	']'            reduce using rule 59
 
 
 State 58
 
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> '-' Expr .                                (rule 70)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> '-' Expr .                                (rule 62)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 
-	and            reduce using rule 70
-	div            reduce using rule 70
-	do             reduce using rule 70
-	else           reduce using rule 70
-	end            reduce using rule 70
-	mod            reduce using rule 70
-	or             reduce using rule 70
-	then           reduce using rule 70
-	'='            reduce using rule 70
-	'>'            reduce using rule 70
-	'<'            reduce using rule 70
-	diff           reduce using rule 70
-	greq           reduce using rule 70
-	smeq           reduce using rule 70
-	'+'            reduce using rule 70
-	'-'            reduce using rule 70
-	'*'            reduce using rule 70
-	'/'            reduce using rule 70
+	and            reduce using rule 62
+	div            reduce using rule 62
+	do             reduce using rule 62
+	else           reduce using rule 62
+	end            reduce using rule 62
+	mod            reduce using rule 62
+	or             reduce using rule 62
+	then           reduce using rule 62
+	'='            reduce using rule 62
+	'>'            reduce using rule 62
+	'<'            reduce using rule 62
+	diff           reduce using rule 62
+	greq           reduce using rule 62
+	smeq           reduce using rule 62
+	'+'            reduce using rule 62
+	'-'            reduce using rule 62
+	'*'            reduce using rule 62
+	'/'            reduce using rule 62
 	'^'            shift, and enter state 87
-	';'            reduce using rule 70
-	')'            reduce using rule 70
-	','            reduce using rule 70
-	']'            reduce using rule 70
+	';'            reduce using rule 62
+	')'            reduce using rule 62
+	','            reduce using rule 62
+	']'            reduce using rule 62
 
 
 State 59
 
-	Expr -> LValue .                                    (rule 51)
-	LValue -> LValue . '[' Expr ']'                     (rule 56)
+	Expr -> LValue .                                    (rule 77)
+	LValue -> LValue . '[' Expr ']'                     (rule 82)
 
-	and            reduce using rule 51
-	div            reduce using rule 51
-	do             reduce using rule 51
-	else           reduce using rule 51
-	end            reduce using rule 51
-	mod            reduce using rule 51
-	or             reduce using rule 51
-	then           reduce using rule 51
-	'='            reduce using rule 51
-	'>'            reduce using rule 51
-	'<'            reduce using rule 51
-	diff           reduce using rule 51
-	greq           reduce using rule 51
-	smeq           reduce using rule 51
-	'+'            reduce using rule 51
-	'-'            reduce using rule 51
-	'*'            reduce using rule 51
-	'/'            reduce using rule 51
-	'^'            reduce using rule 51
-	';'            reduce using rule 51
-	')'            reduce using rule 51
-	','            reduce using rule 51
+	and            reduce using rule 77
+	div            reduce using rule 77
+	do             reduce using rule 77
+	else           reduce using rule 77
+	end            reduce using rule 77
+	mod            reduce using rule 77
+	or             reduce using rule 77
+	then           reduce using rule 77
+	'='            reduce using rule 77
+	'>'            reduce using rule 77
+	'<'            reduce using rule 77
+	diff           reduce using rule 77
+	greq           reduce using rule 77
+	smeq           reduce using rule 77
+	'+'            reduce using rule 77
+	'-'            reduce using rule 77
+	'*'            reduce using rule 77
+	'/'            reduce using rule 77
+	'^'            reduce using rule 77
+	';'            reduce using rule 77
+	')'            reduce using rule 77
+	','            reduce using rule 77
 	'['            shift, and enter state 72
-	']'            reduce using rule 51
+	']'            reduce using rule 77
 
 
 State 60
 
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> '+' Expr .                                (rule 69)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> '+' Expr .                                (rule 61)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 
-	and            reduce using rule 69
-	div            reduce using rule 69
-	do             reduce using rule 69
-	else           reduce using rule 69
-	end            reduce using rule 69
-	mod            reduce using rule 69
-	or             reduce using rule 69
-	then           reduce using rule 69
-	'='            reduce using rule 69
-	'>'            reduce using rule 69
-	'<'            reduce using rule 69
-	diff           reduce using rule 69
-	greq           reduce using rule 69
-	smeq           reduce using rule 69
-	'+'            reduce using rule 69
-	'-'            reduce using rule 69
-	'*'            reduce using rule 69
-	'/'            reduce using rule 69
+	and            reduce using rule 61
+	div            reduce using rule 61
+	do             reduce using rule 61
+	else           reduce using rule 61
+	end            reduce using rule 61
+	mod            reduce using rule 61
+	or             reduce using rule 61
+	then           reduce using rule 61
+	'='            reduce using rule 61
+	'>'            reduce using rule 61
+	'<'            reduce using rule 61
+	diff           reduce using rule 61
+	greq           reduce using rule 61
+	smeq           reduce using rule 61
+	'+'            reduce using rule 61
+	'-'            reduce using rule 61
+	'*'            reduce using rule 61
+	'/'            reduce using rule 61
 	'^'            shift, and enter state 87
-	';'            reduce using rule 69
-	')'            reduce using rule 69
-	','            reduce using rule 69
-	']'            reduce using rule 69
+	';'            reduce using rule 61
+	')'            reduce using rule 61
+	','            reduce using rule 61
+	']'            reduce using rule 61
 
 
 State 61
@@ -1396,9 +1396,9 @@ State 61
 	'('            shift, and enter state 50
 	')'            reduce using rule 87
 
+	RValue         goto state 27
 	Expr           goto state 129
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 	ArgExprs       goto state 130
 
@@ -1433,29 +1433,29 @@ State 62
 
 	Block          goto state 25
 	Stmt           goto state 128
-	Expr           goto state 27
-	LValue         goto state 28
-	RValue         goto state 29
+	RValue         goto state 27
+	Expr           goto state 28
+	LValue         goto state 29
 	Call           goto state 30
 
 State 63
 
 	Stmt -> while Expr . do Stmt                        (rule 39)
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 
 	and            shift, and enter state 73
 	div            shift, and enter state 74
@@ -1477,46 +1477,46 @@ State 63
 
 State 64
 
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> not Expr .                                (rule 68)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> not Expr .                                (rule 60)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 
-	and            reduce using rule 68
-	div            reduce using rule 68
-	do             reduce using rule 68
-	else           reduce using rule 68
-	end            reduce using rule 68
-	mod            reduce using rule 68
-	or             reduce using rule 68
-	then           reduce using rule 68
-	'='            reduce using rule 68
-	'>'            reduce using rule 68
-	'<'            reduce using rule 68
-	diff           reduce using rule 68
-	greq           reduce using rule 68
-	smeq           reduce using rule 68
-	'+'            reduce using rule 68
-	'-'            reduce using rule 68
-	'*'            reduce using rule 68
-	'/'            reduce using rule 68
+	and            reduce using rule 60
+	div            reduce using rule 60
+	do             reduce using rule 60
+	else           reduce using rule 60
+	end            reduce using rule 60
+	mod            reduce using rule 60
+	or             reduce using rule 60
+	then           reduce using rule 60
+	'='            reduce using rule 60
+	'>'            reduce using rule 60
+	'<'            reduce using rule 60
+	diff           reduce using rule 60
+	greq           reduce using rule 60
+	smeq           reduce using rule 60
+	'+'            reduce using rule 60
+	'-'            reduce using rule 60
+	'*'            reduce using rule 60
+	'/'            reduce using rule 60
 	'^'            shift, and enter state 87
-	';'            reduce using rule 68
-	')'            reduce using rule 68
-	','            reduce using rule 68
-	']'            reduce using rule 68
+	';'            reduce using rule 60
+	')'            reduce using rule 60
+	','            reduce using rule 60
+	']'            reduce using rule 60
 
 
 State 65
@@ -1538,9 +1538,9 @@ State 65
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
-	Expr           goto state 27
+	RValue         goto state 27
+	Expr           goto state 28
 	LValue         goto state 126
-	RValue         goto state 29
 	Call           goto state 55
 
 State 66
@@ -1562,29 +1562,29 @@ State 66
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 125
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 67
 
 	Stmt -> if Expr . then Stmt Else                    (rule 38)
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 
 	and            shift, and enter state 73
 	div            shift, and enter state 74
@@ -1632,9 +1632,9 @@ State 69
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
-	Expr           goto state 27
+	RValue         goto state 27
+	Expr           goto state 28
 	LValue         goto state 123
-	RValue         goto state 29
 	Call           goto state 55
 
 State 70
@@ -1663,14 +1663,14 @@ State 71
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 121
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 72
 
-	LValue -> LValue '[' . Expr ']'                     (rule 56)
+	LValue -> LValue '[' . Expr ']'                     (rule 82)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1687,14 +1687,14 @@ State 72
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 120
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 73
 
-	RValue -> Expr and . Expr                           (rule 78)
+	RValue -> Expr and . Expr                           (rule 70)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1711,14 +1711,14 @@ State 73
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 119
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 74
 
-	RValue -> Expr div . Expr                           (rule 75)
+	RValue -> Expr div . Expr                           (rule 67)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1735,14 +1735,14 @@ State 74
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 118
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 75
 
-	RValue -> Expr mod . Expr                           (rule 76)
+	RValue -> Expr mod . Expr                           (rule 68)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1759,14 +1759,14 @@ State 75
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 117
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 76
 
-	RValue -> Expr or . Expr                            (rule 77)
+	RValue -> Expr or . Expr                            (rule 69)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1783,14 +1783,14 @@ State 76
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 116
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 77
 
-	RValue -> Expr '=' . Expr                           (rule 79)
+	RValue -> Expr '=' . Expr                           (rule 71)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1807,14 +1807,14 @@ State 77
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 115
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 78
 
-	RValue -> Expr '>' . Expr                           (rule 82)
+	RValue -> Expr '>' . Expr                           (rule 74)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1831,14 +1831,14 @@ State 78
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 114
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 79
 
-	RValue -> Expr '<' . Expr                           (rule 81)
+	RValue -> Expr '<' . Expr                           (rule 73)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1855,14 +1855,14 @@ State 79
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 113
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 80
 
-	RValue -> Expr diff . Expr                          (rule 80)
+	RValue -> Expr diff . Expr                          (rule 72)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1879,14 +1879,14 @@ State 80
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 112
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 81
 
-	RValue -> Expr greq . Expr                          (rule 83)
+	RValue -> Expr greq . Expr                          (rule 75)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1903,14 +1903,14 @@ State 81
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 111
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 82
 
-	RValue -> Expr smeq . Expr                          (rule 84)
+	RValue -> Expr smeq . Expr                          (rule 76)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1927,14 +1927,14 @@ State 82
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 110
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 83
 
-	RValue -> Expr '+' . Expr                           (rule 71)
+	RValue -> Expr '+' . Expr                           (rule 63)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1951,14 +1951,14 @@ State 83
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 109
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 84
 
-	RValue -> Expr '-' . Expr                           (rule 73)
+	RValue -> Expr '-' . Expr                           (rule 65)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1975,14 +1975,14 @@ State 84
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 108
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 85
 
-	RValue -> Expr '*' . Expr                           (rule 72)
+	RValue -> Expr '*' . Expr                           (rule 64)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1999,14 +1999,14 @@ State 85
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 107
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 86
 
-	RValue -> Expr '/' . Expr                           (rule 74)
+	RValue -> Expr '/' . Expr                           (rule 66)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -2023,40 +2023,40 @@ State 86
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 106
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 87
 
-	LValue -> Expr '^' .                                (rule 57)
+	LValue -> Expr '^' .                                (rule 83)
 
-	and            reduce using rule 57
-	div            reduce using rule 57
-	do             reduce using rule 57
-	else           reduce using rule 57
-	end            reduce using rule 57
-	mod            reduce using rule 57
-	or             reduce using rule 57
-	then           reduce using rule 57
-	'='            reduce using rule 57
-	'>'            reduce using rule 57
-	'<'            reduce using rule 57
-	diff           reduce using rule 57
-	greq           reduce using rule 57
-	smeq           reduce using rule 57
-	'+'            reduce using rule 57
-	'-'            reduce using rule 57
-	'*'            reduce using rule 57
-	'/'            reduce using rule 57
-	'^'            reduce using rule 57
-	equal          reduce using rule 57
-	';'            reduce using rule 57
-	')'            reduce using rule 57
-	','            reduce using rule 57
-	'['            reduce using rule 57
-	']'            reduce using rule 57
+	and            reduce using rule 83
+	div            reduce using rule 83
+	do             reduce using rule 83
+	else           reduce using rule 83
+	end            reduce using rule 83
+	mod            reduce using rule 83
+	or             reduce using rule 83
+	then           reduce using rule 83
+	'='            reduce using rule 83
+	'>'            reduce using rule 83
+	'<'            reduce using rule 83
+	diff           reduce using rule 83
+	greq           reduce using rule 83
+	smeq           reduce using rule 83
+	'+'            reduce using rule 83
+	'-'            reduce using rule 83
+	'*'            reduce using rule 83
+	'/'            reduce using rule 83
+	'^'            reduce using rule 83
+	equal          reduce using rule 83
+	';'            reduce using rule 83
+	')'            reduce using rule 83
+	','            reduce using rule 83
+	'['            reduce using rule 83
+	']'            reduce using rule 83
 
 
 State 88
@@ -2254,92 +2254,312 @@ State 105
 
 	Block          goto state 25
 	Stmt           goto state 140
-	Expr           goto state 27
-	LValue         goto state 28
-	RValue         goto state 29
+	RValue         goto state 27
+	Expr           goto state 28
+	LValue         goto state 29
 	Call           goto state 30
 
 State 106
 
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr '/' Expr .                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr '/' Expr .                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 
-	and            reduce using rule 74
-	div            reduce using rule 74
-	do             reduce using rule 74
-	else           reduce using rule 74
-	end            reduce using rule 74
-	mod            reduce using rule 74
-	or             reduce using rule 74
-	then           reduce using rule 74
-	'='            reduce using rule 74
-	'>'            reduce using rule 74
-	'<'            reduce using rule 74
-	diff           reduce using rule 74
-	greq           reduce using rule 74
-	smeq           reduce using rule 74
-	'+'            reduce using rule 74
-	'-'            reduce using rule 74
-	'*'            reduce using rule 74
-	'/'            reduce using rule 74
+	and            reduce using rule 66
+	div            reduce using rule 66
+	do             reduce using rule 66
+	else           reduce using rule 66
+	end            reduce using rule 66
+	mod            reduce using rule 66
+	or             reduce using rule 66
+	then           reduce using rule 66
+	'='            reduce using rule 66
+	'>'            reduce using rule 66
+	'<'            reduce using rule 66
+	diff           reduce using rule 66
+	greq           reduce using rule 66
+	smeq           reduce using rule 66
+	'+'            reduce using rule 66
+	'-'            reduce using rule 66
+	'*'            reduce using rule 66
+	'/'            reduce using rule 66
 	'^'            shift, and enter state 87
-	';'            reduce using rule 74
-	')'            reduce using rule 74
-	','            reduce using rule 74
-	']'            reduce using rule 74
+	';'            reduce using rule 66
+	')'            reduce using rule 66
+	','            reduce using rule 66
+	']'            reduce using rule 66
 
 
 State 107
 
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr '*' Expr .                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr '*' Expr .                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 
-	and            reduce using rule 72
-	div            reduce using rule 72
+	and            reduce using rule 64
+	div            reduce using rule 64
+	do             reduce using rule 64
+	else           reduce using rule 64
+	end            reduce using rule 64
+	mod            reduce using rule 64
+	or             reduce using rule 64
+	then           reduce using rule 64
+	'='            reduce using rule 64
+	'>'            reduce using rule 64
+	'<'            reduce using rule 64
+	diff           reduce using rule 64
+	greq           reduce using rule 64
+	smeq           reduce using rule 64
+	'+'            reduce using rule 64
+	'-'            reduce using rule 64
+	'*'            reduce using rule 64
+	'/'            reduce using rule 64
+	'^'            shift, and enter state 87
+	';'            reduce using rule 64
+	')'            reduce using rule 64
+	','            reduce using rule 64
+	']'            reduce using rule 64
+
+
+State 108
+
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr '-' Expr .                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
+
+	and            shift, and enter state 73
+	div            shift, and enter state 74
+	do             reduce using rule 65
+	else           reduce using rule 65
+	end            reduce using rule 65
+	mod            shift, and enter state 75
+	or             reduce using rule 65
+	then           reduce using rule 65
+	'='            reduce using rule 65
+	'>'            reduce using rule 65
+	'<'            reduce using rule 65
+	diff           reduce using rule 65
+	greq           reduce using rule 65
+	smeq           reduce using rule 65
+	'+'            reduce using rule 65
+	'-'            reduce using rule 65
+	'*'            shift, and enter state 85
+	'/'            shift, and enter state 86
+	'^'            shift, and enter state 87
+	';'            reduce using rule 65
+	')'            reduce using rule 65
+	','            reduce using rule 65
+	']'            reduce using rule 65
+
+
+State 109
+
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr '+' Expr .                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
+
+	and            shift, and enter state 73
+	div            shift, and enter state 74
+	do             reduce using rule 63
+	else           reduce using rule 63
+	end            reduce using rule 63
+	mod            shift, and enter state 75
+	or             reduce using rule 63
+	then           reduce using rule 63
+	'='            reduce using rule 63
+	'>'            reduce using rule 63
+	'<'            reduce using rule 63
+	diff           reduce using rule 63
+	greq           reduce using rule 63
+	smeq           reduce using rule 63
+	'+'            reduce using rule 63
+	'-'            reduce using rule 63
+	'*'            shift, and enter state 85
+	'/'            shift, and enter state 86
+	'^'            shift, and enter state 87
+	';'            reduce using rule 63
+	')'            reduce using rule 63
+	','            reduce using rule 63
+	']'            reduce using rule 63
+
+
+State 110
+
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	RValue -> Expr smeq Expr .                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
+
+	and            shift, and enter state 73
+	div            shift, and enter state 74
+	do             reduce using rule 76
+	else           reduce using rule 76
+	end            reduce using rule 76
+	mod            shift, and enter state 75
+	or             shift, and enter state 76
+	then           reduce using rule 76
+	'='            fail
+	'>'            fail
+	'<'            fail
+	diff           fail
+	greq           fail
+	smeq           fail
+	'+'            shift, and enter state 83
+	'-'            shift, and enter state 84
+	'*'            shift, and enter state 85
+	'/'            shift, and enter state 86
+	'^'            shift, and enter state 87
+	';'            reduce using rule 76
+	')'            reduce using rule 76
+	','            reduce using rule 76
+	']'            reduce using rule 76
+
+
+State 111
+
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr greq Expr .                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
+
+	and            shift, and enter state 73
+	div            shift, and enter state 74
+	do             reduce using rule 75
+	else           reduce using rule 75
+	end            reduce using rule 75
+	mod            shift, and enter state 75
+	or             shift, and enter state 76
+	then           reduce using rule 75
+	'='            fail
+	'>'            fail
+	'<'            fail
+	diff           fail
+	greq           fail
+	smeq           fail
+	'+'            shift, and enter state 83
+	'-'            shift, and enter state 84
+	'*'            shift, and enter state 85
+	'/'            shift, and enter state 86
+	'^'            shift, and enter state 87
+	';'            reduce using rule 75
+	')'            reduce using rule 75
+	','            reduce using rule 75
+	']'            reduce using rule 75
+
+
+State 112
+
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr diff Expr .                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
+
+	and            shift, and enter state 73
+	div            shift, and enter state 74
 	do             reduce using rule 72
 	else           reduce using rule 72
 	end            reduce using rule 72
-	mod            reduce using rule 72
-	or             reduce using rule 72
+	mod            shift, and enter state 75
+	or             shift, and enter state 76
 	then           reduce using rule 72
-	'='            reduce using rule 72
-	'>'            reduce using rule 72
-	'<'            reduce using rule 72
-	diff           reduce using rule 72
-	greq           reduce using rule 72
-	smeq           reduce using rule 72
-	'+'            reduce using rule 72
-	'-'            reduce using rule 72
-	'*'            reduce using rule 72
-	'/'            reduce using rule 72
+	'='            fail
+	'>'            fail
+	'<'            fail
+	diff           fail
+	greq           fail
+	smeq           fail
+	'+'            shift, and enter state 83
+	'-'            shift, and enter state 84
+	'*'            shift, and enter state 85
+	'/'            shift, and enter state 86
 	'^'            shift, and enter state 87
 	';'            reduce using rule 72
 	')'            reduce using rule 72
@@ -2347,24 +2567,24 @@ State 107
 	']'            reduce using rule 72
 
 
-State 108
+State 113
 
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr '-' Expr .                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr '<' Expr .                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 
 	and            shift, and enter state 73
 	div            shift, and enter state 74
@@ -2372,16 +2592,16 @@ State 108
 	else           reduce using rule 73
 	end            reduce using rule 73
 	mod            shift, and enter state 75
-	or             reduce using rule 73
+	or             shift, and enter state 76
 	then           reduce using rule 73
-	'='            reduce using rule 73
-	'>'            reduce using rule 73
-	'<'            reduce using rule 73
-	diff           reduce using rule 73
-	greq           reduce using rule 73
-	smeq           reduce using rule 73
-	'+'            reduce using rule 73
-	'-'            reduce using rule 73
+	'='            fail
+	'>'            fail
+	'<'            fail
+	diff           fail
+	greq           fail
+	smeq           fail
+	'+'            shift, and enter state 83
+	'-'            shift, and enter state 84
 	'*'            shift, and enter state 85
 	'/'            shift, and enter state 86
 	'^'            shift, and enter state 87
@@ -2391,24 +2611,68 @@ State 108
 	']'            reduce using rule 73
 
 
-State 109
+State 114
 
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr '+' Expr .                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr '>' Expr .                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
+
+	and            shift, and enter state 73
+	div            shift, and enter state 74
+	do             reduce using rule 74
+	else           reduce using rule 74
+	end            reduce using rule 74
+	mod            shift, and enter state 75
+	or             shift, and enter state 76
+	then           reduce using rule 74
+	'='            fail
+	'>'            fail
+	'<'            fail
+	diff           fail
+	greq           fail
+	smeq           fail
+	'+'            shift, and enter state 83
+	'-'            shift, and enter state 84
+	'*'            shift, and enter state 85
+	'/'            shift, and enter state 86
+	'^'            shift, and enter state 87
+	';'            reduce using rule 74
+	')'            reduce using rule 74
+	','            reduce using rule 74
+	']'            reduce using rule 74
+
+
+State 115
+
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr '=' Expr .                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 
 	and            shift, and enter state 73
 	div            shift, and enter state 74
@@ -2416,16 +2680,16 @@ State 109
 	else           reduce using rule 71
 	end            reduce using rule 71
 	mod            shift, and enter state 75
-	or             reduce using rule 71
+	or             shift, and enter state 76
 	then           reduce using rule 71
-	'='            reduce using rule 71
-	'>'            reduce using rule 71
-	'<'            reduce using rule 71
-	diff           reduce using rule 71
-	greq           reduce using rule 71
-	smeq           reduce using rule 71
-	'+'            reduce using rule 71
-	'-'            reduce using rule 71
+	'='            fail
+	'>'            fail
+	'<'            fail
+	diff           fail
+	greq           fail
+	smeq           fail
+	'+'            shift, and enter state 83
+	'-'            shift, and enter state 84
 	'*'            shift, and enter state 85
 	'/'            shift, and enter state 86
 	'^'            shift, and enter state 87
@@ -2435,464 +2699,200 @@ State 109
 	']'            reduce using rule 71
 
 
-State 110
-
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
-	RValue -> Expr smeq Expr .                          (rule 84)
-
-	and            shift, and enter state 73
-	div            shift, and enter state 74
-	do             reduce using rule 84
-	else           reduce using rule 84
-	end            reduce using rule 84
-	mod            shift, and enter state 75
-	or             shift, and enter state 76
-	then           reduce using rule 84
-	'='            fail
-	'>'            fail
-	'<'            fail
-	diff           fail
-	greq           fail
-	smeq           fail
-	'+'            shift, and enter state 83
-	'-'            shift, and enter state 84
-	'*'            shift, and enter state 85
-	'/'            shift, and enter state 86
-	'^'            shift, and enter state 87
-	';'            reduce using rule 84
-	')'            reduce using rule 84
-	','            reduce using rule 84
-	']'            reduce using rule 84
-
-
-State 111
-
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr greq Expr .                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
-
-	and            shift, and enter state 73
-	div            shift, and enter state 74
-	do             reduce using rule 83
-	else           reduce using rule 83
-	end            reduce using rule 83
-	mod            shift, and enter state 75
-	or             shift, and enter state 76
-	then           reduce using rule 83
-	'='            fail
-	'>'            fail
-	'<'            fail
-	diff           fail
-	greq           fail
-	smeq           fail
-	'+'            shift, and enter state 83
-	'-'            shift, and enter state 84
-	'*'            shift, and enter state 85
-	'/'            shift, and enter state 86
-	'^'            shift, and enter state 87
-	';'            reduce using rule 83
-	')'            reduce using rule 83
-	','            reduce using rule 83
-	']'            reduce using rule 83
-
-
-State 112
-
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr diff Expr .                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
-
-	and            shift, and enter state 73
-	div            shift, and enter state 74
-	do             reduce using rule 80
-	else           reduce using rule 80
-	end            reduce using rule 80
-	mod            shift, and enter state 75
-	or             shift, and enter state 76
-	then           reduce using rule 80
-	'='            fail
-	'>'            fail
-	'<'            fail
-	diff           fail
-	greq           fail
-	smeq           fail
-	'+'            shift, and enter state 83
-	'-'            shift, and enter state 84
-	'*'            shift, and enter state 85
-	'/'            shift, and enter state 86
-	'^'            shift, and enter state 87
-	';'            reduce using rule 80
-	')'            reduce using rule 80
-	','            reduce using rule 80
-	']'            reduce using rule 80
-
-
-State 113
-
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr '<' Expr .                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
-
-	and            shift, and enter state 73
-	div            shift, and enter state 74
-	do             reduce using rule 81
-	else           reduce using rule 81
-	end            reduce using rule 81
-	mod            shift, and enter state 75
-	or             shift, and enter state 76
-	then           reduce using rule 81
-	'='            fail
-	'>'            fail
-	'<'            fail
-	diff           fail
-	greq           fail
-	smeq           fail
-	'+'            shift, and enter state 83
-	'-'            shift, and enter state 84
-	'*'            shift, and enter state 85
-	'/'            shift, and enter state 86
-	'^'            shift, and enter state 87
-	';'            reduce using rule 81
-	')'            reduce using rule 81
-	','            reduce using rule 81
-	']'            reduce using rule 81
-
-
-State 114
-
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr '>' Expr .                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
-
-	and            shift, and enter state 73
-	div            shift, and enter state 74
-	do             reduce using rule 82
-	else           reduce using rule 82
-	end            reduce using rule 82
-	mod            shift, and enter state 75
-	or             shift, and enter state 76
-	then           reduce using rule 82
-	'='            fail
-	'>'            fail
-	'<'            fail
-	diff           fail
-	greq           fail
-	smeq           fail
-	'+'            shift, and enter state 83
-	'-'            shift, and enter state 84
-	'*'            shift, and enter state 85
-	'/'            shift, and enter state 86
-	'^'            shift, and enter state 87
-	';'            reduce using rule 82
-	')'            reduce using rule 82
-	','            reduce using rule 82
-	']'            reduce using rule 82
-
-
-State 115
-
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr '=' Expr .                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
-
-	and            shift, and enter state 73
-	div            shift, and enter state 74
-	do             reduce using rule 79
-	else           reduce using rule 79
-	end            reduce using rule 79
-	mod            shift, and enter state 75
-	or             shift, and enter state 76
-	then           reduce using rule 79
-	'='            fail
-	'>'            fail
-	'<'            fail
-	diff           fail
-	greq           fail
-	smeq           fail
-	'+'            shift, and enter state 83
-	'-'            shift, and enter state 84
-	'*'            shift, and enter state 85
-	'/'            shift, and enter state 86
-	'^'            shift, and enter state 87
-	';'            reduce using rule 79
-	')'            reduce using rule 79
-	','            reduce using rule 79
-	']'            reduce using rule 79
-
-
 State 116
 
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr or Expr .                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr or Expr .                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 
 	and            shift, and enter state 73
 	div            shift, and enter state 74
-	do             reduce using rule 77
-	else           reduce using rule 77
-	end            reduce using rule 77
+	do             reduce using rule 69
+	else           reduce using rule 69
+	end            reduce using rule 69
 	mod            shift, and enter state 75
-	or             reduce using rule 77
-	then           reduce using rule 77
-	'='            reduce using rule 77
-	'>'            reduce using rule 77
-	'<'            reduce using rule 77
-	diff           reduce using rule 77
-	greq           reduce using rule 77
-	smeq           reduce using rule 77
-	'+'            reduce using rule 77
-	'-'            reduce using rule 77
+	or             reduce using rule 69
+	then           reduce using rule 69
+	'='            reduce using rule 69
+	'>'            reduce using rule 69
+	'<'            reduce using rule 69
+	diff           reduce using rule 69
+	greq           reduce using rule 69
+	smeq           reduce using rule 69
+	'+'            reduce using rule 69
+	'-'            reduce using rule 69
 	'*'            shift, and enter state 85
 	'/'            shift, and enter state 86
 	'^'            shift, and enter state 87
-	';'            reduce using rule 77
-	')'            reduce using rule 77
-	','            reduce using rule 77
-	']'            reduce using rule 77
+	';'            reduce using rule 69
+	')'            reduce using rule 69
+	','            reduce using rule 69
+	']'            reduce using rule 69
 
 
 State 117
 
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr mod Expr .                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr mod Expr .                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 
-	and            reduce using rule 76
-	div            reduce using rule 76
-	do             reduce using rule 76
-	else           reduce using rule 76
-	end            reduce using rule 76
-	mod            reduce using rule 76
-	or             reduce using rule 76
-	then           reduce using rule 76
-	'='            reduce using rule 76
-	'>'            reduce using rule 76
-	'<'            reduce using rule 76
-	diff           reduce using rule 76
-	greq           reduce using rule 76
-	smeq           reduce using rule 76
-	'+'            reduce using rule 76
-	'-'            reduce using rule 76
-	'*'            reduce using rule 76
-	'/'            reduce using rule 76
+	and            reduce using rule 68
+	div            reduce using rule 68
+	do             reduce using rule 68
+	else           reduce using rule 68
+	end            reduce using rule 68
+	mod            reduce using rule 68
+	or             reduce using rule 68
+	then           reduce using rule 68
+	'='            reduce using rule 68
+	'>'            reduce using rule 68
+	'<'            reduce using rule 68
+	diff           reduce using rule 68
+	greq           reduce using rule 68
+	smeq           reduce using rule 68
+	'+'            reduce using rule 68
+	'-'            reduce using rule 68
+	'*'            reduce using rule 68
+	'/'            reduce using rule 68
 	'^'            shift, and enter state 87
-	';'            reduce using rule 76
-	')'            reduce using rule 76
-	','            reduce using rule 76
-	']'            reduce using rule 76
+	';'            reduce using rule 68
+	')'            reduce using rule 68
+	','            reduce using rule 68
+	']'            reduce using rule 68
 
 
 State 118
 
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr div Expr .                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr div Expr .                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 
-	and            reduce using rule 75
-	div            reduce using rule 75
-	do             reduce using rule 75
-	else           reduce using rule 75
-	end            reduce using rule 75
-	mod            reduce using rule 75
-	or             reduce using rule 75
-	then           reduce using rule 75
-	'='            reduce using rule 75
-	'>'            reduce using rule 75
-	'<'            reduce using rule 75
-	diff           reduce using rule 75
-	greq           reduce using rule 75
-	smeq           reduce using rule 75
-	'+'            reduce using rule 75
-	'-'            reduce using rule 75
-	'*'            reduce using rule 75
-	'/'            reduce using rule 75
+	and            reduce using rule 67
+	div            reduce using rule 67
+	do             reduce using rule 67
+	else           reduce using rule 67
+	end            reduce using rule 67
+	mod            reduce using rule 67
+	or             reduce using rule 67
+	then           reduce using rule 67
+	'='            reduce using rule 67
+	'>'            reduce using rule 67
+	'<'            reduce using rule 67
+	diff           reduce using rule 67
+	greq           reduce using rule 67
+	smeq           reduce using rule 67
+	'+'            reduce using rule 67
+	'-'            reduce using rule 67
+	'*'            reduce using rule 67
+	'/'            reduce using rule 67
 	'^'            shift, and enter state 87
-	';'            reduce using rule 75
-	')'            reduce using rule 75
-	','            reduce using rule 75
-	']'            reduce using rule 75
+	';'            reduce using rule 67
+	')'            reduce using rule 67
+	','            reduce using rule 67
+	']'            reduce using rule 67
 
 
 State 119
 
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr and Expr .                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr and Expr .                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 
-	and            reduce using rule 78
-	div            reduce using rule 78
-	do             reduce using rule 78
-	else           reduce using rule 78
-	end            reduce using rule 78
-	mod            reduce using rule 78
-	or             reduce using rule 78
-	then           reduce using rule 78
-	'='            reduce using rule 78
-	'>'            reduce using rule 78
-	'<'            reduce using rule 78
-	diff           reduce using rule 78
-	greq           reduce using rule 78
-	smeq           reduce using rule 78
-	'+'            reduce using rule 78
-	'-'            reduce using rule 78
-	'*'            reduce using rule 78
-	'/'            reduce using rule 78
+	and            reduce using rule 70
+	div            reduce using rule 70
+	do             reduce using rule 70
+	else           reduce using rule 70
+	end            reduce using rule 70
+	mod            reduce using rule 70
+	or             reduce using rule 70
+	then           reduce using rule 70
+	'='            reduce using rule 70
+	'>'            reduce using rule 70
+	'<'            reduce using rule 70
+	diff           reduce using rule 70
+	greq           reduce using rule 70
+	smeq           reduce using rule 70
+	'+'            reduce using rule 70
+	'-'            reduce using rule 70
+	'*'            reduce using rule 70
+	'/'            reduce using rule 70
 	'^'            shift, and enter state 87
-	';'            reduce using rule 78
-	')'            reduce using rule 78
-	','            reduce using rule 78
-	']'            reduce using rule 78
+	';'            reduce using rule 70
+	')'            reduce using rule 70
+	','            reduce using rule 70
+	']'            reduce using rule 70
 
 
 State 120
 
-	LValue -> LValue '[' Expr . ']'                     (rule 56)
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> LValue '[' Expr . ']'                     (rule 82)
+	LValue -> Expr . '^'                                (rule 83)
 
 	and            shift, and enter state 73
 	div            shift, and enter state 74
@@ -2915,21 +2915,21 @@ State 120
 State 121
 
 	Stmt -> LValue equal Expr .                         (rule 35)
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 
 	and            shift, and enter state 73
 	div            shift, and enter state 74
@@ -2974,26 +2974,26 @@ State 122
 State 123
 
 	Stmt -> dispose Dispose LValue .                    (rule 44)
-	Expr -> LValue .                                    (rule 51)
-	LValue -> LValue . '[' Expr ']'                     (rule 56)
+	Expr -> LValue .                                    (rule 77)
+	LValue -> LValue . '[' Expr ']'                     (rule 82)
 
-	and            reduce using rule 51
-	div            reduce using rule 51
+	and            reduce using rule 77
+	div            reduce using rule 77
 	else           reduce using rule 44
 	end            reduce using rule 44
-	mod            reduce using rule 51
-	or             reduce using rule 51
-	'='            reduce using rule 51
-	'>'            reduce using rule 51
-	'<'            reduce using rule 51
-	diff           reduce using rule 51
-	greq           reduce using rule 51
-	smeq           reduce using rule 51
-	'+'            reduce using rule 51
-	'-'            reduce using rule 51
-	'*'            reduce using rule 51
-	'/'            reduce using rule 51
-	'^'            reduce using rule 51
+	mod            reduce using rule 77
+	or             reduce using rule 77
+	'='            reduce using rule 77
+	'>'            reduce using rule 77
+	'<'            reduce using rule 77
+	diff           reduce using rule 77
+	greq           reduce using rule 77
+	smeq           reduce using rule 77
+	'+'            reduce using rule 77
+	'-'            reduce using rule 77
+	'*'            reduce using rule 77
+	'/'            reduce using rule 77
+	'^'            reduce using rule 77
 	';'            reduce using rule 44
 	'['            shift, and enter state 72
 
@@ -3029,29 +3029,29 @@ State 124
 
 	Block          goto state 25
 	Stmt           goto state 138
-	Expr           goto state 27
-	LValue         goto state 28
-	RValue         goto state 29
+	RValue         goto state 27
+	Expr           goto state 28
+	LValue         goto state 29
 	Call           goto state 30
 
 State 125
 
 	New -> '[' Expr . ']'                               (rule 47)
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 
 	and            shift, and enter state 73
 	div            shift, and enter state 74
@@ -3074,26 +3074,26 @@ State 125
 State 126
 
 	Stmt -> new New LValue .                            (rule 43)
-	Expr -> LValue .                                    (rule 51)
-	LValue -> LValue . '[' Expr ']'                     (rule 56)
+	Expr -> LValue .                                    (rule 77)
+	LValue -> LValue . '[' Expr ']'                     (rule 82)
 
-	and            reduce using rule 51
-	div            reduce using rule 51
+	and            reduce using rule 77
+	div            reduce using rule 77
 	else           reduce using rule 43
 	end            reduce using rule 43
-	mod            reduce using rule 51
-	or             reduce using rule 51
-	'='            reduce using rule 51
-	'>'            reduce using rule 51
-	'<'            reduce using rule 51
-	diff           reduce using rule 51
-	greq           reduce using rule 51
-	smeq           reduce using rule 51
-	'+'            reduce using rule 51
-	'-'            reduce using rule 51
-	'*'            reduce using rule 51
-	'/'            reduce using rule 51
-	'^'            reduce using rule 51
+	mod            reduce using rule 77
+	or             reduce using rule 77
+	'='            reduce using rule 77
+	'>'            reduce using rule 77
+	'<'            reduce using rule 77
+	diff           reduce using rule 77
+	greq           reduce using rule 77
+	smeq           reduce using rule 77
+	'+'            reduce using rule 77
+	'-'            reduce using rule 77
+	'*'            reduce using rule 77
+	'/'            reduce using rule 77
+	'^'            reduce using rule 77
 	';'            reduce using rule 43
 	'['            shift, and enter state 72
 
@@ -3129,9 +3129,9 @@ State 127
 
 	Block          goto state 25
 	Stmt           goto state 136
-	Expr           goto state 27
-	LValue         goto state 28
-	RValue         goto state 29
+	RValue         goto state 27
+	Expr           goto state 28
+	LValue         goto state 29
 	Call           goto state 30
 
 State 128
@@ -3145,21 +3145,21 @@ State 128
 
 State 129
 
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 	ArgExprs -> Expr . Exprs                            (rule 86)
 
 	and            shift, and enter state 73
@@ -3191,62 +3191,62 @@ State 130
 
 State 131
 
-	RValue -> '(' RValue ')' .                          (rule 64)
+	LValue -> '(' LValue ')' .                          (rule 84)
 
-	and            reduce using rule 64
-	div            reduce using rule 64
-	do             reduce using rule 64
-	else           reduce using rule 64
-	end            reduce using rule 64
-	mod            reduce using rule 64
-	or             reduce using rule 64
-	then           reduce using rule 64
-	'='            reduce using rule 64
-	'>'            reduce using rule 64
-	'<'            reduce using rule 64
-	diff           reduce using rule 64
-	greq           reduce using rule 64
-	smeq           reduce using rule 64
-	'+'            reduce using rule 64
-	'-'            reduce using rule 64
-	'*'            reduce using rule 64
-	'/'            reduce using rule 64
-	'^'            reduce using rule 64
-	';'            reduce using rule 64
-	')'            reduce using rule 64
-	','            reduce using rule 64
-	']'            reduce using rule 64
+	and            reduce using rule 84
+	div            reduce using rule 84
+	do             reduce using rule 84
+	else           reduce using rule 84
+	end            reduce using rule 84
+	mod            reduce using rule 84
+	or             reduce using rule 84
+	then           reduce using rule 84
+	'='            reduce using rule 84
+	'>'            reduce using rule 84
+	'<'            reduce using rule 84
+	diff           reduce using rule 84
+	greq           reduce using rule 84
+	smeq           reduce using rule 84
+	'+'            reduce using rule 84
+	'-'            reduce using rule 84
+	'*'            reduce using rule 84
+	'/'            reduce using rule 84
+	'^'            reduce using rule 84
+	equal          reduce using rule 84
+	';'            reduce using rule 84
+	')'            reduce using rule 84
+	','            reduce using rule 84
+	'['            reduce using rule 84
+	']'            reduce using rule 84
 
 
 State 132
 
-	LValue -> '(' LValue ')' .                          (rule 58)
+	RValue -> '(' RValue ')' .                          (rule 56)
 
-	and            reduce using rule 58
-	div            reduce using rule 58
-	do             reduce using rule 58
-	else           reduce using rule 58
-	end            reduce using rule 58
-	mod            reduce using rule 58
-	or             reduce using rule 58
-	then           reduce using rule 58
-	'='            reduce using rule 58
-	'>'            reduce using rule 58
-	'<'            reduce using rule 58
-	diff           reduce using rule 58
-	greq           reduce using rule 58
-	smeq           reduce using rule 58
-	'+'            reduce using rule 58
-	'-'            reduce using rule 58
-	'*'            reduce using rule 58
-	'/'            reduce using rule 58
-	'^'            reduce using rule 58
-	equal          reduce using rule 58
-	';'            reduce using rule 58
-	')'            reduce using rule 58
-	','            reduce using rule 58
-	'['            reduce using rule 58
-	']'            reduce using rule 58
+	and            reduce using rule 56
+	div            reduce using rule 56
+	do             reduce using rule 56
+	else           reduce using rule 56
+	end            reduce using rule 56
+	mod            reduce using rule 56
+	or             reduce using rule 56
+	then           reduce using rule 56
+	'='            reduce using rule 56
+	'>'            reduce using rule 56
+	'<'            reduce using rule 56
+	diff           reduce using rule 56
+	greq           reduce using rule 56
+	smeq           reduce using rule 56
+	'+'            reduce using rule 56
+	'-'            reduce using rule 56
+	'*'            reduce using rule 56
+	'/'            reduce using rule 56
+	'^'            reduce using rule 56
+	';'            reduce using rule 56
+	')'            reduce using rule 56
+	','            reduce using rule 56
+	']'            reduce using rule 56
 
 
 State 133
@@ -3342,33 +3342,33 @@ State 138
 
 State 139
 
-	LValue -> LValue '[' Expr ']' .                     (rule 56)
+	LValue -> LValue '[' Expr ']' .                     (rule 82)
 
-	and            reduce using rule 56
-	div            reduce using rule 56
-	do             reduce using rule 56
-	else           reduce using rule 56
-	end            reduce using rule 56
-	mod            reduce using rule 56
-	or             reduce using rule 56
-	then           reduce using rule 56
-	'='            reduce using rule 56
-	'>'            reduce using rule 56
-	'<'            reduce using rule 56
-	diff           reduce using rule 56
-	greq           reduce using rule 56
-	smeq           reduce using rule 56
-	'+'            reduce using rule 56
-	'-'            reduce using rule 56
-	'*'            reduce using rule 56
-	'/'            reduce using rule 56
-	'^'            reduce using rule 56
-	equal          reduce using rule 56
-	';'            reduce using rule 56
-	')'            reduce using rule 56
-	','            reduce using rule 56
-	'['            reduce using rule 56
-	']'            reduce using rule 56
+	and            reduce using rule 82
+	div            reduce using rule 82
+	do             reduce using rule 82
+	else           reduce using rule 82
+	end            reduce using rule 82
+	mod            reduce using rule 82
+	or             reduce using rule 82
+	then           reduce using rule 82
+	'='            reduce using rule 82
+	'>'            reduce using rule 82
+	'<'            reduce using rule 82
+	diff           reduce using rule 82
+	greq           reduce using rule 82
+	smeq           reduce using rule 82
+	'+'            reduce using rule 82
+	'-'            reduce using rule 82
+	'*'            reduce using rule 82
+	'/'            reduce using rule 82
+	'^'            reduce using rule 82
+	equal          reduce using rule 82
+	';'            reduce using rule 82
+	')'            reduce using rule 82
+	','            reduce using rule 82
+	'['            reduce using rule 82
+	']'            reduce using rule 82
 
 
 State 140
@@ -3587,9 +3587,9 @@ State 161
 
 	Block          goto state 25
 	Stmt           goto state 164
-	Expr           goto state 27
-	LValue         goto state 28
-	RValue         goto state 29
+	RValue         goto state 27
+	Expr           goto state 28
+	LValue         goto state 29
 	Call           goto state 30
 
 State 162
@@ -3611,28 +3611,28 @@ State 162
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
 
+	RValue         goto state 27
 	Expr           goto state 163
 	LValue         goto state 59
-	RValue         goto state 29
 	Call           goto state 55
 
 State 163
 
-	LValue -> Expr . '^'                                (rule 57)
-	RValue -> Expr . '+' Expr                           (rule 71)
-	RValue -> Expr . '*' Expr                           (rule 72)
-	RValue -> Expr . '-' Expr                           (rule 73)
-	RValue -> Expr . '/' Expr                           (rule 74)
-	RValue -> Expr . div Expr                           (rule 75)
-	RValue -> Expr . mod Expr                           (rule 76)
-	RValue -> Expr . or Expr                            (rule 77)
-	RValue -> Expr . and Expr                           (rule 78)
-	RValue -> Expr . '=' Expr                           (rule 79)
-	RValue -> Expr . diff Expr                          (rule 80)
-	RValue -> Expr . '<' Expr                           (rule 81)
-	RValue -> Expr . '>' Expr                           (rule 82)
-	RValue -> Expr . greq Expr                          (rule 83)
-	RValue -> Expr . smeq Expr                          (rule 84)
+	RValue -> Expr . '+' Expr                           (rule 63)
+	RValue -> Expr . '*' Expr                           (rule 64)
+	RValue -> Expr . '-' Expr                           (rule 65)
+	RValue -> Expr . '/' Expr                           (rule 66)
+	RValue -> Expr . div Expr                           (rule 67)
+	RValue -> Expr . mod Expr                           (rule 68)
+	RValue -> Expr . or Expr                            (rule 69)
+	RValue -> Expr . and Expr                           (rule 70)
+	RValue -> Expr . '=' Expr                           (rule 71)
+	RValue -> Expr . diff Expr                          (rule 72)
+	RValue -> Expr . '<' Expr                           (rule 73)
+	RValue -> Expr . '>' Expr                           (rule 74)
+	RValue -> Expr . greq Expr                          (rule 75)
+	RValue -> Expr . smeq Expr                          (rule 76)
+	LValue -> Expr . '^'                                (rule 83)
 	Exprs -> Exprs ',' Expr .                           (rule 88)
 
 	and            shift, and enter state 73
