@@ -22,12 +22,12 @@ Grammar
 	IdsAndType -> id Ids ':' Type ';'                  (11)
 	Ids -> Ids ',' id                                  (12)
 	Ids ->                                             (13)
-	Header -> procedure id '(' Arguments1 ')'          (14)
-	Header -> function id '(' Arguments1 ')' ':' Type   (15)
-	Arguments1 ->                                      (16)
-	Arguments1 -> Arguments2                           (17)
-	Arguments2 -> Arguments2 ';' Formal                (18)
-	Arguments2 -> Formal                               (19)
+	Header -> procedure id '(' Args ')'                (14)
+	Header -> function id '(' Args ')' ':' Type        (15)
+	Args ->                                            (16)
+	Args -> Formals                                    (17)
+	Formals -> Formals ';' Formal                      (18)
+	Formals -> Formal                                  (19)
 	Formal -> Vars id Ids ':' Type                     (20)
 	Vars ->                                            (21)
 	Vars -> var                                        (22)
@@ -35,10 +35,10 @@ Grammar
 	Type -> real                                       (24)
 	Type -> boolean                                    (25)
 	Type -> char                                       (26)
-	Type -> array Array of Type                        (27)
+	Type -> array ArrSize of Type                      (27)
 	Type -> '^' Type                                   (28)
-	Array -> '[' intconst ']'                          (29)
-	Array ->                                           (30)
+	ArrSize -> '[' intconst ']'                        (29)
+	ArrSize ->                                         (30)
 	Block -> begin Stmt Stmts end                      (31)
 	Stmts -> Stmts ';' Stmt                            (32)
 	Stmts ->                                           (33)
@@ -173,12 +173,12 @@ Non-terminals
 	IdsAndType      rule  11
 	Ids             rules 12, 13
 	Header          rules 14, 15
-	Arguments1      rules 16, 17
-	Arguments2      rules 18, 19
+	Args            rules 16, 17
+	Formals         rules 18, 19
 	Formal          rule  20
 	Vars            rules 21, 22
 	Type            rules 23, 24, 25, 26, 27, 28
-	Array           rules 29, 30
+	ArrSize         rules 29, 30
 	Block           rule  31
 	Stmts           rules 32, 33
 	Stmt            rules 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44
@@ -339,7 +339,7 @@ State 12
 
 State 13
 
-	Header -> function . id '(' Arguments1 ')' ':' Type    (rule 15)
+	Header -> function . id '(' Args ')' ':' Type       (rule 15)
 
 	id             shift, and enter state 23
 
@@ -353,7 +353,7 @@ State 14
 
 State 15
 
-	Header -> procedure . id '(' Arguments1 ')'         (rule 14)
+	Header -> procedure . id '(' Args ')'               (rule 14)
 
 	id             shift, and enter state 21
 
@@ -413,7 +413,7 @@ State 20
 
 State 21
 
-	Header -> procedure id . '(' Arguments1 ')'         (rule 14)
+	Header -> procedure id . '(' Args ')'               (rule 14)
 
 	'('            shift, and enter state 92
 
@@ -429,7 +429,7 @@ State 22
 
 State 23
 
-	Header -> function id . '(' Arguments1 ')' ':' Type    (rule 15)
+	Header -> function id . '(' Args ')' ':' Type       (rule 15)
 
 	'('            shift, and enter state 90
 
@@ -2082,14 +2082,14 @@ State 89
 
 State 90
 
-	Header -> function id '(' . Arguments1 ')' ':' Type    (rule 15)
+	Header -> function id '(' . Args ')' ':' Type       (rule 15)
 
 	var            shift, and enter state 101
 	id             reduce using rule 21
 	')'            reduce using rule 16
 
-	Arguments1     goto state 103
-	Arguments2     goto state 98
+	Args           goto state 103
+	Formals        goto state 98
 	Formal         goto state 99
 	Vars           goto state 100
 
@@ -2104,14 +2104,14 @@ State 91
 
 State 92
 
-	Header -> procedure id '(' . Arguments1 ')'         (rule 14)
+	Header -> procedure id '(' . Args ')'               (rule 14)
 
 	var            shift, and enter state 101
 	id             reduce using rule 21
 	')'            reduce using rule 16
 
-	Arguments1     goto state 97
-	Arguments2     goto state 98
+	Args           goto state 97
+	Formals        goto state 98
 	Formal         goto state 99
 	Vars           goto state 100
 
@@ -2159,15 +2159,15 @@ State 96
 
 State 97
 
-	Header -> procedure id '(' Arguments1 . ')'         (rule 14)
+	Header -> procedure id '(' Args . ')'               (rule 14)
 
 	')'            shift, and enter state 144
 
 
 State 98
 
-	Arguments1 -> Arguments2 .                          (rule 17)
-	Arguments2 -> Arguments2 . ';' Formal               (rule 18)
+	Args -> Formals .                                   (rule 17)
+	Formals -> Formals . ';' Formal                     (rule 18)
 
 	';'            shift, and enter state 143
 	')'            reduce using rule 17
@@ -2175,7 +2175,7 @@ State 98
 
 State 99
 
-	Arguments2 -> Formal .                              (rule 19)
+	Formals -> Formal .                                 (rule 19)
 
 	';'            reduce using rule 19
 	')'            reduce using rule 19
@@ -2209,7 +2209,7 @@ State 102
 
 State 103
 
-	Header -> function id '(' Arguments1 . ')' ':' Type    (rule 15)
+	Header -> function id '(' Args . ')' ':' Type       (rule 15)
 
 	')'            shift, and enter state 141
 
@@ -3381,7 +3381,7 @@ State 140
 
 State 141
 
-	Header -> function id '(' Arguments1 ')' . ':' Type    (rule 15)
+	Header -> function id '(' Args ')' . ':' Type       (rule 15)
 
 	':'            shift, and enter state 159
 
@@ -3397,7 +3397,7 @@ State 142
 
 State 143
 
-	Arguments2 -> Arguments2 ';' . Formal               (rule 18)
+	Formals -> Formals ';' . Formal                     (rule 18)
 
 	var            shift, and enter state 101
 	id             reduce using rule 21
@@ -3407,7 +3407,7 @@ State 143
 
 State 144
 
-	Header -> procedure id '(' Arguments1 ')' .         (rule 14)
+	Header -> procedure id '(' Args ')' .               (rule 14)
 
 	';'            reduce using rule 14
 
@@ -3430,12 +3430,12 @@ State 146
 
 State 147
 
-	Type -> array . Array of Type                       (rule 27)
+	Type -> array . ArrSize of Type                     (rule 27)
 
 	of             reduce using rule 30
 	'['            shift, and enter state 155
 
-	Array          goto state 154
+	ArrSize        goto state 154
 
 State 148
 
@@ -3492,14 +3492,14 @@ State 153
 
 State 154
 
-	Type -> array Array . of Type                       (rule 27)
+	Type -> array ArrSize . of Type                     (rule 27)
 
 	of             shift, and enter state 168
 
 
 State 155
 
-	Array -> '[' . intconst ']'                         (rule 29)
+	ArrSize -> '[' . intconst ']'                       (rule 29)
 
 	intconst       shift, and enter state 167
 
@@ -3519,7 +3519,7 @@ State 156
 
 State 157
 
-	Arguments2 -> Arguments2 ';' Formal .               (rule 18)
+	Formals -> Formals ';' Formal .                     (rule 18)
 
 	';'            reduce using rule 18
 	')'            reduce using rule 18
@@ -3536,7 +3536,7 @@ State 158
 
 State 159
 
-	Header -> function id '(' Arguments1 ')' ':' . Type    (rule 15)
+	Header -> function id '(' Args ')' ':' . Type       (rule 15)
 
 	array          shift, and enter state 147
 	boolean        shift, and enter state 148
@@ -3665,7 +3665,7 @@ State 164
 
 State 165
 
-	Header -> function id '(' Arguments1 ')' ':' Type .    (rule 15)
+	Header -> function id '(' Args ')' ':' Type .       (rule 15)
 
 	';'            reduce using rule 15
 
@@ -3685,14 +3685,14 @@ State 166
 
 State 167
 
-	Array -> '[' intconst . ']'                         (rule 29)
+	ArrSize -> '[' intconst . ']'                       (rule 29)
 
 	']'            shift, and enter state 170
 
 
 State 168
 
-	Type -> array Array of . Type                       (rule 27)
+	Type -> array ArrSize of . Type                     (rule 27)
 
 	array          shift, and enter state 147
 	boolean        shift, and enter state 148
@@ -3705,7 +3705,7 @@ State 168
 
 State 169
 
-	Type -> array Array of Type .                       (rule 27)
+	Type -> array ArrSize of Type .                     (rule 27)
 
 	';'            reduce using rule 27
 	')'            reduce using rule 27
@@ -3713,7 +3713,7 @@ State 169
 
 State 170
 
-	Array -> '[' intconst ']' .                         (rule 29)
+	ArrSize -> '[' intconst ']' .                       (rule 29)
 
 	of             reduce using rule 29
 

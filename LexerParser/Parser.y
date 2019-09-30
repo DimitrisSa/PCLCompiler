@@ -82,54 +82,66 @@ Program :: { Program }
 Body    :: { Body }
         : Locals Block                                { B $1 $2 }  
 
-Locals :: { [Local] }
-        : Locals Local                                { $2 : $1 }
-        | {-empty-}                                   { []      }
+Locals  :: { [Local] }
+        : Locals Local                                { $2:$1 }
+        | {-empty-}                                   { []    }
 
 Local   :: { Local }
-        : var Variables                               { LoVar $2          }
-        | label id Ids ';'                            { LoLabel ($2 : $3) }
-        | Header ';' Body ';'                         { LoHeadBod $1 $3   }
-        | forward Header ';'                          { LoForward $2      }
+        : var Variables                               { LoVar $2        }
+        | label id Ids ';'                            { LoLabel ($2:$3) }
+        | Header ';' Body ';'                         { LoHeadBod $1 $3 }
+        | forward Header ';'                          { LoForward $2    }
 
-Variables : Variables IdsAndType                      { $2 : $1 }
-          | IdsAndType                                { [$1]    }
+Variables :: { Variables }
+          : Variables IdsAndType                      { $2:$1 }
+          | IdsAndType                                { [$1]  }
 
-IdsAndType : id Ids ':' Type ';'                      { ($4,$1 : $2) } 
+IdsAndType :: { (Ids,Type) }
+           : id Ids ':' Type ';'                      { ($1:$2,$4) } 
 
-Ids    : Ids ',' id                                   { $3 : $1 }
-       | {-empty-}                                    { []      }
+Ids    :: { Ids }
+       : Ids ',' id                                   { $3:$1 }
+       | {-empty-}                                    { []    }
 
-Header : procedure id '(' Arguments1 ')'              { Procedure $2 $4   } 
-       | function id '(' Arguments1 ')' ':' Type      { Function $2 $4 $7 }
+Header :: { Header }
+       : procedure id '(' Args ')'                    { Procedure $2 $4    } 
+       | function  id '(' Args ')' ':' Type           { Function  $2 $4 $7 }
 
-Arguments1 : {-empty-}                                { [] }
-           | Arguments2                               { $1 }
+Args   :: { Args }
+       : {-empty-}                                    { [] }
+       | Formals                                      { $1 }
 
-Arguments2 : Arguments2 ';' Formal                    { $3 : $1 }
-           | Formal                                   { [$1]    }
+Formals :: { [Formal] }
+        : Formals ';' Formal                          { $3 : $1 }
+        | Formal                                      { [$1]    }
 
-Formal : Vars id Ids ':' Type                         { ($5,$2:$3) }
- 
+Formal :: { Formal }
+       : Vars id Ids ':' Type                         { ($2:$3,$5) }
+
 Vars : {-empty-}                                      { [] }
      | var                                            { [] }
 
-Type : integer                                        { Tint        }     
+Type :: { Type }
+     : integer                                        { Tint        }     
      | real                                           { Treal       }
      | boolean                                        { Tbool       }
      | char                                           { Tchar       }
-     | array Array of Type                            { ArrayT $4   }
+     | array ArrSize of Type                          { ArrayT $4   }
      | '^' Type                                       { PointerT $2 }
 
-Array : '[' intconst ']'                              { [] }
-      | {-empty-}                                     { [] }
+ArrSize :: { ArrSize }
+        : '[' intconst ']'                            { Size $2 }
+        | {-empty-}                                   { NoSize }
 
-Block : begin Stmt Stmts end                          { Bl ($2:$3) } 
+Block :: { Block }
+      : begin Stmt Stmts end                          { Bl ($2:$3) } 
 
-Stmts : Stmts ';' Stmt                                { $3 : $1 } 
+Stmts :: { Stmts }
+      : Stmts ';' Stmt                                { $3 : $1 } 
       | {-empty-}                                     { []      }
 
-Stmt : {-empty-}                                      { SEmpty       } 
+Stmt :: { Stmt }
+     : {-empty-}                                      { SEmpty       } 
      | LValue equal Expr                              { SEqual $1 $3 }
      | Block                                          { SBlock $1    }
      | Call                                           { SCall  $1    }
@@ -212,27 +224,24 @@ data Body =
   B [Local] Block
   deriving(Show)
 
+type Id        = String
+type Ids       = [Id]
+type Variables = [(Ids,Type)]
+
 data Local =
-  LoVar Variables         |
-  LoLabel [String]        |
-  LoHeadBod Header Body   |
+  LoVar Variables       |
+  LoLabel Ids           |
+  LoHeadBod Header Body |
   LoForward Header
   deriving(Show)
 
-type Id = String
-type MoreVariables = [Id]
-type Variables = [ (Type, MoreVariables) ]
-type Labels = MoreVariables
-
 data Header =
-  Procedure String Arguments1 |
-  Function String Arguments1 Type
+  Procedure String Args |
+  Function  String Args Type
   deriving(Show)
 
-type Arguments1 = [Formal]
-type Arguments2 = Arguments1
-
-type Formal = (Type,[String])
+type Formal = (Ids,Type)
+type Args   = [Formal]
 
 data Type =
   Tint          | 
@@ -243,6 +252,9 @@ data Type =
   PointerT Type 
   deriving(Show)
 
+data ArrSize =
+  Size Int |
+  NoSize
 
 type Stmts = [Stmt]
 
@@ -288,8 +300,8 @@ data RValue =
   RChar Char         |
   RParen RValue      |
   RNil               |
-  RCall Call         |
-  RPapaki LValue     |
+  RCall    Call      |
+  RPapaki  LValue    |
   RNot     Expr      |
   RPos     Expr      |
   RNeg     Expr      |
