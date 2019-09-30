@@ -1,5 +1,5 @@
 program order;
 var n,k,i :integer ;
 begin
-	n:=i+k*5+i
+	n:=@i
 end.

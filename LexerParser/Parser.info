@@ -93,11 +93,11 @@ Grammar
 	RValue -> Expr '>' Expr                            (82)
 	RValue -> Expr greq Expr                           (83)
 	RValue -> Expr smeq Expr                           (84)
-	Call -> id '(' Call2 ')'                           (85)
-	Call2 ->                                           (86)
-	Call2 -> Expr Call3                                (87)
-	Call3 -> Call3 ',' Expr                            (88)
-	Call3 ->                                           (89)
+	Call -> id '(' ArgExprs ')'                        (85)
+	ArgExprs -> Expr Exprs                             (86)
+	ArgExprs ->                                        (87)
+	Exprs -> Exprs ',' Expr                            (88)
+	Exprs ->                                           (89)
 
 -----------------------------------------------------------------------------
 Terminals
@@ -189,8 +189,8 @@ Non-terminals
 	LValue          rules 53, 54, 55, 56, 57, 58
 	RValue          rules 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84
 	Call            rule  85
-	Call2           rules 86, 87
-	Call3           rules 88, 89
+	ArgExprs        rules 86, 87
+	Exprs           rules 88, 89
 
 -----------------------------------------------------------------------------
 States
@@ -827,7 +827,7 @@ State 42
 
 	Stmt -> id . ':' Stmt                               (rule 40)
 	LValue -> id .                                      (rule 53)
-	Call -> id . '(' Call2 ')'                          (rule 85)
+	Call -> id . '(' ArgExprs ')'                       (rule 85)
 
 	and            reduce using rule 53
 	div            reduce using rule 53
@@ -1166,7 +1166,7 @@ State 55
 State 56
 
 	LValue -> id .                                      (rule 53)
-	Call -> id . '(' Call2 ')'                          (rule 85)
+	Call -> id . '(' ArgExprs ')'                       (rule 85)
 
 	and            reduce using rule 53
 	div            reduce using rule 53
@@ -1378,7 +1378,7 @@ State 60
 
 State 61
 
-	Call -> id '(' . Call2 ')'                          (rule 85)
+	Call -> id '(' . ArgExprs ')'                       (rule 85)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -1394,13 +1394,13 @@ State 61
 	'-'            shift, and enter state 48
 	'@'            shift, and enter state 49
 	'('            shift, and enter state 50
-	')'            reduce using rule 86
+	')'            reduce using rule 87
 
 	Expr           goto state 129
 	LValue         goto state 59
 	RValue         goto state 29
 	Call           goto state 55
-	Call2          goto state 130
+	ArgExprs       goto state 130
 
 State 62
 
@@ -3160,7 +3160,7 @@ State 129
 	RValue -> Expr . '>' Expr                           (rule 82)
 	RValue -> Expr . greq Expr                          (rule 83)
 	RValue -> Expr . smeq Expr                          (rule 84)
-	Call2 -> Expr . Call3                               (rule 87)
+	ArgExprs -> Expr . Exprs                            (rule 86)
 
 	and            shift, and enter state 73
 	div            shift, and enter state 74
@@ -3180,11 +3180,11 @@ State 129
 	')'            reduce using rule 89
 	','            reduce using rule 89
 
-	Call3          goto state 135
+	Exprs          goto state 135
 
 State 130
 
-	Call -> id '(' Call2 . ')'                          (rule 85)
+	Call -> id '(' ArgExprs . ')'                       (rule 85)
 
 	')'            shift, and enter state 134
 
@@ -3263,7 +3263,7 @@ State 133
 
 State 134
 
-	Call -> id '(' Call2 ')' .                          (rule 85)
+	Call -> id '(' ArgExprs ')' .                       (rule 85)
 
 	and            reduce using rule 85
 	div            reduce using rule 85
@@ -3292,10 +3292,10 @@ State 134
 
 State 135
 
-	Call2 -> Expr Call3 .                               (rule 87)
-	Call3 -> Call3 . ',' Expr                           (rule 88)
+	ArgExprs -> Expr Exprs .                            (rule 86)
+	Exprs -> Exprs . ',' Expr                           (rule 88)
 
-	')'            reduce using rule 87
+	')'            reduce using rule 86
 	','            shift, and enter state 162
 
 
@@ -3594,7 +3594,7 @@ State 161
 
 State 162
 
-	Call3 -> Call3 ',' . Expr                           (rule 88)
+	Exprs -> Exprs ',' . Expr                           (rule 88)
 
 	false          shift, and enter state 32
 	nil            shift, and enter state 36
@@ -3633,7 +3633,7 @@ State 163
 	RValue -> Expr . '>' Expr                           (rule 82)
 	RValue -> Expr . greq Expr                          (rule 83)
 	RValue -> Expr . smeq Expr                          (rule 84)
-	Call3 -> Call3 ',' Expr .                           (rule 88)
+	Exprs -> Exprs ',' Expr .                           (rule 88)
 
 	and            shift, and enter state 73
 	div            shift, and enter state 74
