@@ -67,6 +67,9 @@ import Lexer
     '['                 { TLeftbracket  }
     ']'                 { TRightbracket }
 
+%left RExpr
+%left LExpr
+%right then else
 %nonassoc '<' '>' '=' greq smeq diff
 %left '+' '-' or
 %left '*' '/' div mod and
@@ -83,25 +86,25 @@ Body       :: { Body }
            : Locals Block                       { B $1 $2 }  
 
 Locals     :: { [Local] }
-           : Locals Local                       { $2:$1 }
-           | {-empty-}                          { []    }
+           : {-empty-}                          { []    }
+           | Locals Local                       { $2:$1 }
 
 Local      :: { Local }
-           : var Variables                      { LoVar $2        }
-           | label id Ids ';'                   { LoLabel ($2:$3) }
+           : var Variables                      { LoVar     $2    }
+           | label Ids ';'                      { LoLabel   $2    }
            | Header ';' Body ';'                { LoHeadBod $1 $3 }
            | forward Header ';'                 { LoForward $2    }
 
 Variables  :: { Variables }
-           : Variables IdsAndType               { $2:$1 }
-           | IdsAndType                         { [$1]  }
+           : IdsAndType                         { [$1]  }
+           | Variables IdsAndType               { $2:$1 }
 
 IdsAndType :: { (Ids,Type) }
-           : id Ids ':' Type ';'                { ($1:$2,$4) } 
+           : Ids ':' Type ';'                   { ($1,$3) } 
 
 Ids        :: { Ids }
-           : Ids ',' id                         { $3:$1 }
-           | {-empty-}                          { []    }
+           : id                                 { [$1]  }
+           | Ids ',' id                         { $3:$1 }
 
 Header     :: { Header }
            : procedure id '(' Args ')'          { Procedure $2 $4    }
@@ -112,57 +115,66 @@ Args       :: { Args }
            | Formals                            { $1 }
 
 Formals    :: { [Formal] }
-           : Formals ';' Formal                 { $3 : $1 }
-           | Formal                             { [$1]    }
+           : Formal                             { [$1]  }
+           | Formals ';' Formal                 { $3:$1 }
 
 Formal     :: { Formal }
-           : Vars id Ids ':' Type               { ($2:$3,$5) }
+           : Optvar Ids ':' Type                { ($2,$4) }
 
-Vars       : {-empty-}                          { [] }
+Optvar     : {-empty-}                          { [] }
            | var                                { [] }
 
 Type       :: { Type }
-           : integer                            { Tint         }     
-           | real                               { Treal        }
-           | boolean                            { Tbool        }
-           | char                               { Tchar        }
-           | array ArrSize of Type              { ArrayT $2 $4 }
-           | '^' Type                           { PointerT $2  }
+           : integer                            { Tint           }     
+           | real                               { Treal          }
+           | boolean                            { Tbool          }
+           | char                               { Tchar          }
+           | array ArrSize of Type              { ArrayT   $2 $4 }
+           | '^' Type                           { PointerT $2    }
 
 ArrSize    :: { ArrSize }
-           : '[' intconst ']'                   { Size $2 }
-           | {-empty-}                          { NoSize }
+           : {-empty-}                          { NoSize  }
+           | '[' intconst ']'                   { Size $2 }
 
 Block      :: { Block }
-           : begin Stmt Stmts end               { Bl ($2:$3) } 
+           : begin Stmts end                    { Bl $2 } 
 
 Stmts      :: { Stmts }
-           : Stmts ';' Stmt                     { $3 : $1 } 
-           | {-empty-}                          { []      }
+           : Stmt                               { [$1]    }
+           | Stmts ';' Stmt                     { $3 : $1 } 
 
 Stmt       :: { Stmt }
-           : {-empty-}                          { SEmpty       } 
-           | LValue equal Expr                  { SEqual $1 $3 }
-           | Block                              { SBlock $1    }
-           | Call                               { SCall  $1    }
-           | if Expr then Stmt Else             { SIf $2 $4 $5 }     
-           | while Expr do Stmt                 { SWhile $2 $4 }
-           | id ':' Stmt                        { SId    $1 $3 }
-           | goto id                            { SGoto (tokenizer $1) }
-           | return                             { SReturn      }
-           | new New LValue                     { SNew   $2 $3 }
-           | dispose Dispose LValue             { SDispose $3  }
-
-Else       :: { Stmt }
-           : else Stmt                          { SElse $2 }
-           | {-empty-}                          { SEmpty   }
+           : {-empty-}                          { SEmpty                  } 
+           | LValue equal Expr                  { SEqual   $1 $3          }
+           | Block                              { SBlock   $1             }
+           | Call                               { SCall    $1             }
+           | if Expr then Stmt                  { SIT      $2 $4          }     
+           | if Expr then Stmt else Stmt        { SITE     $2 $4 $6       }     
+           | while Expr do Stmt                 { SWhile   $2 $4          }
+           | id ':' Stmt                        { SId      $1 $3          }
+           | goto id                            { SGoto    (tokenizer $1) }
+           | return                             { SReturn                 }
+           | new New LValue                     { SNew     $2 $3          }
+           | dispose Dispose LValue             { SDispose $3             }
 
 New        :: { Expr }
-           : '[' Expr ']'                       { $2     }
-           | {-empty-}                          { EEmpty }
+           :  {-empty-}                         { EEmpty }
+           | '[' Expr ']'                       { $2     }
 
-Dispose    : '[' ']'                            { [] }
-           | {-empty-}                          { [] }
+Dispose    : {-empty-}                          { [] }
+           | '[' ']'                            { [] }
+
+Expr       :: { Expr }
+           : LValue %prec LExpr                 { L $1 }
+           | RValue %prec RExpr                 { R $1 }
+
+LValue     :: { LValue }
+           : id                                 { LId        $1    }
+           | result                             { LResult          }
+           | stringconst                        { LString    $1    }
+           | LValue '[' Expr ']'                { LValueExpr $1 $3 }
+           | Expr '^'                           { LExpr      $1    }
+           | '(' LValue ')'                     { LParen     $2    }
 
 RValue     :: { RValue }
            : intconst                           { RInt     $1 }
@@ -192,32 +204,21 @@ RValue     :: { RValue }
            | Expr greq Expr                     { RGreq    $1 $3 }
            | Expr smeq Expr                     { RSmeq    $1 $3 }
 
-Expr       :: { Expr }
-           : LValue                             { L $1 }
-           | RValue                             { R $1 }
-
-LValue     :: { LValue }
-           : id                                 { LId $1     }
-           | result                             { LResult    }
-           | stringconst                        { LString $1 }
-           | LValue '[' Expr ']'                { LValueExpr $1 $3 }
-           | Expr '^'                           { LExpr $1   }
-           | '(' LValue ')'                     { LParen $2  }
-
 Call       :: { Call }      
            : id '(' ArgExprs ')'                { CId $1 $3 }
 
 ArgExprs   :: { Exprs }
-           : Expr Exprs                         { $1:$2 }
-           | {-empty-}                          { []    }
+           : {-empty-}                          { [] }
+           | Exprs                              { $1 }
 
 Exprs      :: { Exprs }
-           : Exprs ',' Expr                     { $3:$1 } 
-           | {-empty-}                          { []    }
+           : Expr                               { [$1]  }
+           | Exprs ',' Expr                     { $3:$1 } 
 
 {
 
-parseError _ = error ("Parse error\n")
+parseError :: [Token] -> a
+parseError _ = error "Parse error\n"
 
 tokenizer :: Token -> String
 tokenizer token = show token
@@ -240,8 +241,6 @@ data Local =
   LoHeadBod Header Body |
   LoForward Header
   deriving(Show)
---instance Show Local where
---  show l = "Local" 
 
 data Header =
   Procedure String Args |
@@ -272,17 +271,18 @@ data Block =
 type Stmts = [Stmt]
 
 data Stmt = 
-  SEmpty             | 
-  SEqual LValue Expr |
-  SBlock Block       |
-  SCall Call         |
-  SIf Expr Stmt Stmt |
-  SWhile Expr Stmt   |
-  SId Id Stmt        |
-  SGoto Id           |
-  SReturn            |
-  SNew Expr LValue   |
-  SDispose LValue    |
+  SEmpty              | 
+  SEqual LValue Expr  |
+  SBlock Block        |
+  SCall Call          |
+  SIT  Expr Stmt      |
+  SITE Expr Stmt Stmt |
+  SWhile Expr Stmt    |
+  SId Id Stmt         |
+  SGoto Id            |
+  SReturn             |
+  SNew Expr LValue    |
+  SDispose LValue     |
   SElse Stmt
   deriving(Show)
 

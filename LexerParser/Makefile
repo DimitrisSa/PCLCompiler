@@ -13,8 +13,8 @@ parser2:
 	ghc Parser.hs
 
 clean:
-	rm -f Lexer.hs Lexer.hi Lexer.o Lexer Parser.hs Parser.hi Parser.o Parser
+	rm -f Lexer.hs Lexer.hi Lexer.o Lexer Parser.hs Parser.hi Parser.o Parser Parser.info
 
 clean_:
-	rm -f Lexer.hs Lexer.hi Lexer.o Parser.hs Parser.hi Parser.o
+	rm -f Lexer.hs Lexer.hi Lexer.o Parser.hs Parser.hi Parser.o Parser.info
 

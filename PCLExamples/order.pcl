@@ -1,5 +1,5 @@
 program order;
-var n,k,i :integer ;
+var n:integer ;
 begin
 	n:=@i
 end.
