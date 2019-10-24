@@ -1,5 +1,0 @@
-program order;
-var n:integer ;
-begin
-	n:=@i
-end.

@@ -7,7 +7,7 @@ lexer2:
 	ghc Lexer.hs
 
 parser1:
-	happy -i Parser.y
+	happy Parser.y
 
 parser2:
 	ghc Parser.hs
@@ -17,4 +17,3 @@ clean:
 
 clean_:
 	rm -f Lexer.hs Lexer.hi Lexer.o Parser.hs Parser.hi Parser.o Parser.info
-

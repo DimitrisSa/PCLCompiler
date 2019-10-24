@@ -1,0 +1,13 @@
+program Dangledif ;
+var giorgos : boolean ;
+label giorgos;
+begin
+(* * 
+ *)
+comparedo := true ; 
+if comparedo then
+ if not comparedo then
+  mitsos := 42
+ else
+  john := mitsos
+end.

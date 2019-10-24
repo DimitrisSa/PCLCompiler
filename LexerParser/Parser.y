@@ -1,5 +1,5 @@
 {
-module Main where
+module Parser where
 import Lexer
 }
 
@@ -224,7 +224,7 @@ tokenizer :: Token -> String
 tokenizer token = show token
 
 data Program =
-  P String Body
+  P Id Body
   deriving(Show)
 
 data Body =
@@ -243,8 +243,8 @@ data Local =
   deriving(Show)
 
 data Header =
-  Procedure String Args |
-  Function  String Args Type
+  Procedure Id Args |
+  Function  Id Args Type
   deriving(Show)
 
 type Formal = (Ids,Type)
@@ -255,6 +255,9 @@ data Type =
   Treal               |
   Tbool               |
   Tchar               |
+  Tlabel              |
+  Tproc Args          |
+  Tfunc Args Type     |
   ArrayT ArrSize Type |
   PointerT Type 
   deriving(Show)
@@ -336,5 +339,5 @@ data Call =
   CId Id [Expr]
   deriving(Show)
 
-main = getContents >>= print . parse . alexScanTokens 
+parser = getContents >>= return . parse . alexScanTokens 
 }
