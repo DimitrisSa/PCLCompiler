@@ -1,57 +1,72 @@
 module Main where
 import Parser
+import Control.Monad.State
+import Control.Monad.Trans.Either
 import qualified Data.Map as M
 
 type TypeMap = M.Map Id Type
-
-data Semantics =
-  Good TypeMap |
-  Error String
+type Error = String
+type Semantics = EitherT Error (State TypeMap) ()
 
 main = do
   ast <- parser
-  putStrLn $ case program ast of
-    Good _  -> "good"
-    Error s -> s
+  putStrLn $
+    case (\x -> x M.empty) $ evalState $ runEitherT $ program ast of
+      Right _  -> "good"
+      Left s   -> s
   
 program :: Program -> Semantics
 program (P _ body) = bodySems body
   
 bodySems :: Body -> Semantics
-bodySems (B locals block) = case flocals locals M.empty of
-  Good mymap -> fblock mymap
-  Error s -> Error s
+bodySems (B locals block) = do
+  flocals locals
+  fblock
 
-flocals :: [Local] -> TypeMap -> Semantics
-flocals locals mymap1 = case locals of
-  (x:xs) -> case flocal x (Good mymap1) of
-              Good mymap2 -> flocals xs mymap2
-              Error s -> Error s
-  []     -> Good mymap1
+flocals :: [Local] -> Semantics
+flocals locals = case locals of
+  (x:xs) -> do 
+              flocal x
+              flocals xs
+  []     -> do 
+              return ()
 
-flocal :: Local -> Semantics -> Semantics
-flocal local (Good mymap) = case local of
-  LoVar vars -> toSems vars mymap
-  LoLabel labels -> myinsert (makeLabelList labels) mymap
-  LoHeadBod h _ -> headerF h mymap 
-  LoForward h -> headerF h mymap
-flocal _ a = a  
+flocal :: Local -> Semantics
+flocal local = do
+  case local of
+    LoVar vars     -> toSems vars
+    LoLabel labels -> myinsert (makeLabelList labels)
+    LoHeadBod h _  -> headBodF h
+    LoForward h    -> forwardF h
 
-headerF :: Header -> TypeMap -> Semantics
-headerF h tm = case h of
-  Procedure i a   -> case M.lookup i tm of 
-                      Just _  -> Error $ "Duplicate Variable: " ++ i
-                      Nothing -> Good $ M.insert i (Tproc a) tm 
-  Function  i a t -> case M.lookup i tm of
-                      Just _  -> Error $ "Duplicate Variable: " ++ i
-                      Nothing -> Good $ M.insert i (Tfunc a t) tm
+-- to check if func/proc with forward is defined
+headBodF :: Header -> Semantics
+headBodF h = do
+  tm <- get
+  case h of
+    Procedure i a   -> case M.lookup i tm of 
+                         Just _  -> left $ "Duplicate Variable: " ++ i
+                         Nothing -> put $ M.insert i (Tproc a) tm 
+    Function  i a t -> case M.lookup i tm of
+                         Just _  -> left $ "Duplicate Variable: " ++ i
+                         Nothing -> put $ M.insert i (Tfunc a t) tm
 
+forwardF :: Header -> Semantics
+forwardF h = do
+  tm <- get
+  case h of
+    Procedure i a   -> case M.lookup i tm of 
+                         Just _  -> left $ "Duplicate Variable: " ++ i
+                         Nothing -> put $ M.insert i (Tproc a) tm 
+    Function  i a t -> case M.lookup i tm of
+                         Just _  -> left $ "Duplicate Variable: " ++ i
+                         Nothing -> put $ M.insert i (Tfunc a t) tm
 
-toSems :: Variables -> TypeMap -> Semantics
-toSems (var:vars) mymap = case myinsert (makelist var) mymap of
- Good mymap2 -> toSems vars mymap2
- Error s -> Error s
-toSems [] mymap = Good mymap
+toSems :: Variables -> Semantics
+toSems (var:vars) = do
+  myinsert (makelist var)
+  toSems vars
+toSems [] = return ()
 
 makelist :: (Ids,Type) -> [(Id,Type)]
 makelist (in1,myt) =
@@ -61,10 +76,15 @@ makeLabelList :: Ids -> [(Id,Type)]
 makeLabelList in1 =
   Prelude.map (\x -> (x,Tlabel)) in1 
 
-myinsert :: [(Id,Type)] -> TypeMap -> Semantics
-myinsert ((v,t):xs) mymap = case M.lookup v mymap of
-  Just _  -> Error $ "Duplicate Variable: " ++ v
-  Nothing -> myinsert xs $ M.insert v t mymap
-myinsert [] mymap = Good mymap
+myinsert :: [(Id,Type)] -> Semantics
+myinsert ((v,t):xs) = do
+  tm <- get
+  case M.lookup v tm of
+    Just _  -> left $ "Duplicate Variable: " ++ v
+    Nothing -> do 
+                 put $ M.insert v t tm
+                 myinsert xs
+myinsert [] = return ()
 
-fblock map = Good map
+fblock = do
+  return ()

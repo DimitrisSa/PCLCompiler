@@ -1,6 +1,9 @@
 program Dangledif ;
-var giorgos : boolean ;
-label giorgos;
+var x: boolean;
+label john;
+forward function okk(var okm, okk, okl:boolean): real;
+procedure ok(); 
+  begin end;
 begin
 (* * 
  *)
