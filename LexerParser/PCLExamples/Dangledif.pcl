@@ -1,9 +1,10 @@
 program Dangledif ;
 var x: boolean;
 label john;
-forward function okk(var okm, okk, okl:boolean): real;
-procedure ok(); 
+forward function ok(var k : real):real;
+function ok(l : real ):real; 
   begin end;
+(*forward procedure ok();*)
 begin
 (* * 
  *)

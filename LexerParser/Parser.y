@@ -258,14 +258,16 @@ data Type =
   Tlabel              |
   Tproc Args          |
   Tfunc Args Type     |
+  TFproc Args         |
+  TFfunc Args Type    |
   ArrayT ArrSize Type |
   PointerT Type 
-  deriving(Show)
+  deriving(Show,Eq)
 
 data ArrSize =
   Size Int |
   NoSize
-  deriving(Show)
+  deriving(Show,Eq)
 
 data Block =
   Bl Stmts

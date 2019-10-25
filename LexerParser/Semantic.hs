@@ -20,7 +20,7 @@ program (P _ body) = bodySems body
   
 bodySems :: Body -> Semantics
 bodySems (B locals block) = do
-  flocals locals
+  flocals (reverse locals)
   fblock
 
 flocals :: [Local] -> Semantics
@@ -44,12 +44,24 @@ headBodF :: Header -> Semantics
 headBodF h = do
   tm <- get
   case h of
-    Procedure i a   -> case M.lookup i tm of 
-                         Just _  -> left $ "Duplicate Variable: " ++ i
-                         Nothing -> put $ M.insert i (Tproc a) tm 
-    Function  i a t -> case M.lookup i tm of
-                         Just _  -> left $ "Duplicate Variable: " ++ i
-                         Nothing -> put $ M.insert i (Tfunc a t) tm
+    Procedure i a   ->
+      case M.lookup i tm of 
+        Just (TFproc b) -> 
+           if  makelistforward a == makelistforward b then
+             put $ M.insert i (Tproc a) tm 
+           else
+             left $ "Parameter missmatch between forward and procedure declaration for: " ++ i
+        Nothing -> put $ M.insert i (Tproc a) tm 
+        _  -> left $ "Duplicate Variable: " ++ i
+    Function  i a t ->
+      case M.lookup i tm of
+        Just (TFfunc b t2) -> 
+           if  (t==t2) && (makelistforward a == makelistforward b) then
+             put $ M.insert i (Tfunc a t) tm 
+           else
+             left $ "Parameter missmatch between forward and procedure declaration for: " ++ i
+        Nothing -> put $ M.insert i (Tfunc a t) tm
+        _  -> left $ "Duplicate Variable: " ++ i
 
 forwardF :: Header -> Semantics
 forwardF h = do
@@ -57,10 +69,10 @@ forwardF h = do
   case h of
     Procedure i a   -> case M.lookup i tm of 
                          Just _  -> left $ "Duplicate Variable: " ++ i
-                         Nothing -> put $ M.insert i (Tproc a) tm 
+                         Nothing -> put $ M.insert i (TFproc a) tm 
     Function  i a t -> case M.lookup i tm of
                          Just _  -> left $ "Duplicate Variable: " ++ i
-                         Nothing -> put $ M.insert i (Tfunc a t) tm
+                         Nothing -> put $ M.insert i (TFfunc a t) tm
 
 toSems :: Variables -> Semantics
 toSems (var:vars) = do
@@ -71,6 +83,13 @@ toSems [] = return ()
 makelist :: (Ids,Type) -> [(Id,Type)]
 makelist (in1,myt) =
   Prelude.map (\x -> (x,myt)) in1 
+
+makelistforward :: [(Ids,Type)] ->[Type]
+makelistforward fs = concat $ map makelisthelp fs
+
+makelisthelp :: (Ids,Type) -> [Type]
+makelisthelp (in1,myt) =
+  Prelude.map (\_ -> myt) in1 
 
 makeLabelList :: Ids -> [(Id,Type)]
 makeLabelList in1 =
