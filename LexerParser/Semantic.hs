@@ -16,12 +16,14 @@ main = do
       Left s   -> s
   
 program :: Program -> Semantics
-program (P _ body) = bodySems body
+program (P _ body) = do
+  initSymbolTable
+  bodySems body
   
 bodySems :: Body -> Semantics
 bodySems (B locals block) = do
   flocals (reverse locals)
-  fblock
+  fblock block
 
 flocals :: [Local] -> Semantics
 flocals locals = case locals of
@@ -105,5 +107,49 @@ myinsert ((v,t):xs) = do
                  myinsert xs
 myinsert [] = return ()
 
-fblock = do
+fblock :: Block->Semantics 
+fblock _ = do
+  return ()
+
+--initialize Symbol Table with predefined procedures
+initSymbolTable :: Semantics
+initSymbolTable = do
+  helpprocs "writeInteger" [(["number"],Tint)]
+  helpprocs "writeBoolean" [(["cow"],Tbool)]
+  helpprocs "writeChar" [(["character"],Tchar)]
+  helpprocs "writeReal" [(["notimaginary"],Treal)]
+  helpprocs "writeString" [(["typestring"],ArrayT NoSize Tchar)]
+  helpfunc "readInteger" [] Tint
+  helpfunc "readBoolean" [] Tbool
+  helpfunc "readChar" [] Tchar
+  helpfunc "readReal" [] Treal
+  helpprocs "readString" [(["size"],Tint),(["myarray"],ArrayT NoSize Tchar)]
+  helpfunc "abs" [(["num"],Tint)] Tint
+  helpfunc "fabs" [(["rnum"],Treal)] Treal
+  helpfunc "sqrt" [(["rnum"],Treal)] Treal
+  helpfunc "sin" [(["rnum"],Treal)] Treal
+  helpfunc "cos" [(["rnum"],Treal)] Treal
+  helpfunc "tan" [(["rnum"],Treal)] Treal
+  helpfunc "arctan" [(["rnum"],Treal)] Treal
+  helpfunc "exp" [(["rnum"],Treal)] Treal
+  helpfunc "ln" [(["rnum"],Treal)] Treal
+  helpfunc "pi" [] Treal
+  helpfunc "trunc" [(["rnum"],Treal)] Tint
+  helpfunc "round" [(["rnum"],Treal)] Tint
+  helpfunc "ord" [(["rnum"],Tchar)] Tint
+  helpfunc "chr" [(["rnum"],Tint)] Tchar
+  return ()
+
+--helper function to insert the predefined procedures to the symbol table
+helpprocs :: String->Args->Semantics
+helpprocs name myArgs = do
+  tm<-get
+  put $ M.insert name (Tproc myArgs) tm
+  return ()
+
+--helper function to insert the predefined functions to the symbol table
+helpfunc :: String->Args->Type->Semantics
+helpfunc name myArgs myType = do
+  tm<-get
+  put $ M.insert name (Tfunc myArgs myType) tm
   return ()

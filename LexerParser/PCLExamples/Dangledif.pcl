@@ -4,7 +4,7 @@ label john;
 forward function ok(var k : real):real;
 function ok(l : real ):real; 
   begin end;
-(*forward procedure ok();*)
+  (*forward procedure ok();*)
 begin
 (* * 
  *)
