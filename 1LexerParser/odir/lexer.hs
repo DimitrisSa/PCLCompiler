@@ -1,8 +1,8 @@
 {-# OPTIONS_GHC -fno-warn-unused-binds -fno-warn-missing-signatures #-}
 {-# LANGUAGE CPP #-}
-{-# LINE 1 "Lexer.x" #-}
+{-# LINE 1 "lexer.x" #-}
 
-  module Lexer (Token(..), AlexPosn(..), alexScanTokens) where
+  module Lexer (Token(..),AlexPosn(..),alexScanTokens) where
 
 #if __GLASGOW_HASKELL__ >= 603
 #include "ghcconfig.h"
@@ -22248,7 +22248,7 @@ alex_actions = array (0 :: Int, 152)
   , (0,alex_action_59)
   ]
 
-{-# LINE 90 "Lexer.x" #-}
+{-# LINE 90 "lexer.x" #-}
 
 data Token =
   TAnd                |

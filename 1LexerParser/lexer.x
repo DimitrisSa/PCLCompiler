@@ -1,5 +1,5 @@
 {
-  module Lexer (Token(..), AlexPosn(..), alexScanTokens) where
+  module Lexer (Token(..),AlexPosn(..),alexScanTokens) where
 }
 
 %wrapper "posn"

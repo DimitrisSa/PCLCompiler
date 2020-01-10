@@ -1,6 +1,6 @@
 {
 module Parser where
-import Lexer
+import Lexer (Token(..))
 }
 
 %name parse

@@ -8,8 +8,7 @@ type TypeMap = M.Map Id Type
 type Error = String
 type Semantics = EitherT Error (State TypeMap) ()
 
-main = do
-  ast <- parser
+main = do ast <- parser
   putStrLn $
     case (\x -> x M.empty) $ evalState $ runEitherT $ program ast of
       Right _  -> "good"

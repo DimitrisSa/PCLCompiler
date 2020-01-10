@@ -1,19 +1,22 @@
 all: lexer1 lexer2 parser1 parser2
+l = lexer
+p = parser
+o = odir
  
 lexer1:
-	alex Lexer.x
+	alex $(l).x -o $(o)/$(l).hs
 
 lexer2:
-	ghc Lexer.hs
+	ghc -odir $(o) -hidir $(o) $(o)/$(l).hs
 
 parser1:
-	happy Parser.y
+	happy $(p).y -o $(o)/$(p).hs
 
 parser2:
-	ghc Parser.hs
+	ghc -odir $(o) -hidir $(o) $(o)/$(p).hs
 
 clean:
-	rm -f Lexer.hs Lexer.hi Lexer.o Lexer Parser.hs Parser.hi Parser.o Parser Parser.info
+	rm -f *.hi *.o $(l).hs $(p).hs Parser
 
 clean_:
-	rm -f Lexer.hs Lexer.hi Lexer.o Parser.hs Parser.hi Parser.o Parser.info
+	rm -f *.hi *.o 
