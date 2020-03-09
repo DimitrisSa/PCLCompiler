@@ -1,22 +1,21 @@
-all: lexer1 lexer2 parser1 parser2
+sr=$(shell find '.' -name '*.hs')
 l = lexer
 p = parser
 o = odir
- 
-lexer1:
+
+all: $(l) $(p) both
+
+lexer:
 	alex $(l).x -o $(o)/$(l).hs
 
-lexer2:
-	ghc -odir $(o) -hidir $(o) $(o)/$(l).hs
-
-parser1:
+parser:
 	happy $(p).y -o $(o)/$(p).hs
 
-parser2:
-	ghc -odir $(o) -hidir $(o) $(o)/$(p).hs
+both: $(sr)
+	ghc -XFlexibleInstances -XLambdaCase -o $(p) -odir $(o) -hidir $(o) $^
 
 clean:
-	rm -f *.hi *.o $(l).hs $(p).hs Parser
+	rm -f $(o)/* $(p)
 
 clean_:
-	rm -f *.hi *.o 
+	rm -f $(o)/* 

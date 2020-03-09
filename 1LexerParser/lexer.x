@@ -1,8 +1,8 @@
 {
-  module Lexer (Token(..),AlexPosn(..),alexScanTokens) where
+module Lexer where
 }
 
-%wrapper "posn"
+%wrapper "basic"
 
 $letter    = [a-z A-Z]
 @id        = $letter [$letter _]*
@@ -18,7 +18,7 @@ $sign      = [\- \+]
 $inCom     = [$printable $white] # \*
 $comCont   = [$printable $white] # \)
 @comS      = \( \*
-@comment   = @comS ( $inCom | \* $comCont )* \*+ \)
+@comment   = @comS ( $inCom | \* $comCont )* \* \)
 
 $printChar = $printable # [\\ \' \"]
 @escSeq    = \\ [n t r 0 \\ \' \"]
@@ -27,65 +27,65 @@ $printChar = $printable # [\\ \' \"]
 
 tokens :-
   $white+               ;
-  and                   { \p s -> TAnd                  }
-  array                 { \p s -> TArray                }
-  begin                 { \p s -> TBegin                }
-  boolean               { \p s -> TBoolean              }
-  char                  { \p s -> TChar                 }
-  dispose               { \p s -> TDispose              }
-  div                   { \p s -> TDivInt               }
-  do                    { \p s -> TDo                   }
-  else                  { \p s -> TElse                 }
-  end                   { \p s -> TEnd                  }
-  false                 { \p s -> TFalse                }
-  forward               { \p s -> TForward              }
-  function              { \p s -> TFunction             }
-  goto                  { \p s -> TGoto                 }
-  if                    { \p s -> TIf                   }
-  integer               { \p s -> TInteger              }
-  label                 { \p s -> TLabel                }
-  mod                   { \p s -> TMod                  }
-  new                   { \p s -> TNew                  }
-  nil                   { \p s -> TNil                  }
-  not                   { \p s -> TNot                  }
-  of                    { \p s -> TOf                   }
-  or                    { \p s -> TOr                   }
-  procedure             { \p s -> TProcedure            }
-  program               { \p s -> TProgram              }
-  real                  { \p s -> TReal                 }
-  result                { \p s -> TResult               }
-  return                { \p s -> TReturn               }
-  then                  { \p s -> TThen                 }
-  true                  { \p s -> TTrue                 }
-  var                   { \p s -> TVar                  }
-  while                 { \p s -> TWhile                }
-  @id                   { \p s -> TId s                 }
-  @int                  { \p s -> TIntconst    (read s) }
-  @real                 { \p s -> TRealconst   (read s) }
+  and                   { \s -> TAnd                  }
+  array                 { \s -> TArray                }
+  begin                 { \s -> TBegin                }
+  boolean               { \s -> TBoolean              }
+  char                  { \s -> TChar                 }
+  dispose               { \s -> TDispose              }
+  div                   { \s -> TDivInt               }
+  do                    { \s -> TDo                   }
+  else                  { \s -> TElse                 }
+  end                   { \s -> TEnd                  }
+  false                 { \s -> TFalse                }
+  forward               { \s -> TForward              }
+  function              { \s -> TFunction             }
+  goto                  { \s -> TGoto                 }
+  if                    { \s -> TIf                   }
+  integer               { \s -> TInteger              }
+  label                 { \s -> TLabel                }
+  mod                   { \s -> TMod                  }
+  new                   { \s -> TNew                  }
+  nil                   { \s -> TNil                  }
+  not                   { \s -> TNot                  }
+  of                    { \s -> TOf                   }
+  or                    { \s -> TOr                   }
+  procedure             { \s -> TProcedure            }
+  program               { \s -> TProgram              }
+  real                  { \s -> TReal                 }
+  result                { \s -> TResult               }
+  return                { \s -> TReturn               }
+  then                  { \s -> TThen                 }
+  true                  { \s -> TTrue                 }
+  var                   { \s -> TVar                  }
+  while                 { \s -> TWhile                }
+  @id                   { \s -> TId s                 }
+  @int                  { \s -> TIntconst    (read s) }
+  @real                 { \s -> TRealconst   (read s) }
   @comment              ;
-  @char                 { \p s -> TCharconst   (read s) }
-  @string               { \p s -> TStringconst (read s) }
-  =                     { \p s -> TLogiceq              }
-  >                     { \p s -> TGreater              }
-  \<                    { \p s -> TSmaller              }
-  \<>                   { \p s -> TDifferent            }
-  >=                    { \p s -> TGreaterequal         }
-  \<=                   { \p s -> TSmallerequal         }
-  \+                    { \p s -> TAdd                  }
-  \-                    { \p s -> TMinus                }
-  \*                    { \p s -> TMul                  }
-  \/                    { \p s -> TDivReal              }
-  \^                    { \p s -> TPointer              }
-  @                     { \p s -> TAdress               }
-  :=                    { \p s -> TEq                   }
-  \;                    { \p s -> TSeperator            }
-  \.                    { \p s -> TDot                  }
-  \(                    { \p s -> TLeftparen            }
-  \)                    { \p s -> TRightparen           }
-  :                     { \p s -> TUpdown               }
-  \,                    { \p s -> TComma                }
-  \[                    { \p s -> TLeftbracket          }
-  \]                    { \p s -> TRightbracket         }
+  @char                 { \s -> TCharconst   (read s) }
+  @string               { \s -> TStringconst (read s) }
+  =                     { \s -> TLogiceq              }
+  >                     { \s -> TGreater              }
+  \<                    { \s -> TSmaller              }
+  \<>                   { \s -> TDifferent            }
+  >=                    { \s -> TGreaterequal         }
+  \<=                   { \s -> TSmallerequal         }
+  \+                    { \s -> TAdd                  }
+  \-                    { \s -> TMinus                }
+  \*                    { \s -> TMul                  }
+  \/                    { \s -> TDivReal              }
+  \^                    { \s -> TPointer              }
+  @                     { \s -> TAdress               }
+  :=                    { \s -> TEq                   }
+  \;                    { \s -> TSeperator            }
+  \.                    { \s -> TDot                  }
+  \(                    { \s -> TLeftparen            }
+  \)                    { \s -> TRightparen           }
+  :                     { \s -> TUpdown               }
+  \,                    { \s -> TComma                }
+  \[                    { \s -> TLeftbracket          }
+  \]                    { \s -> TRightbracket         }
 
 {
 data Token =
@@ -148,5 +148,4 @@ data Token =
   TLeftbracket        |
   TRightbracket         
   deriving (Eq,Show)
-
 }

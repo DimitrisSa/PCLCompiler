@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -w #-}
-module Parser where
-import Lexer (Token(..))
+module Main where
+import Lexer (Token(..),alexScanTokens)
 import qualified Data.Array as Happy_Data_Array
 import qualified Data.Bits as Bits
 import Control.Applicative(Applicative(..))
@@ -2241,14 +2241,17 @@ happySeq = happyDontSeq
 
 
 parseError :: [Token] -> a
-parseError _ = error "Parse error\n"
+parseError = \_ -> error "Parse error\n"
 
 tokenizer :: Token -> String
-tokenizer token = show token
+tokenizer = \t -> show t
 
 data Program =
   P Id Body
   deriving(Show)
+
+--instance Show Program with
+--  show = \(P i b) -> concat ["P\n\n\n",show i,show b]
 
 data Body =
   B [Local] Block
@@ -2364,7 +2367,7 @@ data Call =
   CId Id [Expr]
   deriving(Show)
 
-parser = getContents >>= return . parse . alexScanTokens
+main = getContents >>= print . parse . alexScanTokens
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}

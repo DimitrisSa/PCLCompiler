@@ -1,6 +1,6 @@
 {
-module Parser where
-import Lexer (Token(..))
+module Main where
+import Lexer (Token(..),alexScanTokens)
 }
 
 %name parse
@@ -218,14 +218,17 @@ Exprs      :: { Exprs }
 {
 
 parseError :: [Token] -> a
-parseError _ = error "Parse error\n"
+parseError = \_ -> error "Parse error\n"
 
 tokenizer :: Token -> String
-tokenizer token = show token
+tokenizer = \t -> show t
 
 data Program =
   P Id Body
   deriving(Show)
+
+--instance Show Program with
+--  show = \(P i b) -> concat ["P\n\n\n",show i,show b]
 
 data Body =
   B [Local] Block
@@ -341,5 +344,5 @@ data Call =
   CId Id [Expr]
   deriving(Show)
 
-parser = getContents >>= return . parse . alexScanTokens 
+main = getContents >>= print . parse . alexScanTokens 
 }
