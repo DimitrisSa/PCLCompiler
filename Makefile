@@ -1,21 +1,23 @@
 sr=$(shell find '.' -name '*.hs')
 l = lexer
 p = parser
+c = compiler
 o = odir
+lp = 1LexerParser
 
 all: $(l) $(p) both
 
 lexer:
-	alex $(l).x -o $(o)/$(l).hs
+	alex $(lp)/$(l).x -o $(o)/$(l).hs
 
 parser:
-	happy $(p).y -o $(o)/$(p).hs
+	happy $(lp)/$(p).y -o $(o)/$(p).hs
 
 both: $(sr)
-	ghc -XFlexibleInstances -XLambdaCase -o $(p) -odir $(o) -hidir $(o) $^
+	ghc -XFlexibleInstances -XLambdaCase -o $(c) -odir $(o) -hidir $(o) $^
 
 clean:
-	rm -f $(o)/* $(p)
+	rm -f $(o)/* $(c)
 
 clean_:
 	rm -f $(o)/* 

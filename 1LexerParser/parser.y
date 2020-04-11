@@ -343,6 +343,4 @@ data RValue =
 data Call =
   CId Id [Expr]
   deriving(Show)
-
-main = getContents >>= print . parse . alexScanTokens 
 }
