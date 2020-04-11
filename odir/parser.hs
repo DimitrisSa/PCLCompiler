@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -w #-}
-module Main where
+module Parser where
 import Lexer (Token(..),alexScanTokens)
 import qualified Data.Array as Happy_Data_Array
 import qualified Data.Bits as Bits
@@ -2366,6 +2366,8 @@ data RValue =
 data Call =
   CId Id [Expr]
   deriving(Show)
+
+parser = getContents >>= return . parse . alexScanTokens
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}

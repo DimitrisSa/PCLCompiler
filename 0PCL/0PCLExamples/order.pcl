@@ -1,5 +1,6 @@
 program order;
 var n:integer ;
+var n:boolean ;
 begin
 	n:=@i
 end.

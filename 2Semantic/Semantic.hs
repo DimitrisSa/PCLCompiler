@@ -14,32 +14,26 @@ main = do
     case (\x -> x M.empty) $ evalState $ runEitherT $ program ast of
       Right _  -> "good"
       Left s   -> s
-  
+
 program :: Program -> Semantics
-program (P _ body) = do
-  initSymbolTable
-  bodySems body
-  
+program (P _ body) = initSymbolTable >> bodySems body 
+
 bodySems :: Body -> Semantics
-bodySems (B locals block) = do
-  flocals (reverse locals)
+bodySems (B locals block) = 
+  flocals (reverse locals) >>
   fblock block
 
 flocals :: [Local] -> Semantics
 flocals locals = case locals of
-  (x:xs) -> do 
-              flocal x
-              flocals xs
-  []     -> do 
-              return ()
+  (x:xs) -> flocal x >> flocals xs
+  []     -> return ()
 
 flocal :: Local -> Semantics
-flocal local = do
-  case local of
-    LoVar vars     -> toSems vars
-    LoLabel labels -> myinsert (makeLabelList labels)
-    LoHeadBod h _  -> headBodF h
-    LoForward h    -> forwardF h
+flocal = \case 
+  LoVar vars     -> toSems vars
+  LoLabel labels -> myinsert (makeLabelList labels)
+  LoHeadBod h _  -> headBodF h
+  LoForward h    -> forwardF h
 
 -- to check if func/proc with forward is defined
 headBodF :: Header -> Semantics
@@ -143,13 +137,13 @@ initSymbolTable = do
 --helper function to insert the predefined procedures to the symbol table
 helpprocs :: String->Args->Semantics
 helpprocs name myArgs = do
-  tm<-get
+  tm <- get
   put $ M.insert name (Tproc myArgs) tm
   return ()
 
 --helper function to insert the predefined functions to the symbol table
 helpfunc :: String->Args->Type->Semantics
 helpfunc name myArgs myType = do
-  tm<-get
+  tm <- get
   put $ M.insert name (Tfunc myArgs myType) tm
   return ()

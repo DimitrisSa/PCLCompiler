@@ -1,5 +1,5 @@
 {
-module Main where
+module Parser where
 import Lexer (Token(..),alexScanTokens)
 }
 
@@ -343,4 +343,6 @@ data RValue =
 data Call =
   CId Id [Expr]
   deriving(Show)
+
+parser = getContents >>= return . parse . alexScanTokens
 }
