@@ -152,7 +152,7 @@ Stmt       :: { Stmt }
            | if Expr then Stmt else Stmt        { SITE     $2 $4 $6       }     
            | while Expr do Stmt                 { SWhile   $2 $4          }
            | id ':' Stmt                        { SId      $1 $3          }
-           | goto id                            { SGoto    (tokenizer $1) }
+           | goto id                            { SGoto    $2             }
            | return                             { SReturn                 }
            | new New LValue                     { SNew     $2 $3          }
            | dispose Dispose LValue             { SDispose $3             }
@@ -219,9 +219,6 @@ Exprs      :: { Exprs }
 
 parseError :: [Token] -> a
 parseError = \_ -> error "Parse error\n"
-
-tokenizer :: Token -> String
-tokenizer = \t -> show t
 
 data Program =
   P Id Body

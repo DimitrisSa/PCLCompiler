@@ -1,8 +1,8 @@
-program Dangledif ;
+program danglingif;
 var x: boolean;
 label john;
 forward function ok(var k : real):real;
-function ok(l : real ):real; 
+function ok(l : integer):real; 
   begin end;
   (*forward procedure ok();*)
 begin

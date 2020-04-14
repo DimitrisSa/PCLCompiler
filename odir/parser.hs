@@ -1772,10 +1772,10 @@ happyReduction_41 (HappyAbsSyn20  happy_var_3)
 happyReduction_41 _ _ _  = notHappyAtAll 
 
 happyReduce_42 = happySpecReduce_2  20 happyReduction_42
-happyReduction_42 _
-	(HappyTerminal happy_var_1)
+happyReduction_42 (HappyTerminal (TId          happy_var_2))
+	_
 	 =  HappyAbsSyn20
-		 (SGoto    (tokenizer happy_var_1)
+		 (SGoto    happy_var_2
 	)
 happyReduction_42 _ _  = notHappyAtAll 
 
@@ -2242,9 +2242,6 @@ happySeq = happyDontSeq
 
 parseError :: [Token] -> a
 parseError = \_ -> error "Parse error\n"
-
-tokenizer :: Token -> String
-tokenizer = \t -> show t
 
 data Program =
   P Id Body

@@ -1,4 +1,13 @@
 program hello;
+label asdfasd;
+forward procedure p();
+function ok(ok: real):real;
+begin end;
+procedure pr(a, b: real);
+begin end;
 begin
-  writeString( "Hello world! \n" )
+  goto asdfasd;
+  writeString( "Hello world! \n" );
+  ok(ok);
+  pr(s,f);
 end.
