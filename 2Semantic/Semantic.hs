@@ -18,19 +18,20 @@ main = do
 
 -- process ast
 program :: Program -> Semantics ()
-program (P _ body) = initSymbolTable >> bodySems body 
+program (P _ body) = initSymbolTable >> bodySems body
 
 -- process body
 bodySems :: Body -> Semantics ()
-bodySems (B locals block) = 
-  flocals (reverse locals) >> fblock block
+bodySems (B locals (Bl s)) =
+  flocals (reverse locals) >> fblock (reverse s)
+bodysems (B locals _ ) = flocals (reverse locals)
 
 -- process locals (vars, labels, headbod, forward)
 flocals :: [Local] -> Semantics ()
 flocals = mapM_ flocal
 
 flocal :: Local -> Semantics ()
-flocal = \case 
+flocal = \case
   LoVar vars     -> toSems vars
   LoLabel labels -> myinsert (makeLabelList labels)
   LoHeadBod h _  -> headBodF h
@@ -46,20 +47,20 @@ headBodF h = do
   tm <- get
   case h of
     Procedure i a   ->
-      case M.lookup i tm of 
-        Just (TFproc b) -> 
+      case M.lookup i tm of
+        Just (TFproc b) ->
            if  makelistforward a == makelistforward b then
-             put $ M.insert i (Tproc a) tm 
+             put $ M.insert i (Tproc a) tm
            else
              left $ parErr ++ i
-        Nothing -> put $ M.insert i (Tproc a) tm 
+        Nothing -> put $ M.insert i (Tproc a) tm
         _       -> left $ dupErr ++ i
     Function  i a t ->
       case M.lookup i tm of
-        Just (TFfunc b t2) -> 
+        Just (TFfunc b t2) ->
            if (t==t2) &&
               (makelistforward a == makelistforward b) then
-             put $ M.insert i (Tfunc a t) tm 
+             put $ M.insert i (Tfunc a t) tm
            else
              left $ parErr ++ i
         Nothing -> put $ M.insert i (Tfunc a t) tm
@@ -70,9 +71,9 @@ forwardF h = do
   tm <- get
   case h of
     Procedure i a   ->
-      case M.lookup i tm of 
+      case M.lookup i tm of
         Just _  -> left $ dupErr ++ i
-        Nothing -> put $ M.insert i (TFproc a) tm 
+        Nothing -> put $ M.insert i (TFproc a) tm
     Function  i a t ->
       case M.lookup i tm of
         Just _  -> left $ dupErr ++ i
@@ -82,16 +83,16 @@ toSems :: Variables -> Semantics ()
 toSems = mapM_ (myinsert . makelist)
 
 makelist :: (Ids,Type) -> [(Id,Type)]
-makelist (in1,myt) = Prelude.map (\x -> (x,myt)) in1 
+makelist (in1,myt) = Prelude.map (\x -> (x,myt)) in1
 
 makelistforward :: [(Ids,Type)] -> [Type]
 makelistforward fs = concat $ map makelisthelp fs
 
 makelisthelp :: (Ids,Type) -> [Type]
-makelisthelp (in1,myt) = Prelude.map (\_ -> myt) in1 
+makelisthelp (in1,myt) = Prelude.map (\_ -> myt) in1
 
 makeLabelList :: Ids -> [(Id,Type)]
-makeLabelList in1 = Prelude.map (\x -> (x,Tlabel)) in1 
+makeLabelList in1 = Prelude.map (\x -> (x,Tlabel)) in1
 
 myinsert :: [(Id,Type)] -> Semantics ()
 myinsert ((v,t):xs) = do
@@ -101,8 +102,8 @@ myinsert ((v,t):xs) = do
     Nothing -> put (M.insert v t tm) >> myinsert xs
 myinsert [] = return ()
 
-fblock :: Block -> Semantics () 
-fblock (Bl ss) = mapM_ fstatement ss
+fblock :: Stmts -> Semantics ()
+fblock ss = mapM_ fstatement ss
 
 -- Check that label exists in the program (not done)
 -- Check that r-value is not procedure in call (not done)
@@ -140,10 +141,11 @@ fstatement = \case
   SElse stmt           -> return ()
 
 callSemErr = "Wrong type of identifier in call: "
+callSem :: String -> Type -> Exprs -> Semantics ()
 callSem id = \case
-  TFfunc as t -> \exprs -> return ()
+  TFfunc as t -> \exprs -> undefined
   Tfunc  as t -> \exprs -> return ()
-  TFproc as   -> \exprs -> return ()
+  TFproc as   -> \exprs -> undefined
   Tproc  as   -> \exprs ->
     mapM totype exprs >>=
     argsExprsSems id (makelistforward as)
@@ -170,7 +172,7 @@ totypel = \case
       Nothing -> left $ varErr ++ id
   LResult                -> left retErr
   LString string         -> right $ ArrayT NoSize Tchar
-  LValueExpr lValue expr -> totype expr >>= \case 
+  LValueExpr lValue expr -> totype expr >>= \case
     Tint -> totypel lValue >>= \case
       ArrayT _ t -> right t
       _          -> left arrErr
@@ -179,6 +181,71 @@ totypel = \case
     PointerT t -> right t
     _          -> left pointErr
   LParen lValue          -> totypel lValue
+
+checkposneg :: Expr -> String -> Semantics Type
+checkposneg expr a = totype expr >>= \case
+    Tint  -> right Tint
+    Treal -> right Treal
+    _     -> left $ "non-number expression after " ++ a
+
+checkarithmetic :: Expr -> Expr -> String -> Semantics Type
+checkarithmetic exp1 exp2 a = totype exp1 >>= \case
+  Tint  -> totype exp2 >>= \case
+    Tint  -> right Tint
+    Treal -> right Treal
+    _     -> left $ "non-number expression after "++a
+  Treal -> totype exp2 >>= \case
+    Treal -> right Treal
+    Tint  -> right Treal
+    _     -> left $ "non-number expression after "++a
+  _     -> left $ "non-number expression before "++a
+
+checkinthmetic :: Expr -> Expr -> String -> Semantics Type
+checkinthmetic exp1 exp2 a = totype exp1 >>= \case
+  Tint  -> totype exp2 >>= \case
+    Tint  -> right Tint
+    _     -> left $ "non-integer expression after "++a
+  _     -> left $ "non-integer expression before "++a
+
+checklogic :: Expr -> Expr -> String -> Semantics Type
+checklogic exp1 exp2 a = totype exp1 >>= \case
+    Tbool  -> totype exp2 >>= \case
+      Tbool  -> right Tbool
+      _     -> left $ "non-boolean expression after "++a
+    _     -> left $ "non-boolean expression before "++a
+
+checkcompare :: Expr -> Expr -> String -> Semantics Type
+checkcompare exp1 exp2 a = totype exp1 >>= \case
+  Tint  -> totype exp2 >>= \case
+    Tint  -> right Tbool
+    Treal -> right Tbool
+    _     -> left $ "mismatched types at "++a
+  Treal -> totype exp2 >>= \case
+    Treal -> right Tbool
+    Tint  -> right Tbool
+    _     -> left $ "mismatched types at "++a
+  Tbool -> totype exp2 >>= \case
+    Tbool  -> right Tbool
+    _      -> left $ "mismatched types at "++a
+  Tchar -> totype exp2 >>= \case
+    Tchar  -> right Tbool
+    _      -> left $ "mismatched types at "++a
+  PointerT _ -> totype exp2 >>= \case
+    PointerT _  -> right Tbool
+    _           -> left $ "mismatched types at "++a
+  _     -> left $ "mismatched types at "++a
+
+checknumcomp :: Expr -> Expr -> String -> Semantics Type
+checknumcomp exp1 exp2 a = totype exp1 >>= \case
+    Tint  -> totype exp2 >>= \case
+      Tint  -> right Tbool
+      Treal -> right Tbool
+      _     -> left $ "non-number expression after "++ a
+    Treal -> totype exp2 >>= \case
+      Treal -> right Tbool
+      Tint  -> right Tbool
+      _     -> left $ "non-number expression after " ++ a
+    _     -> left $ "non-number expression before " ++ a
 
 totyper :: RValue -> Semantics Type
 totyper = \case
@@ -193,45 +260,12 @@ totyper = \case
   RPapaki  lValue     -> totypel lValue >>= right . PointerT
   RNot     expr       -> totype expr >>= \case
     Tbool -> right Tbool
-    _     -> left "non-boolean expression after not" 
-  RPos     expr       -> totype expr >>= \case
-    Tint  -> right Tint
-    Treal -> right Treal
-    _     -> left "non-number expression after '+'"
-  RNeg     expr       -> totype expr >>= \case
-    Tint  -> right Tint
-    Treal -> right Treal
-    _     -> left "non-number expression after '-'"
-  RPlus    exp1 exp2  -> totype exp1 >>= \case
-    Tint  -> totype exp2 >>= \case
-      Tint  -> right Tint
-      Treal -> right Treal
-      _     -> left "non-number expression after '+'"
-    Treal -> totype exp2 >>= \case
-      Treal -> right Treal
-      Tint  -> right Treal
-      _     -> left "non-number expression after '+'"
-    _     -> left "non-number expression before '+'"
-  RMul     exp1 exp2  -> totype exp1 >>= \case
-    Tint  -> totype exp2 >>= \case
-      Tint  -> right Tint
-      Treal -> right Treal
-      _     -> left "non-number expression after '*'"
-    Treal -> totype exp2 >>= \case
-      Treal -> right Treal
-      Tint  -> right Treal
-      _     -> left "non-number expression after '*'"
-    _     -> left "non-number expression before '*'"
-  RMinus   exp1 exp2  -> totype exp1 >>= \case
-    Tint  -> totype exp2 >>= \case
-      Tint  -> right Tint
-      Treal -> right Treal
-      _     -> left "non-number expression after '-'"
-    Treal -> totype exp2 >>= \case
-      Treal -> right Treal
-      Tint  -> right Treal
-      _     -> left "non-number expression after '-'"
-    _     -> left "non-number expression before '-'"
+    _     -> left "non-boolean expression after not"
+  RPos     expr       -> checkposneg expr "'+'"
+  RNeg     expr       -> checkposneg expr "'-'"
+  RPlus    exp1 exp2  -> checkarithmetic exp1 exp2 "'+'"
+  RMul     exp1 exp2  -> checkarithmetic exp1 exp2 "'*'"
+  RMinus   exp1 exp2  -> checkarithmetic exp1 exp2 "'-'"
   RRealDiv exp1 exp2  -> totype exp1 >>= \case
     Tint  -> totype exp2 >>= \case
       Tint  -> right Treal
@@ -242,76 +276,24 @@ totyper = \case
       Tint  -> right Treal
       _     -> left "non-number expression after '/'"
     _     -> left "non-number expression before '/'"
-  RDiv     exp1 exp2  -> totype exp1 >>= \case
-    Tint  -> totype exp2 >>= \case
-      Tint  -> right Tint
-      _     -> left "non-integer expression after 'div'"
-    _     -> left "non-integer expression before 'div'"
-  RMod     exp1 exp2  -> totype exp1 >>= \case
-    Tint  -> totype exp2 >>= \case
-      Tint  -> right Tint
-      _     -> left "non-integer expression after 'mod'"
-    _     -> left "non-integer expression before 'mod'"
-  ROr      exp1 exp2  -> totype exp1 >>= \case
-    Tbool  -> totype exp2 >>= \case
-      Tbool  -> right Tbool
-      _     -> left "non-boolean expression after 'or'"
-    _     -> left "non-boolean expression before 'or'"
-  RAnd     exp1 exp2  -> totype exp1 >>= \case
-    Tbool  -> totype exp2 >>= \case
-      Tbool  -> right Tbool
-      _     -> left "non-boolean expression after 'and'"
-    _     -> left "non-boolean expression before 'and'"
-  REq      exp1 exp2  -> undefined
-  RDiff    exp1 exp2  -> undefined
-  RLess    exp1 exp2  -> totype exp1 >>= \case
-    Tint  -> totype exp2 >>= \case
-      Tint  -> right Tbool
-      Treal -> right Tbool
-      _     -> left "non-number expression after '<'"
-    Treal -> totype exp2 >>= \case
-      Treal -> right Tbool
-      Tint  -> right Tbool
-      _     -> left "non-number expression after '<'"
-    _     -> left "non-number expression before '<'"
-  RGreater exp1 exp2  -> totype exp1 >>= \case
-    Tint  -> totype exp2 >>= \case
-      Tint  -> right Tbool
-      Treal -> right Tbool
-      _     -> left "non-number expression after '>'"
-    Treal -> totype exp2 >>= \case
-      Treal -> right Tbool
-      Tint  -> right Tbool
-      _     -> left "non-number expression after '>'"
-    _     -> left "non-number expression before '>'"
-  RGreq    exp1 exp2  -> totype exp1 >>= \case
-    Tint  -> totype exp2 >>= \case
-      Tint  -> right Tbool
-      Treal -> right Tbool
-      _     -> left "non-number expression after '>='"
-    Treal -> totype exp2 >>= \case
-      Treal -> right Tbool
-      Tint  -> right Tbool
-      _     -> left "non-number expression after '>='"
-    _     -> left "non-number expression before '>='"
-  RSmeq    exp1 exp2  -> totype exp1 >>= \case
-    Tint  -> totype exp2 >>= \case
-      Tint  -> right Tbool
-      Treal -> right Tbool
-      _     -> left "non-number expression after '<='"
-    Treal -> totype exp2 >>= \case
-      Treal -> right Tbool
-      Tint  -> right Tbool
-      _     -> left "non-number expression after '<='"
-    _     -> left "non-number expression before '<='"
+  RDiv     exp1 exp2  -> checkinthmetic exp1 exp2 "'div'"
+  RMod     exp1 exp2  -> checkinthmetic exp1 exp2 "'mod'"
+  ROr      exp1 exp2  -> checklogic exp1 exp2 "'or'"
+  RAnd     exp1 exp2  -> checklogic exp1 exp2 "'and'"
+  REq      exp1 exp2  -> checkcompare exp1 exp2 "'='"
+  RDiff    exp1 exp2  -> checkcompare exp1 exp2 "'<>'"
+  RLess    exp1 exp2  -> checknumcomp exp1 exp2 "'<'"
+  RGreater exp1 exp2  -> checknumcomp exp1 exp2 "'>'"
+  RGreq    exp1 exp2  -> checknumcomp exp1 exp2 "'>='"
+  RSmeq    exp1 exp2  -> checknumcomp exp1 exp2 "'<='"
 
 argsExprsErr = "Wrong number of args for: "
 typeExprsErr = "Type mismatch of args for: "
 argsExprsSems :: Id -> [Type] -> [Type] -> Semantics ()
-argsExprsSems id (t1:t1s) (t2:t2s) | t1 == t2 = 
-  argsExprsSems id t1s t2s 
+argsExprsSems id (t1:t1s) (t2:t2s) | t1 == t2 =
+  argsExprsSems id t1s t2s
                          | otherwise = left $ typeExprsErr ++id
-                                                
+
 argsExprsSems _ [] [] = return ()
 argsExprsSems id _ _ = left $ argsExprsErr ++ id
 

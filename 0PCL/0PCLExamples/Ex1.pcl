@@ -1,6 +1,8 @@
 program hello;
 label asdfasd;
-var s,f:real;
+var s:real;
+var f:real;
+var t:integer;
 var x : array of real;
 forward procedure p();
 function ok(ok: real):real;
@@ -9,7 +11,7 @@ procedure pr(a, b: real);
 begin end;
 begin
   goto asdfasd;
-  writeString("lol");
+  (* writeString(s <> t ); *)
   ok(ok);
-  pr(s+1mod2,f);
+  pr(s > t mod t,f);
 end.
