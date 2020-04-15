@@ -1,5 +1,7 @@
 program hello;
 label asdfasd;
+var s,f:real;
+var x : array of real;
 forward procedure p();
 function ok(ok: real):real;
 begin end;
@@ -7,7 +9,7 @@ procedure pr(a, b: real);
 begin end;
 begin
   goto asdfasd;
-  writeString( "Hello world! \n" );
+  writeString("lol");
   ok(ok);
-  pr(s,f);
+  pr(s+1mod2,f);
 end.
