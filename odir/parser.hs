@@ -2274,6 +2274,7 @@ type Formal = (Ids,Type)
 type Args   = [Formal]
 
 data Type =
+  Tnil                | 
   Tint                | 
   Treal               |
   Tbool               |
@@ -2310,8 +2311,7 @@ data Stmt =
   SGoto Id            |
   SReturn             |
   SNew Expr LValue    |
-  SDispose LValue     |
-  SElse Stmt
+  SDispose LValue     
   deriving(Show)
 
 type Exprs = [Expr]

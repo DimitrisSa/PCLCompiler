@@ -7,11 +7,15 @@ var x : array of real;
 forward procedure p();
 function ok(ok: real):real;
 begin end;
+procedure oko(ok: real);
+begin end;
 procedure pr(a, b: real);
 begin end;
 begin
   goto asdfasd;
   (* writeString(s <> t ); *)
-  ok(ok);
-  pr(s > t mod t,f);
+  pr(s + t mod t,ok(s));
+  oko(s);
+  s := f;
+  s := t;
 end.

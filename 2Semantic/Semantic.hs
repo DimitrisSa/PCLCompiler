@@ -112,39 +112,69 @@ fblock ss = mapM_ fstatement ss
 -- write particular argument of type mismatch
 -- string-literal
 -- totypel check out of bounds
+-- result in scopes (how to handle it in the ST)
+-- anathesi array diaforetikoy megethous?
+-- check an pliris tipos
 
 gotoErr = "Undeclared Label: "
 callErr = "Undeclared function or procedure in call: "
+checkBoolExpr :: Expr -> String -> Semantics ()
+checkBoolExpr expr stmtDesc = do
+  et <- totype expr
+  if et == Tbool then return ()
+  else left $ "Non-boolean expression in " ++ stmtDesc
+
+checkLabel :: String -> Semantics ()
+checkLabel id = do
+  tm <- get
+  case M.lookup id tm of
+    Just (Tlabel) -> return ()
+    Nothing       -> left $ "undefined label: " ++ id
+    _             -> left $ "not a label: " ++ id
+
+checkpointer :: LValue -> Semantics ()
+checkpointer lValue = totypel lValue >>= \case
+  PointerT _ -> return ()
+  _          -> left "non-pointer in new statement"
 
 fstatement :: Stmt -> Semantics ()
 fstatement = \case
   SEmpty               -> return ()
-  SEqual lValue expr   -> return ()
-  SBlock block         -> return ()
+  SEqual lValue expr   -> do
+    lt <- totypel lValue
+    et <- totype  expr
+    if symbatos lt et then return ()
+    else left "type mismatch in assignment" 
+  SBlock (Bl ss)       -> fblock ss
   SCall (CId id exprs) -> do
     tm <- get
     case M.lookup id tm of
       Just t  -> callSem id t exprs
       Nothing -> left $ callErr ++ id
-  SIT  expr stmt       -> return ()
-  SITE expr s1 s2      -> return ()
-  SWhile expr stmt     -> return ()
-  SId id stmt          -> return ()
-  SGoto id             -> do
-    tm <- get
-    case M.lookup id tm of
-      Just l  -> return ()
-      Nothing -> left $ gotoErr ++ id
+  SIT  expr stmt       -> checkBoolExpr expr "if-then" >>
+                          fstatement stmt
+  SITE expr s1 s2      -> checkBoolExpr expr "if-then-else" >>
+                          fstatement s1 >> fstatement s2
+  SWhile expr stmt     -> checkBoolExpr expr "while" >>
+                          fstatement stmt
+  SId id stmt          -> checkLabel id >> fstatement stmt  
+  SGoto id             -> checkLabel id
   SReturn              -> return ()
-  SNew expr lValue     -> return ()
+  SNew expr lValue     -> case expr of
+    EEmpty -> checkpointer lValue
+    e      -> totype expr >>= \case
+      Tint -> checkpointer lValue
+      _    -> left "non-integer expression in new statement"
   SDispose lValue      -> return ()
-  SElse stmt           -> return ()
+
+symbatos :: Type -> Type -> Bool
+symbatos (PointerT (ArrayT NoSize t1))
+         (PointerT (ArrayT (Size _) t2)) = t1 == t2
+symbatos lt et = lt == et || (lt == Treal && et == Tint) 
 
 callSemErr = "Wrong type of identifier in call: "
 callSem :: String -> Type -> Exprs -> Semantics ()
 callSem id = \case
-  TFfunc as t -> \exprs -> undefined
-  Tfunc  as t -> \exprs -> return ()
   TFproc as   -> \exprs -> undefined
   Tproc  as   -> \exprs ->
     mapM totype exprs >>=
@@ -170,7 +200,11 @@ totypel = \case
     case M.lookup id tm of
       Just t  -> return t
       Nothing -> left $ varErr ++ id
-  LResult                -> left retErr
+  LResult                -> do
+    tm <- get
+    case M.lookup "result" tm of
+      Just t  -> return t
+      Nothing -> left $ varErr ++ "result"
   LString string         -> right $ ArrayT NoSize Tchar
   LValueExpr lValue expr -> totype expr >>= \case
     Tint -> totypel lValue >>= \case
@@ -232,6 +266,11 @@ checkcompare exp1 exp2 a = totype exp1 >>= \case
     _      -> left $ "mismatched types at "++a
   PointerT _ -> totype exp2 >>= \case
     PointerT _  -> right Tbool
+    Tnil        -> right Tbool
+    _           -> left $ "mismatched types at "++a
+  Tnil       -> totype exp2 >>= \case
+    PointerT _  -> right Tbool
+    Tnil        -> right Tbool
     _           -> left $ "mismatched types at "++a
   _     -> left $ "mismatched types at "++a
 
@@ -255,8 +294,12 @@ totyper = \case
   RReal _             -> right Treal
   RChar _             -> right Tchar
   RParen rValue       -> totyper rValue
-  RNil                -> undefined
-  RCall (CId id expr) -> undefined
+  RNil                -> right Tnil
+  RCall (CId id expr) -> do
+    tm <- get
+    case M.lookup id tm of
+      Just t  -> funCallSem id t expr 
+      Nothing -> left $ callErr ++ id
   RPapaki  lValue     -> totypel lValue >>= right . PointerT
   RNot     expr       -> totype expr >>= \case
     Tbool -> right Tbool
@@ -286,6 +329,15 @@ totyper = \case
   RGreater exp1 exp2  -> checknumcomp exp1 exp2 "'>'"
   RGreq    exp1 exp2  -> checknumcomp exp1 exp2 "'>='"
   RSmeq    exp1 exp2  -> checknumcomp exp1 exp2 "'<='"
+
+funCallSem :: Id -> Type -> Exprs -> Semantics Type
+funCallSem id = \case
+  TFfunc as t -> \exprs -> undefined
+  Tfunc  as t -> \exprs ->
+    mapM totype exprs >>=
+    argsExprsSems id (makelistforward as) >> right t
+  _           -> \_ -> left $ callSemErr ++ id
+  
 
 argsExprsErr = "Wrong number of args for: "
 typeExprsErr = "Type mismatch of args for: "
