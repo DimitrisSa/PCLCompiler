@@ -107,6 +107,8 @@ fblock (Bl ss) = mapM_ fstatement ss
 -- Check that label exists in the program (not done)
 -- Check that r-value is not procedure in call (not done)
 -- Check that forward is declared afterwards (not done)
+-- fix call expr for r-values
+-- string-literal
 
 gotoErr = "Undeclared Label: "
 callErr = "Undeclared function or procedure in call: "
@@ -140,9 +142,11 @@ callSem id = \case
   TFfunc as t -> \exprs -> return ()
   Tfunc  as t -> \exprs -> return ()
   TFproc as   -> \exprs -> return ()
-  Tproc  as   -> \exprs -> argsExprsSems id
-                              (makelistforward as) exprs
+  Tproc  as   -> \exprs -> argsExprsSems id (makelistforward as) exprs--mapM totype exprs >>= argsExprsSems id (makelistforward as)
   _           -> \_ -> left $ callSemErr ++ id
+
+--totype :: Expr -> Semantics 
+--totype a = Tint
 
 argsExprsErr = "Wrong number of args for: "
 argsExprsSems :: Id -> [Type] -> Exprs -> Semantics
