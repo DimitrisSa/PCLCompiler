@@ -42,6 +42,14 @@ parErr = "Parameter missmatch between " ++
          "forward and declaration for: "
 dupErr = "Duplicate Variable: "
 
+insertheader :: Id -> Type -> Bool -> Semantics ()
+insertheader i b expr = do
+  tm <- get
+  if expr then
+    put $ M.insert i b tm
+  else
+    left $ parErr ++ i
+
 headBodF :: Header -> Semantics ()
 headBodF h = do
   tm <- get
@@ -49,35 +57,29 @@ headBodF h = do
     Procedure i a   ->
       case M.lookup i tm of
         Just (TFproc b) ->
-           if  makelistforward a == makelistforward b then
-             put $ M.insert i (Tproc a) tm
-           else
-             left $ parErr ++ i
+          insertheader i (Tproc a) (makelistforward a == makelistforward b)
         Nothing -> put $ M.insert i (Tproc a) tm
         _       -> left $ dupErr ++ i
     Function  i a t ->
       case M.lookup i tm of
         Just (TFfunc b t2) ->
-           if (t==t2) &&
-              (makelistforward a == makelistforward b) then
-             put $ M.insert i (Tfunc a t) tm
-           else
-             left $ parErr ++ i
+          insertheader i (Tfunc a t)
+                         (t==t2 && makelistforward a == makelistforward b)
         Nothing -> put $ M.insert i (Tfunc a t) tm
         _       -> left $ dupErr ++ i
 
-forwardF :: Header -> Semantics ()
-forwardF h = do
+insertforward ::Id -> Type -> Semantics ()
+insertforward i b = do
   tm <- get
+  case M.lookup i tm of
+    Just _ -> left $ dupErr ++ i
+    Nothing -> put $ M.insert i b tm
+
+forwardF :: Header -> Semantics ()
+forwardF h =
   case h of
-    Procedure i a   ->
-      case M.lookup i tm of
-        Just _  -> left $ dupErr ++ i
-        Nothing -> put $ M.insert i (TFproc a) tm
-    Function  i a t ->
-      case M.lookup i tm of
-        Just _  -> left $ dupErr ++ i
-        Nothing -> put $ M.insert i (TFfunc a t) tm
+    Procedure i a   -> insertforward i (TFproc a)
+    Function  i a t -> insertforward i (TFfunc a t)
 
 toSems :: Variables -> Semantics ()
 toSems = mapM_ (myinsert . makelist)
@@ -144,7 +146,7 @@ fstatement = \case
     lt <- totypel lValue
     et <- totype  expr
     if symbatos lt et then return ()
-    else left "type mismatch in assignment" 
+    else left "type mismatch in assignment"
   SBlock (Bl ss)       -> fblock ss
   SCall (CId id exprs) -> do
     tm <- get
@@ -157,7 +159,7 @@ fstatement = \case
                           fstatement s1 >> fstatement s2
   SWhile expr stmt     -> checkBoolExpr expr "while" >>
                           fstatement stmt
-  SId id stmt          -> checkLabel id >> fstatement stmt  
+  SId id stmt          -> checkLabel id >> fstatement stmt
   SGoto id             -> checkLabel id
   SReturn              -> return ()
   SNew expr lValue     -> case expr of
@@ -170,7 +172,7 @@ fstatement = \case
 symbatos :: Type -> Type -> Bool
 symbatos (PointerT (ArrayT NoSize t1))
          (PointerT (ArrayT (Size _) t2)) = t1 == t2
-symbatos lt et = lt == et || (lt == Treal && et == Tint) 
+symbatos lt et = lt == et || (lt == Treal && et == Tint)
 
 callSemErr = "Wrong type of identifier in call: "
 callSem :: String -> Type -> Exprs -> Semantics ()
@@ -250,41 +252,39 @@ checklogic exp1 exp2 a = totype exp1 >>= \case
 
 checkcompare :: Expr -> Expr -> String -> Semantics Type
 checkcompare exp1 exp2 a = totype exp1 >>= \case
-  Tint  -> totype exp2 >>= \case
-    Tint  -> right Tbool
-    Treal -> right Tbool
-    _     -> left $ "mismatched types at "++a
-  Treal -> totype exp2 >>= \case
-    Treal -> right Tbool
-    Tint  -> right Tbool
-    _     -> left $ "mismatched types at "++a
+  Tint  -> arithmeticbool exp2 ("mismatched types at "++a) (right Tbool)
+  Treal -> arithmeticbool exp2 ("mismatched types at "++a) (right Tbool)
   Tbool -> totype exp2 >>= \case
     Tbool  -> right Tbool
     _      -> left $ "mismatched types at "++a
   Tchar -> totype exp2 >>= \case
     Tchar  -> right Tbool
     _      -> left $ "mismatched types at "++a
-  PointerT _ -> totype exp2 >>= \case
-    PointerT _  -> right Tbool
-    Tnil        -> right Tbool
-    _           -> left $ "mismatched types at "++a
-  Tnil       -> totype exp2 >>= \case
-    PointerT _  -> right Tbool
-    Tnil        -> right Tbool
-    _           -> left $ "mismatched types at "++a
+  PointerT _ -> pointersbool exp2 ("mismatched types at "++a)
+  Tnil       -> pointersbool exp2 ("mismatched types at "++a)
   _     -> left $ "mismatched types at "++a
 
 checknumcomp :: Expr -> Expr -> String -> Semantics Type
-checknumcomp exp1 exp2 a = totype exp1 >>= \case
-    Tint  -> totype exp2 >>= \case
-      Tint  -> right Tbool
-      Treal -> right Tbool
-      _     -> left $ "non-number expression after "++ a
-    Treal -> totype exp2 >>= \case
-      Treal -> right Tbool
-      Tint  -> right Tbool
-      _     -> left $ "non-number expression after " ++ a
-    _     -> left $ "non-number expression before " ++ a
+checknumcomp exp1 exp2 a =
+  arithmeticbool exp1 ("non-number expression before " ++ a)
+  (arithmeticbool exp2 ("non-number expression after " ++ a) (right Tbool))
+
+--polymorphic function on what to do and the error msg is used for all numeric
+--comparisons and numeric functions with one return type in case of correct
+--semantic analysis
+arithmeticbool :: Expr -> String -> Semantics Type -> Semantics Type
+arithmeticbool expr errmsg f =
+  totype expr >>= \case
+    Tint   -> f
+    Treal  -> f
+    _     -> left errmsg
+
+pointersbool :: Expr -> String -> Semantics Type
+pointersbool expr a =
+  totype expr >>= \case
+    PointerT _  -> right Tbool
+    Tnil        -> right Tbool
+    _           -> left a
 
 totyper :: RValue -> Semantics Type
 totyper = \case
@@ -298,7 +298,7 @@ totyper = \case
   RCall (CId id expr) -> do
     tm <- get
     case M.lookup id tm of
-      Just t  -> funCallSem id t expr 
+      Just t  -> funCallSem id t expr
       Nothing -> left $ callErr ++ id
   RPapaki  lValue     -> totypel lValue >>= right . PointerT
   RNot     expr       -> totype expr >>= \case
@@ -309,16 +309,9 @@ totyper = \case
   RPlus    exp1 exp2  -> checkarithmetic exp1 exp2 "'+'"
   RMul     exp1 exp2  -> checkarithmetic exp1 exp2 "'*'"
   RMinus   exp1 exp2  -> checkarithmetic exp1 exp2 "'-'"
-  RRealDiv exp1 exp2  -> totype exp1 >>= \case
-    Tint  -> totype exp2 >>= \case
-      Tint  -> right Treal
-      Treal -> right Treal
-      _     -> left "non-number expression after '/'"
-    Treal -> totype exp2 >>= \case
-      Treal -> right Treal
-      Tint  -> right Treal
-      _     -> left "non-number expression after '/'"
-    _     -> left "non-number expression before '/'"
+  RRealDiv exp1 exp2  ->
+    arithmeticbool exp1 ("non-number expression before '/'")
+    (arithmeticbool exp2 ("non-number expression after '/'") (right Treal))
   RDiv     exp1 exp2  -> checkinthmetic exp1 exp2 "'div'"
   RMod     exp1 exp2  -> checkinthmetic exp1 exp2 "'mod'"
   ROr      exp1 exp2  -> checklogic exp1 exp2 "'or'"
@@ -337,7 +330,6 @@ funCallSem id = \case
     mapM totype exprs >>=
     argsExprsSems id (makelistforward as) >> right t
   _           -> \_ -> left $ callSemErr ++ id
-  
 
 argsExprsErr = "Wrong number of args for: "
 typeExprsErr = "Type mismatch of args for: "

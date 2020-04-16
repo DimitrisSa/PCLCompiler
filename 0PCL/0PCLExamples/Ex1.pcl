@@ -11,10 +11,13 @@ procedure oko(ok: real);
 begin end;
 procedure pr(a, b: real);
 begin end;
+procedure p();
+begin end;
 begin
   goto asdfasd;
-  (* writeString(s <> t ); *)
-  pr(s + t mod t,ok(s));
+  writeString("s <> t ");
+  pr(s / t,readReal());
+  p();
   oko(s);
   s := f;
   s := t;
