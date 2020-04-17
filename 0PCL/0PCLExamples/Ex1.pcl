@@ -1,9 +1,8 @@
 program hello;
 label asdfasd;
-var s:real;
-var f:real;
-var t:integer;
-var x : array of real;
+var s : ^real;
+f : real;
+t : integer; x : ^array of real;
 forward procedure p();
 function ok(ok: real):real;
 begin end;
@@ -14,11 +13,5 @@ begin end;
 procedure p();
 begin end;
 begin
-  goto asdfasd;
-  writeString("s <> t ");
-  pr(s / t,readReal());
-  p();
-  oko(s);
-  s := f;
-  s := t;
+  dispose s;
 end.

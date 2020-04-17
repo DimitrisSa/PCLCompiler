@@ -119,13 +119,14 @@ Formals    :: { [Formal] }
            | Formals ';' Formal                 { $3:$1 }
 
 Formal     :: { Formal }
-           : Optvar Ids ':' Type                { ($2,$4) }
+           : Optvar Ids ':' Type                { ($1,$2,$4) }
 
-Optvar     : {-empty-}                          { [] }
-           | var                                { [] }
+Optvar     :: { PassBy }
+Optvar     : {-empty-}                          { Value     }
+           | var                                { Reference }
 
 Type       :: { Type }
-           : integer                            { Tint           }     
+           : integer                            { Tint           }    
            | real                               { Treal          }
            | boolean                            { Tbool          }
            | char                               { Tchar          }
@@ -155,14 +156,14 @@ Stmt       :: { Stmt }
            | goto id                            { SGoto    $2             }
            | return                             { SReturn                 }
            | new New LValue                     { SNew     $2 $3          }
-           | dispose Dispose LValue             { SDispose $3             }
+           | dispose Dispose LValue             { SDispose $2 $3             }
 
-New        :: { Expr }
-           :  {-empty-}                         { EEmpty }
-           | '[' Expr ']'                       { $2     }
+New        :: { New }
+           :  {-empty-}                         { NewEmpty   }
+           | '[' Expr ']'                       { NewExpr $2 }
 
-Dispose    : {-empty-}                          { [] }
-           | '[' ']'                            { [] }
+Dispose    : {-empty-}                          { Without }
+           | '[' ']'                            { With    }
 
 Expr       :: { Expr }
            : LValue %prec LExpr                 { L $1 }
@@ -243,11 +244,16 @@ data Local =
   deriving(Show)
 
 data Header =
-  Procedure Id Args |
+  Procedure Id Args      |
   Function  Id Args Type
   deriving(Show)
 
-type Formal = (Ids,Type)
+data PassBy =
+  Value     |
+  Reference
+  deriving(Show,Eq)
+
+type Formal = (PassBy,Ids,Type)
 type Args   = [Formal]
 
 data Type =
@@ -287,16 +293,25 @@ data Stmt =
   SId Id Stmt         |
   SGoto Id            |
   SReturn             |
-  SNew Expr LValue    |
-  SDispose LValue     
+  SNew New LValue     |
+  SDispose DispType LValue     
+  deriving(Show)
+
+data DispType =
+  With    |
+  Without
   deriving(Show)
 
 type Exprs = [Expr]
 
+data New =
+  NewEmpty     |
+  NewExpr Expr
+  deriving(Show)
+
 data Expr =
  L LValue |
- R RValue |
- EEmpty
+ R RValue 
  deriving(Show)
 
 data LValue =

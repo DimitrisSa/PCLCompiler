@@ -57,14 +57,15 @@ headBodF h = do
     Procedure i a   ->
       case M.lookup i tm of
         Just (TFproc b) ->
-          insertheader i (Tproc a) (makelistforward a == makelistforward b)
+          insertheader i (Tproc a)
+              (makelistforward a == makelistforward b)
         Nothing -> put $ M.insert i (Tproc a) tm
         _       -> left $ dupErr ++ i
     Function  i a t ->
       case M.lookup i tm of
         Just (TFfunc b t2) ->
           insertheader i (Tfunc a t)
-                         (t==t2 && makelistforward a == makelistforward b)
+             (t==t2 && makelistforward a == makelistforward b)
         Nothing -> put $ M.insert i (Tfunc a t) tm
         _       -> left $ dupErr ++ i
 
@@ -87,11 +88,11 @@ toSems = mapM_ (myinsert . makelist)
 makelist :: (Ids,Type) -> [(Id,Type)]
 makelist (in1,myt) = Prelude.map (\x -> (x,myt)) in1
 
-makelistforward :: [(Ids,Type)] -> [Type]
+makelistforward :: [Formal] -> [(PassBy,Type)]
 makelistforward fs = concat $ map makelisthelp fs
 
-makelisthelp :: (Ids,Type) -> [Type]
-makelisthelp (in1,myt) = Prelude.map (\_ -> myt) in1
+makelisthelp :: Formal -> [(PassBy,Type)]
+makelisthelp (pb,in1,myt) = Prelude.map (\_ -> (pb,myt)) in1
 
 makeLabelList :: Ids -> [(Id,Type)]
 makeLabelList in1 = Prelude.map (\x -> (x,Tlabel)) in1
@@ -101,7 +102,9 @@ myinsert ((v,t):xs) = do
   tm <- get
   case M.lookup v tm of
     Just _  -> left $ dupErr ++ v
-    Nothing -> put (M.insert v t tm) >> myinsert xs
+    Nothing -> if checkFullType t then 
+                 put (M.insert v t tm) >> myinsert xs
+               else left "Can't use 'array of' in local vars"
 myinsert [] = return ()
 
 fblock :: Stmts -> Semantics ()
@@ -117,6 +120,7 @@ fblock ss = mapM_ fstatement ss
 -- result in scopes (how to handle it in the ST)
 -- anathesi array diaforetikoy megethous?
 -- check an pliris tipos
+-- check an dispose exei ginei new
 
 gotoErr = "Undeclared Label: "
 callErr = "Undeclared function or procedure in call: "
@@ -134,45 +138,59 @@ checkLabel id = do
     Nothing       -> left $ "undefined label: " ++ id
     _             -> left $ "not a label: " ++ id
 
-checkpointer :: LValue -> Semantics ()
-checkpointer lValue = totypel lValue >>= \case
-  PointerT _ -> return ()
-  _          -> left "non-pointer in new statement"
+checkpointer :: LValue -> Error -> Semantics Type
+checkpointer lValue err = totypel lValue >>= \case
+  PointerT t -> return t
+  _          -> left err
 
 fstatement :: Stmt -> Semantics ()
 fstatement = \case
-  SEmpty               -> return ()
-  SEqual lValue expr   -> do
-    lt <- totypel lValue
-    et <- totype  expr
-    if symbatos lt et then return ()
-    else left "type mismatch in assignment"
-  SBlock (Bl ss)       -> fblock ss
-  SCall (CId id exprs) -> do
-    tm <- get
-    case M.lookup id tm of
-      Just t  -> callSem id t exprs
-      Nothing -> left $ callErr ++ id
-  SIT  expr stmt       -> checkBoolExpr expr "if-then" >>
-                          fstatement stmt
-  SITE expr s1 s2      -> checkBoolExpr expr "if-then-else" >>
-                          fstatement s1 >> fstatement s2
-  SWhile expr stmt     -> checkBoolExpr expr "while" >>
-                          fstatement stmt
-  SId id stmt          -> checkLabel id >> fstatement stmt
-  SGoto id             -> checkLabel id
-  SReturn              -> return ()
-  SNew expr lValue     -> case expr of
-    EEmpty -> checkpointer lValue
-    e      -> totype expr >>= \case
-      Tint -> checkpointer lValue
-      _    -> left "non-integer expression in new statement"
-  SDispose lValue      -> return ()
+  SEmpty                   -> return ()
+  SEqual lValue expr       -> do
+                              lt <- totypel lValue
+                              et <- totype  expr
+                              if symbatos lt et then return ()
+                              else left "type mismatch in assignment"
+  SBlock (Bl ss)           -> fblock ss
+  SCall (CId id exprs)     -> do
+                              tm <- get
+                              case M.lookup id tm of
+                                Just t  -> callSem id t exprs
+                                Nothing -> left $ callErr ++ id
+  SIT  expr stmt           -> checkBoolExpr expr "if-then" >>
+                              fstatement stmt
+  SITE expr s1 s2          -> checkBoolExpr expr "if-then-else" >>
+                              fstatement s1 >> fstatement s2
+  SWhile expr stmt         -> checkBoolExpr expr "while" >>
+                              fstatement stmt
+  SId id stmt              -> checkLabel id >> fstatement stmt
+  SGoto id                 -> checkLabel id
+  SReturn                  -> return ()
+  SNew new lValue          -> do
+    t <- checkpointer lValue "non-pointer in new statement"
+    case (new,checkFullType t) of
+      (NewEmpty,True)   -> return ()
+      (NewExpr e,False) -> totype e >>= \case
+        Tint -> return ()
+        _    -> left "non-integer expression in new statement"
+      _ -> left "bad pointer type in new expression"
+  SDispose disptype lValue -> do
+    t <- checkpointer lValue "non-pointer in dispose statement"
+    case (disptype,checkFullType t) of
+      (With,False)   -> return ()
+      (Without,True) -> return ()
+      _ -> left "bad pointer type in dispose expression"
+
+checkFullType :: Type -> Bool
+checkFullType = \case
+  ArrayT NoSize _ -> False
+  _               -> True
 
 symbatos :: Type -> Type -> Bool
 symbatos (PointerT (ArrayT NoSize t1))
          (PointerT (ArrayT (Size _) t2)) = t1 == t2
-symbatos lt et = lt == et || (lt == Treal && et == Tint)
+symbatos lt et = (lt == et && checkFullType lt) ||
+                 (lt == Treal && et == Tint)
 
 callSemErr = "Wrong type of identifier in call: "
 callSem :: String -> Type -> Exprs -> Semantics ()
@@ -187,7 +205,6 @@ totype :: Expr -> Semantics Type
 totype = \case
   L lval -> totypel lval
   R rval -> totyper rval
-  EEmpty -> left $ "Empty Expr"
 
 varErr = "Undeclared variable: "
 retErr = "'return' in function argument"
@@ -252,8 +269,10 @@ checklogic exp1 exp2 a = totype exp1 >>= \case
 
 checkcompare :: Expr -> Expr -> String -> Semantics Type
 checkcompare exp1 exp2 a = totype exp1 >>= \case
-  Tint  -> arithmeticbool exp2 ("mismatched types at "++a) (right Tbool)
-  Treal -> arithmeticbool exp2 ("mismatched types at "++a) (right Tbool)
+  Tint  -> arithmeticbool exp2 ("mismatched types at "++a)
+                          (right Tbool)
+  Treal -> arithmeticbool exp2 ("mismatched types at "++a)
+                          (right Tbool)
   Tbool -> totype exp2 >>= \case
     Tbool  -> right Tbool
     _      -> left $ "mismatched types at "++a
@@ -267,10 +286,13 @@ checkcompare exp1 exp2 a = totype exp1 >>= \case
 checknumcomp :: Expr -> Expr -> String -> Semantics Type
 checknumcomp exp1 exp2 a =
   arithmeticbool exp1 ("non-number expression before " ++ a)
-  (arithmeticbool exp2 ("non-number expression after " ++ a) (right Tbool))
+  (arithmeticbool exp2 ("non-number expression after " ++ a)
+                  (right Tbool))
 
---polymorphic function on what to do and the error msg is used for all numeric
---comparisons and numeric functions with one return type in case of correct
+--polymorphic function on what to do and
+--  the error msg is used for all numeric
+--comparisons and numeric functions
+--  with one return type in case of correct
 --semantic analysis
 arithmeticbool :: Expr -> String -> Semantics Type -> Semantics Type
 arithmeticbool expr errmsg f =
@@ -311,7 +333,8 @@ totyper = \case
   RMinus   exp1 exp2  -> checkarithmetic exp1 exp2 "'-'"
   RRealDiv exp1 exp2  ->
     arithmeticbool exp1 ("non-number expression before '/'")
-    (arithmeticbool exp2 ("non-number expression after '/'") (right Treal))
+    (arithmeticbool exp2 ("non-number expression after '/'")
+                    (right Treal))
   RDiv     exp1 exp2  -> checkinthmetic exp1 exp2 "'div'"
   RMod     exp1 exp2  -> checkinthmetic exp1 exp2 "'mod'"
   ROr      exp1 exp2  -> checklogic exp1 exp2 "'or'"
@@ -333,7 +356,7 @@ funCallSem id = \case
 
 argsExprsErr = "Wrong number of args for: "
 typeExprsErr = "Type mismatch of args for: "
-argsExprsSems :: Id -> [Type] -> [Type] -> Semantics ()
+argsExprsSems :: Id -> [(PassBy,Type)] -> [(PassBy,Type)] -> Semantics ()
 argsExprsSems id (t1:t1s) (t2:t2s) | t1 == t2 =
   argsExprsSems id t1s t2s
                          | otherwise = left $ typeExprsErr ++id
@@ -353,7 +376,8 @@ initSymbolTable = do
   helpfunc "readBoolean" [] Tbool
   helpfunc "readChar" [] Tchar
   helpfunc "readReal" [] Treal
-  helpprocs "readString" [(["size"],Tint),(["myarray"],ArrayT NoSize Tchar)]
+  helpprocs "readString" [(["size"],Tint),
+                           (["myarray"],ArrayT NoSize Tchar)]
   helpfunc "abs" [(["num"],Tint)] Tint
   helpfunc "fabs" [(["rnum"],Treal)] Treal
   helpfunc "sqrt" [(["rnum"],Treal)] Treal
@@ -370,14 +394,16 @@ initSymbolTable = do
   helpfunc "chr" [(["rnum"],Tint)] Tchar
   return ()
 
---helper function to insert the predefined procedures to the symbol table
+--helper function to insert the predefined procedures
+--  to the symbol table
 helpprocs :: String->Args->Semantics ()
 helpprocs name myArgs = do
   tm <- get
   put $ M.insert name (Tproc myArgs) tm
   return ()
 
---helper function to insert the predefined functions to the symbol table
+--helper function to insert
+--  the predefined functions to the symbol table
 helpfunc :: String->Args->Type->Semantics ()
 helpfunc name myArgs myType = do
   tm <- get
