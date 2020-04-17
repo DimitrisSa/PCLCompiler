@@ -13,5 +13,6 @@ begin end;
 procedure p();
 begin end;
 begin
+  pr(42,f);
   dispose s;
 end.

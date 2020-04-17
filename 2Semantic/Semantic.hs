@@ -64,8 +64,9 @@ headBodF h = do
     Function  i a t ->
       case M.lookup i tm of
         Just (TFfunc b t2) ->
-          insertheader i (Tfunc a t)
-             (t==t2 && makelistforward a == makelistforward b)
+          case t2 of
+            ArrayT _ _ -> left $ "Function cant have a return type of array " ++ i
+            _          -> insertheader i (Tfunc a t) (t==t2 && makelistforward a == makelistforward b)
         Nothing -> put $ M.insert i (Tfunc a t) tm
         _       -> left $ dupErr ++ i
 
@@ -80,7 +81,10 @@ forwardF :: Header -> Semantics ()
 forwardF h =
   case h of
     Procedure i a   -> insertforward i (TFproc a)
-    Function  i a t -> insertforward i (TFfunc a t)
+    Function  i a t -> 
+      case t of 
+        ArrayT _ _ -> left $ "Function cant have a return type of array " ++ i
+        _          -> insertforward i (TFfunc a t)
 
 toSems :: Variables -> Semantics ()
 toSems = mapM_ (myinsert . makelist)
@@ -121,6 +125,8 @@ fblock ss = mapM_ fstatement ss
 -- anathesi array diaforetikoy megethous?
 -- check an pliris tipos
 -- check an dispose exei ginei new
+-- check array index out of bounds
+-- check that labels are used at most once
 
 gotoErr = "Undeclared Label: "
 callErr = "Undeclared function or procedure in call: "
@@ -197,9 +203,18 @@ callSem :: String -> Type -> Exprs -> Semantics ()
 callSem id = \case
   TFproc as   -> \exprs -> undefined
   Tproc  as   -> \exprs ->
-    mapM totype exprs >>=
+    mapM forcalltype exprs >>=
     argsExprsSems id (makelistforward as)
   _           -> \_ -> left $ callSemErr ++ id
+
+forcalltype :: Expr -> Semantics (PassBy,Type)
+forcalltype = \case
+  L lval -> do
+    a <- totypel lval
+    return (Reference,a)
+  R rval -> do
+    b <- totyper rval
+    return (Value,b)
 
 totype :: Expr -> Semantics Type
 totype = \case
@@ -350,48 +365,51 @@ funCallSem :: Id -> Type -> Exprs -> Semantics Type
 funCallSem id = \case
   TFfunc as t -> \exprs -> undefined
   Tfunc  as t -> \exprs ->
-    mapM totype exprs >>=
+    mapM forcalltype exprs >>=
     argsExprsSems id (makelistforward as) >> right t
   _           -> \_ -> left $ callSemErr ++ id
 
 argsExprsErr = "Wrong number of args for: "
 typeExprsErr = "Type mismatch of args for: "
-argsExprsSems :: Id -> [(PassBy,Type)] -> [(PassBy,Type)] -> Semantics ()
-argsExprsSems id (t1:t1s) (t2:t2s) | t1 == t2 =
-  argsExprsSems id t1s t2s
-                         | otherwise = left $ typeExprsErr ++id
 
+argsExprsSems :: Id -> [(PassBy,Type)] -> [(PassBy,Type)] -> Semantics ()
+argsExprsSems id ((Reference,t1):t1s) ((Reference,t2):t2s) | t1 == t2 || ( t1 == Treal && t2 == Tint ) =
+  argsExprsSems id t1s t2s
+argsExprsSems id ((Value,t1):t1s) ((_,t2):t2s) | t1 == t2 || ( t1 == Treal && t2 == Tint ) = 
+  case t1 of
+    ArrayT _ _ -> left $ "Can't pass array by value: " ++ id
+    _ -> argsExprsSems id t1s t2s
 argsExprsSems _ [] [] = return ()
 argsExprsSems id _ _ = left $ argsExprsErr ++ id
 
 --initialize Symbol Table with predefined procedures
 initSymbolTable :: Semantics ()
 initSymbolTable = do
-  helpprocs "writeInteger" [(["number"],Tint)]
-  helpprocs "writeBoolean" [(["cow"],Tbool)]
-  helpprocs "writeChar" [(["character"],Tchar)]
-  helpprocs "writeReal" [(["notimaginary"],Treal)]
-  helpprocs "writeString" [(["typestring"],ArrayT NoSize Tchar)]
+  helpprocs "writeInteger" [(Value,["number"],Tint)]
+  helpprocs "writeBoolean" [(Value,["cow"],Tbool)]
+  helpprocs "writeChar" [(Value,["character"],Tchar)]
+  helpprocs "writeReal" [(Value,["notimaginary"],Treal)]
+  helpprocs "writeString" [(Reference,["typestring"],ArrayT NoSize Tchar)]
   helpfunc "readInteger" [] Tint
   helpfunc "readBoolean" [] Tbool
   helpfunc "readChar" [] Tchar
   helpfunc "readReal" [] Treal
-  helpprocs "readString" [(["size"],Tint),
-                           (["myarray"],ArrayT NoSize Tchar)]
-  helpfunc "abs" [(["num"],Tint)] Tint
-  helpfunc "fabs" [(["rnum"],Treal)] Treal
-  helpfunc "sqrt" [(["rnum"],Treal)] Treal
-  helpfunc "sin" [(["rnum"],Treal)] Treal
-  helpfunc "cos" [(["rnum"],Treal)] Treal
-  helpfunc "tan" [(["rnum"],Treal)] Treal
-  helpfunc "arctan" [(["rnum"],Treal)] Treal
-  helpfunc "exp" [(["rnum"],Treal)] Treal
-  helpfunc "ln" [(["rnum"],Treal)] Treal
+  helpprocs "readString" [(Value,["size"],Tint),
+                           (Reference,["myarray"],ArrayT NoSize Tchar)]
+  helpfunc "abs" [(Value,["num"],Tint)] Tint
+  helpfunc "fabs" [(Value,["rnum"],Treal)] Treal
+  helpfunc "sqrt" [(Value,["rnum"],Treal)] Treal
+  helpfunc "sin" [(Value,["rnum"],Treal)] Treal
+  helpfunc "cos" [(Value,["rnum"],Treal)] Treal
+  helpfunc "tan" [(Value,["rnum"],Treal)] Treal
+  helpfunc "arctan" [(Value,["rnum"],Treal)] Treal
+  helpfunc "exp" [(Value,["rnum"],Treal)] Treal
+  helpfunc "ln" [(Value,["rnum"],Treal)] Treal
   helpfunc "pi" [] Treal
-  helpfunc "trunc" [(["rnum"],Treal)] Tint
-  helpfunc "round" [(["rnum"],Treal)] Tint
-  helpfunc "ord" [(["rnum"],Tchar)] Tint
-  helpfunc "chr" [(["rnum"],Tint)] Tchar
+  helpfunc "trunc" [(Value,["rnum"],Treal)] Tint
+  helpfunc "round" [(Value,["rnum"],Treal)] Tint
+  helpfunc "ord" [(Value,["rnum"],Tchar)] Tint
+  helpfunc "chr" [(Value,["rnum"],Tint)] Tchar
   return ()
 
 --helper function to insert the predefined procedures
