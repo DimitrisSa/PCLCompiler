@@ -385,31 +385,31 @@ argsExprsSems id _ _ = left $ argsExprsErr ++ id
 --initialize Symbol Table with predefined procedures
 initSymbolTable :: Semantics ()
 initSymbolTable = do
-  helpprocs "writeInteger" [(Value,["number"],Tint)]
-  helpprocs "writeBoolean" [(Value,["cow"],Tbool)]
-  helpprocs "writeChar" [(Value,["character"],Tchar)]
-  helpprocs "writeReal" [(Value,["notimaginary"],Treal)]
-  helpprocs "writeString" [(Reference,["typestring"],ArrayT NoSize Tchar)]
+  helpprocs "writeInteger" [(Value,["n"],Tint)]
+  helpprocs "writeBoolean" [(Value,["b"],Tbool)]
+  helpprocs "writeChar" [(Value,["c"],Tchar)]
+  helpprocs "writeReal" [(Value,["r"],Treal)]
+  helpprocs "writeString" [(Reference,["s"],ArrayT NoSize Tchar)]
   helpfunc "readInteger" [] Tint
   helpfunc "readBoolean" [] Tbool
   helpfunc "readChar" [] Tchar
   helpfunc "readReal" [] Treal
   helpprocs "readString" [(Value,["size"],Tint),
-                           (Reference,["myarray"],ArrayT NoSize Tchar)]
-  helpfunc "abs" [(Value,["num"],Tint)] Tint
-  helpfunc "fabs" [(Value,["rnum"],Treal)] Treal
-  helpfunc "sqrt" [(Value,["rnum"],Treal)] Treal
-  helpfunc "sin" [(Value,["rnum"],Treal)] Treal
-  helpfunc "cos" [(Value,["rnum"],Treal)] Treal
-  helpfunc "tan" [(Value,["rnum"],Treal)] Treal
-  helpfunc "arctan" [(Value,["rnum"],Treal)] Treal
-  helpfunc "exp" [(Value,["rnum"],Treal)] Treal
-  helpfunc "ln" [(Value,["rnum"],Treal)] Treal
+                           (Reference,["s"],ArrayT NoSize Tchar)]
+  helpfunc "abs" [(Value,["n"],Tint)] Tint
+  helpfunc "fabs" [(Value,["r"],Treal)] Treal
+  helpfunc "sqrt" [(Value,["r"],Treal)] Treal
+  helpfunc "sin" [(Value,["r"],Treal)] Treal
+  helpfunc "cos" [(Value,["r"],Treal)] Treal
+  helpfunc "tan" [(Value,["r"],Treal)] Treal
+  helpfunc "arctan" [(Value,["r"],Treal)] Treal
+  helpfunc "exp" [(Value,["r"],Treal)] Treal
+  helpfunc "ln" [(Value,["r"],Treal)] Treal
   helpfunc "pi" [] Treal
-  helpfunc "trunc" [(Value,["rnum"],Treal)] Tint
-  helpfunc "round" [(Value,["rnum"],Treal)] Tint
-  helpfunc "ord" [(Value,["rnum"],Tchar)] Tint
-  helpfunc "chr" [(Value,["rnum"],Tint)] Tchar
+  helpfunc "trunc" [(Value,["r"],Treal)] Tint
+  helpfunc "round" [(Value,["r"],Treal)] Tint
+  helpfunc "ord" [(Value,["r"],Tchar)] Tint
+  helpfunc "chr" [(Value,["r"],Tint)] Tchar
   return ()
 
 --helper function to insert the predefined procedures
