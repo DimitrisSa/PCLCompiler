@@ -262,10 +262,6 @@ data Type =
   Treal               |
   Tbool               |
   Tchar               |
-  Tproc Args          |
-  Tfunc Args Type     |
-  TFproc Args         |
-  TFfunc Args Type    |
   ArrayT ArrSize Type |
   PointerT Type 
   deriving(Show,Eq)

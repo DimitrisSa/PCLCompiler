@@ -1,20 +1,16 @@
 program hello;
 label lab;
 var s : ^real;
-f : real;
 t : integer;
 x : ^array of real;
 forward procedure oko(ok: real; a: integer);
 function ok():real;
-var a: real;
+var ok: real;
 begin
- f := 1.0 + sin(a);
- oko(f,t);
+  oko(ok,t);
 end;
 procedure oko(ok: real; a: integer);
 begin end;
 begin
   goto lab;
-  lab:oko(f,t);
-  lab:oko(f,t);
 end.
