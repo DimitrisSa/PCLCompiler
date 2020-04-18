@@ -2285,7 +2285,6 @@ data Type =
   Treal               |
   Tbool               |
   Tchar               |
-  Tlabel              |
   Tproc Args          |
   Tfunc Args Type     |
   TFproc Args         |

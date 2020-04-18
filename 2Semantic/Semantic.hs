@@ -37,9 +37,19 @@ flocals = mapM_ flocal
 flocal :: Local -> Semantics ()
 flocal = \case
   LoVar vars     -> toSems vars
-  LoLabel labels -> myinsert (makeLabelList labels)
+  LoLabel labels -> insertLabels labels
   LoHeadBod h b  -> headBodF h b
   LoForward h    -> forwardF h
+
+insertLabels :: Ids -> Semantics ()
+insertLabels = mapM_ insertLabel
+
+insertLabel :: Id -> Semantics ()
+insertLabel l = do
+  (vm,lm,fm) <- get
+  case M.lookup l lm of
+    Just _  -> left $ "Duplicate label declaration: " ++ l
+    Nothing -> put (vm,M.insert l False lm,fm)
 
 headBodF :: Header -> Body -> Semantics ()
 headBodF h bod = do
@@ -129,10 +139,6 @@ formalsToTypes = concat . map makelisthelp
 makelisthelp :: Formal -> [(PassBy,Type)]
 makelisthelp (pb,in1,myt) = Prelude.map (\_ -> (pb,myt)) in1
 
-makeLabelList :: Ids -> [(Id,Type)]
-makeLabelList in1 =
-  Prelude.map (\x -> (x,Tlabel)) $ reverse in1
-
 myinsert :: [(Id,Type)] -> Semantics ()
 myinsert ((v,t):xs) = do
   (tm,a,b) <- get
@@ -164,13 +170,20 @@ checkBoolExpr expr stmtDesc = do
   if et == Tbool then return ()
   else left $ "Non-boolean expression in " ++ stmtDesc
 
-checkLabel :: String -> Semantics ()
-checkLabel id = do
-  (tm,a,b) <- get
-  case M.lookup id tm of
-    Just (Tlabel) -> return ()
-    Nothing       -> left $ "undefined label: " ++ id
-    _             -> left $ "not a label: " ++ id
+checkGoTo :: String -> Semantics ()
+checkGoTo id = do
+  (vm,lm,fm) <- get
+  case M.lookup id lm of
+    Just _  -> return ()
+    Nothing -> left $ "undefined label: " ++ id
+
+checkId :: String -> Semantics ()
+checkId id = do
+  (vm,lm,fm) <- get
+  case M.lookup id lm of
+    Just False -> put (vm,M.insert id True lm,fm)
+    Just True  -> left $ "duplicate label: " ++ id
+    Nothing    -> left $ "undefined label: " ++ id
 
 checkpointer :: LValue -> Error -> Semantics Type
 checkpointer lValue err = totypel lValue >>= \case
@@ -197,8 +210,8 @@ fstatement = \case
                               fstatement s1 >> fstatement s2
   SWhile expr stmt         -> checkBoolExpr expr "while" >>
                               fstatement stmt
-  SId id stmt              -> checkLabel id >> fstatement stmt
-  SGoto id                 -> checkLabel id
+  SId id stmt              -> checkId   id >> fstatement stmt
+  SGoto id                 -> checkGoTo id
   SReturn                  -> return ()
   SNew new lValue          -> do
     t <- checkpointer lValue "non-pointer in new statement"

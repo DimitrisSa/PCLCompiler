@@ -1,5 +1,5 @@
 program hello;
-label asdfasd;
+label lab;
 var s : ^real;
 f : real;
 t : integer;
@@ -14,5 +14,7 @@ end;
 procedure oko(ok: real; a: integer);
 begin end;
 begin
-  oko(a,t);
+  goto lab;
+  lab:oko(f,t);
+  lab:oko(f,t);
 end.
