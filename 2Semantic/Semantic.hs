@@ -405,8 +405,8 @@ totyper = \case
   RParen rValue       -> totyper rValue
   RNil                -> right Tnil
   RCall (CId id exprs) -> do
-    (vm,lm,fm):_ <- get
-    case M.lookup id fm of
+    sms <- get
+    case searchCallSMs id sms of
       Just t  -> funCallSem id t $ reverse exprs
       Nothing -> left $ callErr ++ id
   RPapaki  lValue     -> totypel lValue >>= right . PointerT
