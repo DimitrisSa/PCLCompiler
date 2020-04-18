@@ -18,10 +18,11 @@ type SymbolMap = (VarMap,LabelMap,CallMap)
 type Error = String
 type Semantics a = EitherT Error (State [SymbolMap]) a
 
+emptySymbolMap = (M.empty,M.empty,M.empty)
 main = do
   ast <- parser
   let processAst = evalState . runEitherT . program
-  let emptySymbolTable = [(M.empty,M.empty,M.empty)]
+  let emptySymbolTable = [emptySymbolMap]
   putStrLn $
     case (\x -> x emptySymbolTable) $ processAst ast of
       Right _  -> "good"
@@ -62,17 +63,31 @@ headBodF :: Header -> Body -> Semantics ()
 headBodF h bod = do
   headF h
   sms <- get
+  put $ emptySymbolMap:sms
   headArgsF h
   bodySems bod
   put sms
 
 headArgsF :: Header -> Semantics ()
 headArgsF = \case 
-  Procedure i a   -> insertArgsInTm a
-  Function  i a t -> insertArgsInTm a
+  Procedure _ a   -> insertArgsInTm a
+  Function  _ a t -> insertArgsInTm a >> insertResult t
+
+insertResult :: Type -> Semantics ()
+insertResult _ = return ()
 
 insertArgsInTm :: Args -> Semantics ()
-insertArgsInTm _ = return ()
+insertArgsInTm = mapM_ insertFormalInTm
+
+insertFormalInTm :: Formal -> Semantics ()
+insertFormalInTm (_,ids,t) = mapM_ (insertIdInTm t) ids
+
+insertIdInTm :: Type -> Id -> Semantics ()
+insertIdInTm t id = do
+  (vm,lm,fm):sms <- get
+  case M.lookup id vm of
+    Nothing -> put $ (M.insert id t vm,lm,fm):sms
+    _       -> left $ "duplicate argument: " ++ id
 
 -- to check if func/proc with forward is defined
 parErr = "Parameter missmatch between " ++
@@ -307,8 +322,8 @@ totypel = \case
       Just t  -> return t
       Nothing -> left $ varErr ++ id
   LResult                -> do
-    sms <- get
-    case searchVarSMs "result" sms of
+    (vm,_,_):_ <- get
+    case M.lookup "result" vm of
       Just t  -> return t
       Nothing -> left $ varErr ++ "result"
   LString string         -> right $ ArrayT NoSize Tchar
