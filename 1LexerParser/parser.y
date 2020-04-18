@@ -156,7 +156,7 @@ Stmt       :: { Stmt }
            | goto id                            { SGoto    $2             }
            | return                             { SReturn                 }
            | new New LValue                     { SNew     $2 $3          }
-           | dispose Dispose LValue             { SDispose $2 $3             }
+           | dispose Dispose LValue             { SDispose $2 $3          }
 
 New        :: { New }
            :  {-empty-}                         { NewEmpty   }

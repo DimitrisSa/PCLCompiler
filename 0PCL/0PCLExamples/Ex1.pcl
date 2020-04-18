@@ -2,17 +2,17 @@ program hello;
 label asdfasd;
 var s : ^real;
 f : real;
-t : integer; x : ^array of real;
-forward procedure p();
-function ok(ok: real):real;
-begin end;
-procedure oko(ok: real);
-begin end;
-procedure pr(a, b: real);
-begin end;
-procedure p();
+t : integer;
+x : ^array of real;
+forward procedure oko(ok: real; a: integer);
+function ok():real;
+var a: real;
+begin
+ f := 1.0 + sin(a);
+ oko(f,t);
+end;
+procedure oko(ok: real; a: integer);
 begin end;
 begin
-  pr(42,f);
-  dispose s;
+  oko(a,t);
 end.

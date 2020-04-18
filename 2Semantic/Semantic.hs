@@ -4,15 +4,19 @@ import Control.Monad.State
 import Control.Monad.Trans.Either
 import qualified Data.Map as M
 
-type TypeMap = M.Map Id Type
+type VarMap   = M.Map Id Type
+type LabelMap = M.Map Id Bool
+type FuncMap  = M.Map Id Type
+type SymbolMap = (VarMap,LabelMap,FuncMap)
 type Error = String
-type Semantics a = EitherT Error (State TypeMap) a
+type Semantics a = EitherT Error (State SymbolMap) a
 
 main = do
   ast <- parser
   let processAst = evalState . runEitherT . program
+  let emptyTuple = (M.empty,M.empty,M.empty)
   putStrLn $
-    case (\x -> x M.empty) $ processAst ast of
+    case (\x -> x emptyTuple) $ processAst ast of
       Right _  -> "good"
       Left s   -> s
 
@@ -34,8 +38,24 @@ flocal :: Local -> Semantics ()
 flocal = \case
   LoVar vars     -> toSems vars
   LoLabel labels -> myinsert (makeLabelList labels)
-  LoHeadBod h _  -> headBodF h
+  LoHeadBod h b  -> headBodF h b
   LoForward h    -> forwardF h
+
+headBodF :: Header -> Body -> Semantics ()
+headBodF h bod = do
+  headF h
+  (tm,a,b) <- get
+  headArgsF h
+  bodySems bod
+  put (tm,a,b)
+
+headArgsF :: Header -> Semantics ()
+headArgsF = \case 
+  Procedure i a   -> insertArgsInTm a
+  Function  i a t -> insertArgsInTm a
+
+insertArgsInTm :: Args -> Semantics ()
+insertArgsInTm _ = return ()
 
 -- to check if func/proc with forward is defined
 parErr = "Parameter missmatch between " ++
@@ -43,71 +63,83 @@ parErr = "Parameter missmatch between " ++
 dupErr = "Duplicate Variable: "
 
 insertheader :: Id -> Type -> Bool -> Semantics ()
-insertheader i b expr = do
-  tm <- get
-  if expr then
-    put $ M.insert i b tm
-  else
-    left $ parErr ++ i
+insertheader i t expr = do
+  (tm,a,b) <- get
+  if expr then put (M.insert i t tm,a,b)
+  else left $ parErr ++ i
 
-headBodF :: Header -> Semantics ()
-headBodF h = do
-  tm <- get
+headF :: Header -> Semantics ()
+headF h = do
+  (tm,a,b) <- get
   case h of
     Procedure i a   ->
+      let a' = reverse a in
       case M.lookup i tm of
         Just (TFproc b) ->
-          insertheader i (Tproc a)
-              (makelistforward a == makelistforward b)
-        Nothing -> put $ M.insert i (Tproc a) tm
+          insertheader i (Tproc a')
+              (formalsToTypes a' == formalsToTypes b)
+        Nothing -> checkArgsAndPut i a' $ Tproc a'
         _       -> left $ dupErr ++ i
     Function  i a t ->
+      let a' = reverse a in
       case M.lookup i tm of
         Just (TFfunc b t2) ->
           case t2 of
             ArrayT _ _ -> left $ "Function cant have a return type of array " ++ i
-            _          -> insertheader i (Tfunc a t) (t==t2 && makelistforward a == makelistforward b)
-        Nothing -> put $ M.insert i (Tfunc a t) tm
+            _          -> insertheader i (Tfunc a' t) (t==t2 && formalsToTypes a' == formalsToTypes b)
+        Nothing -> checkArgsAndPut i a' $ Tfunc a' t
         _       -> left $ dupErr ++ i
 
-insertforward ::Id -> Type -> Semantics ()
-insertforward i b = do
-  tm <- get
+checkArgsAndPut :: Id -> Args -> Type -> Semantics ()
+checkArgsAndPut i as t = do
+  (tm,a,b) <- get
+  if all argOk as then put (M.insert i t tm,a,b)
+  else left $ "Can't pass array by value in: " ++ i
+
+argOk :: Formal -> Bool
+argOk = \case
+  (Value,_,ArrayT _ _) -> False
+  _                    -> True
+
+insertforward :: Id -> Args -> Type -> Semantics ()
+insertforward i as t = do
+  (tm,a,b) <- get
   case M.lookup i tm of
     Just _ -> left $ dupErr ++ i
-    Nothing -> put $ M.insert i b tm
+    Nothing -> checkArgsAndPut i as t
 
 forwardF :: Header -> Semantics ()
 forwardF h =
   case h of
-    Procedure i a   -> insertforward i (TFproc a)
+    Procedure i a   -> insertforward i a (TFproc $ reverse a)
     Function  i a t -> 
       case t of 
         ArrayT _ _ -> left $ "Function cant have a return type of array " ++ i
-        _          -> insertforward i (TFfunc a t)
+        _          -> insertforward i a (TFfunc (reverse a) t)
 
 toSems :: Variables -> Semantics ()
-toSems = mapM_ (myinsert . makelist)
+toSems = mapM_ (myinsert . makelist) . reverse
 
 makelist :: (Ids,Type) -> [(Id,Type)]
-makelist (in1,myt) = Prelude.map (\x -> (x,myt)) in1
+makelist (in1,myt) = Prelude.map (\x -> (x,myt)) $ reverse in1
 
-makelistforward :: [Formal] -> [(PassBy,Type)]
-makelistforward fs = concat $ map makelisthelp fs
+formalsToTypes :: [Formal] -> [(PassBy,Type)]
+formalsToTypes = concat . map makelisthelp
 
 makelisthelp :: Formal -> [(PassBy,Type)]
 makelisthelp (pb,in1,myt) = Prelude.map (\_ -> (pb,myt)) in1
 
 makeLabelList :: Ids -> [(Id,Type)]
-makeLabelList in1 = Prelude.map (\x -> (x,Tlabel)) in1
+makeLabelList in1 =
+  Prelude.map (\x -> (x,Tlabel)) $ reverse in1
 
 myinsert :: [(Id,Type)] -> Semantics ()
 myinsert ((v,t):xs) = do
-  tm <- get
+  (tm,a,b) <- get
   case M.lookup v tm of
     Just _  -> left $ dupErr ++ v
     Nothing -> if checkFullType t then 
-                 put (M.insert v t tm) >> myinsert xs
+                 put (M.insert v t tm,a,b) >> myinsert xs
                else left "Can't use 'array of' in local vars"
 myinsert [] = return ()
 
@@ -115,17 +147,13 @@ fblock :: Stmts -> Semantics ()
 fblock ss = mapM_ fstatement ss
 
 -- Check that label exists in the program (not done)
--- Check that r-value is not procedure in call (not done)
 -- Check that forward is declared afterwards (not done)
--- fix call expr for r-values
 -- write particular argument of type mismatch
 -- string-literal
--- totypel check out of bounds
 -- result in scopes (how to handle it in the ST)
+-- result exists in function
 -- anathesi array diaforetikoy megethous?
--- check an pliris tipos
 -- check an dispose exei ginei new
--- check array index out of bounds
 -- check that labels are used at most once
 
 gotoErr = "Undeclared Label: "
@@ -138,7 +166,7 @@ checkBoolExpr expr stmtDesc = do
 
 checkLabel :: String -> Semantics ()
 checkLabel id = do
-  tm <- get
+  (tm,a,b) <- get
   case M.lookup id tm of
     Just (Tlabel) -> return ()
     Nothing       -> left $ "undefined label: " ++ id
@@ -159,9 +187,9 @@ fstatement = \case
                               else left "type mismatch in assignment"
   SBlock (Bl ss)           -> fblock ss
   SCall (CId id exprs)     -> do
-                              tm <- get
+                              (tm,a,b) <- get
                               case M.lookup id tm of
-                                Just t  -> callSem id t exprs
+                                Just t  -> callSem id t $ reverse exprs
                                 Nothing -> left $ callErr ++ id
   SIT  expr stmt           -> checkBoolExpr expr "if-then" >>
                               fstatement stmt
@@ -201,11 +229,14 @@ symbatos lt et = (lt == et && checkFullType lt) ||
 callSemErr = "Wrong type of identifier in call: "
 callSem :: String -> Type -> Exprs -> Semantics ()
 callSem id = \case
-  TFproc as   -> \exprs -> undefined
-  Tproc  as   -> \exprs ->
-    mapM forcalltype exprs >>=
-    argsExprsSems id (makelistforward as)
+  TFproc as   -> goodArgs id as
+  Tproc  as   -> goodArgs id as
   _           -> \_ -> left $ callSemErr ++ id
+
+goodArgs :: Id -> Args -> Exprs -> Semantics ()
+goodArgs id as exprs =
+  mapM forcalltype exprs >>=
+  argsExprsSems id (formalsToTypes as)
 
 forcalltype :: Expr -> Semantics (PassBy,Type)
 forcalltype = \case
@@ -230,12 +261,12 @@ pointErr = "dereferencing non-pointer"
 totypel :: LValue -> Semantics Type
 totypel = \case
   LId id                 -> do
-    tm <- get
+    (tm,a,b) <- get
     case M.lookup id tm of
       Just t  -> return t
       Nothing -> left $ varErr ++ id
   LResult                -> do
-    tm <- get
+    (tm,a,b) <- get
     case M.lookup "result" tm of
       Just t  -> return t
       Nothing -> left $ varErr ++ "result"
@@ -332,10 +363,10 @@ totyper = \case
   RChar _             -> right Tchar
   RParen rValue       -> totyper rValue
   RNil                -> right Tnil
-  RCall (CId id expr) -> do
-    tm <- get
+  RCall (CId id exprs) -> do
+    (tm,a,b) <- get
     case M.lookup id tm of
-      Just t  -> funCallSem id t expr
+      Just t  -> funCallSem id t $ reverse exprs
       Nothing -> left $ callErr ++ id
   RPapaki  lValue     -> totypel lValue >>= right . PointerT
   RNot     expr       -> totype expr >>= \case
@@ -363,22 +394,17 @@ totyper = \case
 
 funCallSem :: Id -> Type -> Exprs -> Semantics Type
 funCallSem id = \case
-  TFfunc as t -> \exprs -> undefined
-  Tfunc  as t -> \exprs ->
-    mapM forcalltype exprs >>=
-    argsExprsSems id (makelistforward as) >> right t
+  TFfunc as t -> \exprs -> goodArgs id as exprs >> right t
+  Tfunc  as t -> \exprs -> goodArgs id as exprs >> right t
   _           -> \_ -> left $ callSemErr ++ id
 
 argsExprsErr = "Wrong number of args for: "
 typeExprsErr = "Type mismatch of args for: "
 
 argsExprsSems :: Id -> [(PassBy,Type)] -> [(PassBy,Type)] -> Semantics ()
-argsExprsSems id ((Reference,t1):t1s) ((Reference,t2):t2s) | t1 == t2 || ( t1 == Treal && t2 == Tint ) =
-  argsExprsSems id t1s t2s
-argsExprsSems id ((Value,t1):t1s) ((_,t2):t2s) | t1 == t2 || ( t1 == Treal && t2 == Tint ) = 
-  case t1 of
-    ArrayT _ _ -> left $ "Can't pass array by value: " ++ id
-    _ -> argsExprsSems id t1s t2s
+argsExprsSems id ((_,t1):t1s) ((_,t2):t2s)
+  | symbatos t1 t2 = argsExprsSems id t1s t2s
+  | otherwise = left $ "Bad argument in: " ++ id
 argsExprsSems _ [] [] = return ()
 argsExprsSems id _ _ = left $ argsExprsErr ++ id
 
@@ -416,14 +442,12 @@ initSymbolTable = do
 --  to the symbol table
 helpprocs :: String->Args->Semantics ()
 helpprocs name myArgs = do
-  tm <- get
-  put $ M.insert name (Tproc myArgs) tm
-  return ()
+  (tm,a,b) <- get
+  put (M.insert name (Tproc myArgs) tm,a,b)
 
 --helper function to insert
 --  the predefined functions to the symbol table
 helpfunc :: String->Args->Type->Semantics ()
 helpfunc name myArgs myType = do
-  tm <- get
-  put $ M.insert name (Tfunc myArgs myType) tm
-  return ()
+  (tm,a,b) <- get
+  put (M.insert name (Tfunc myArgs myType) tm,a,b)
