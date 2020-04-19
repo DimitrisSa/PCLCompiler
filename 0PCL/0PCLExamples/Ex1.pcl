@@ -6,7 +6,9 @@ x : ^array of real;
 forward procedure oko(ok: real; a: integer);
 function ok():real;
 var ok: real;
+var f : integer;
 begin
+  (* result := f; *)
   oko(ok,t);
 end;
 procedure oko(ok: real; a: integer);

@@ -66,7 +66,17 @@ headBodF h bod = do
   put $ emptySymbolMap:sms
   headArgsF h
   bodySems bod
+  checkresult h
   put sms
+
+checkresult :: Header -> Semantics ()
+checkresult = \case
+  Function i _ _ -> do
+    (vm,_,_):_ <- get
+    case M.lookup "while" vm of
+      Nothing -> left $ "Result not set for function "++ i
+      _       -> return () 
+  _ -> return ()
 
 headArgsF :: Header -> Semantics ()
 headArgsF = \case 
@@ -74,7 +84,9 @@ headArgsF = \case
   Function  _ a t -> insertArgsInTm a >> insertResult t
 
 insertResult :: Type -> Semantics ()
-insertResult _ = return ()
+insertResult t = do
+  (vm,lm,fm):sms <- get
+  put $ (M.insert "result" t vm,lm,fm):sms 
 
 insertArgsInTm :: Args -> Semantics ()
 insertArgsInTm = mapM_ insertFormalInTm
@@ -322,9 +334,9 @@ totypel = \case
       Just t  -> return t
       Nothing -> left $ varErr ++ id
   LResult                -> do
-    (vm,_,_):_ <- get
+    (vm,lm,fm):sms <- get
     case M.lookup "result" vm of
-      Just t  -> return t
+      Just t  -> put ((M.insert "while" t vm,lm,fm):sms) >> return t
       Nothing -> left $ varErr ++ "result"
   LString string         -> right $ ArrayT NoSize Tchar
   LValueExpr lValue expr -> totype expr >>= \case
