@@ -8,11 +8,13 @@ function ok():real;
 var ok: real;
 var f : integer;
 begin
-  (* result := f; *)
+  result := f; 
   oko(ok,t);
 end;
 procedure oko(ok: real; a: integer);
 begin end;
 begin
+  begin
   goto lab;
+  end;
 end.

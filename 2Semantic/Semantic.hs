@@ -35,12 +35,39 @@ program (P _ body) = initSymbolTable >> bodySems body
 -- process body
 bodySems :: Body -> Semantics ()
 bodySems (B locals (Bl s)) =
-  flocals (reverse locals) >> fblock (reverse s)
-bodysems (B locals _ ) = flocals (reverse locals)
+  flocals (reverse locals) >> fblock (reverse s) >>
+  checkDangledGoTos (reverse s)
+
+checkDangledGoTos :: Stmts -> Semantics ()
+checkDangledGoTos = mapM_ checkDangledGoTo
+
+dangledGotoErr = "goto label declared but not used: "
+checkDangledGoTo :: Stmt -> Semantics ()
+checkDangledGoTo = \case
+  SGoto id -> do
+    (_,lm,_):_ <- get
+    case M.lookup id lm of
+      Just False -> left $ dangledGotoErr ++ id
+      _          -> return ()
+  SBlock (Bl ss) -> checkDangledGoTos $ reverse ss
+  _              -> return ()
 
 -- process locals (vars, labels, headbod, forward)
 flocals :: [Local] -> Semantics ()
-flocals = mapM_ flocal
+flocals ls = mapM_ flocal ls >> checkNoForward
+
+checkNoForward :: Semantics ()
+checkNoForward = do
+  (_,_,fm):_ <- get
+  checkNoForwardFMList $ M.toList fm
+
+forwardErr = "no implementation for forward declaration: "
+checkNoForwardFMList :: [(Id,Callable)] -> Semantics ()
+checkNoForwardFMList = \case
+  (id,FProc _  ):_ -> left $ forwardErr ++ id
+  (id,FFunc _ _):_ -> left $ forwardErr ++ id
+  _:fml            -> checkNoForwardFMList fml
+  []               -> return ()
 
 flocal :: Local -> Semantics ()
 flocal = \case
@@ -132,6 +159,7 @@ searchVarSMs id = \case
 searchVarSM :: Id -> SymbolMap -> Maybe Type
 searchVarSM id sm = M.lookup id $ (\(vm,_,_) -> vm) sm
 
+funErr = "Function cant have a return type of array "
 headF :: Header -> Semantics ()
 headF h = do
   sms <- get
@@ -149,7 +177,7 @@ headF h = do
       case searchCallSMs i sms of
         Just (FFunc b t2) ->
           case t2 of
-            ArrayT _ _ -> left $ "Function cant have a return type of array " ++ i
+            ArrayT _ _ -> left $ funErr ++ i
             _          -> insertheader i (Func a' t) (t==t2 && formalsToTypes a' == formalsToTypes b)
         Nothing -> checkArgsAndPut i a' $ Func a' t
         _       -> left $ dupErr ++ i
@@ -207,15 +235,9 @@ myinsert [] = return ()
 fblock :: Stmts -> Semantics ()
 fblock ss = mapM_ fstatement ss
 
--- Check that label exists in the program (not done)
--- Check that forward is declared afterwards (not done)
+-- Check an dispose exei ginei new
 -- write particular argument of type mismatch
--- string-literal
--- result in scopes (how to handle it in the ST)
--- result exists in function
 -- anathesi array diaforetikoy megethous?
--- check an dispose exei ginei new
--- check that labels are used at most once
 
 gotoErr = "Undeclared Label: "
 callErr = "Undeclared function or procedure in call: "
@@ -248,12 +270,14 @@ checkpointer lValue err = totypel lValue >>= \case
 fstatement :: Stmt -> Semantics ()
 fstatement = \case
   SEmpty                   -> return ()
-  SEqual lValue expr       -> do
-                              lt <- totypel lValue
-                              et <- totype  expr
-                              if symbatos lt et then return ()
-                              else left "type mismatch in assignment"
-  SBlock (Bl ss)           -> fblock ss
+  SEqual lValue expr       -> case lValue of
+    LString _ -> left "assignment to string"
+    _         -> do
+      lt <- totypel lValue
+      et <- totype  expr
+      if symbatos lt et then return ()
+      else left "type mismatch in assignment"
+  SBlock (Bl ss)           -> fblock $ reverse ss
   SCall (CId id exprs)     -> do
                               sms <- get
                               case searchCallSMs id sms of
@@ -336,7 +360,8 @@ totypel = \case
   LResult                -> do
     (vm,lm,fm):sms <- get
     case M.lookup "result" vm of
-      Just t  -> put ((M.insert "while" t vm,lm,fm):sms) >> return t
+      Just t  -> put ((M.insert "while" t vm,lm,fm):sms) >>
+                 return t
       Nothing -> left $ varErr ++ "result"
   LString string         -> right $ ArrayT NoSize Tchar
   LValueExpr lValue expr -> totype expr >>= \case
