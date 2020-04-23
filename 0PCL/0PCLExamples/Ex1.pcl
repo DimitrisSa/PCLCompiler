@@ -3,7 +3,8 @@ label lab;
 var s : ^real;
 t : integer;
 x : ^array of real;
-forward procedure oko(ok: real; a: integer);
+y : ^real;
+forward procedure oko(var ok: real; a: integer);
 function ok():real;
 var ok: real;
 var f : integer;
@@ -11,10 +12,13 @@ begin
   result := f; 
   oko(ok,t);
 end;
-procedure oko(ok: real; a: integer);
+procedure oko(var ok: real; a: integer);
 begin end;
 begin
   begin
-  goto lab;
+  new [42] x;
+  new y;
+  dispose [] x;
+  oko(1,1);
   end;
 end.

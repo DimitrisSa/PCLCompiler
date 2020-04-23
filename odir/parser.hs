@@ -2330,7 +2330,7 @@ data New =
 data Expr =
  L LValue |
  R RValue 
- deriving(Show)
+ deriving(Show,Ord,Eq)
 
 data LValue =
   LId Id                 |
@@ -2339,7 +2339,7 @@ data LValue =
   LValueExpr LValue Expr |
   LExpr Expr             |
   LParen LValue
-  deriving(Show)
+  deriving(Show,Ord,Eq)
 
 data RValue =
   RInt Int           |
@@ -2368,11 +2368,11 @@ data RValue =
   RGreater Expr Expr |
   RGreq    Expr Expr |
   RSmeq    Expr Expr
-  deriving(Show)
+  deriving(Show,Eq,Ord)
 
 data Call =
   CId Id [Expr]
-  deriving(Show)
+  deriving(Show,Eq,Ord)
 
 parser = getContents >>= return . parse . alexScanTokens
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
