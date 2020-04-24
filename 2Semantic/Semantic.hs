@@ -13,9 +13,9 @@ data Callable =
   FFunc Args Type    
   deriving(Show,Eq)
 
-type VarMap   = M.Map String Type
-type LabelMap = M.Map String Bool
-type CallMap  = M.Map String Callable
+type VarMap   = M.Map Id Type
+type LabelMap = M.Map Id Bool
+type CallMap  = M.Map Id Callable
 type NewMap   = M.Map LValue ()
 type SymbolMap = (VarMap,LabelMap,CallMap,NewMap)
 type Error = String
@@ -53,7 +53,7 @@ checkDangledGoTo = \case
     (_,lm,_,_):_ <- get
     let idv = idValue id
         (li,co) = idPosn id
-    case M.lookup idv lm of
+    case M.lookup id lm of
       Just False -> left $ dangledGotoErr ++ idv ++
                     errorend li co
       _          -> return ()
@@ -69,10 +69,16 @@ checkNoForward = get >>= \((_,_,fm,_):_) ->
   checkNoForwardFMList $ M.toList fm
 
 forwardErr = "no implementation for forward declaration: "
-checkNoForwardFMList :: [(String,Callable)] -> Semantics ()
+checkNoForwardFMList :: [(Id,Callable)] -> Semantics ()
 checkNoForwardFMList = \case
-  (id,FProc _  ):_ -> left $ forwardErr ++ id
-  (id,FFunc _ _):_ -> left $ forwardErr ++ id
+  (id,FProc _  ):_ -> let idv = idValue id
+                          (li,co) = idPosn id
+                      in left $ forwardErr ++ idv
+                                ++ errorend li co
+  (id,FFunc _ _):_ -> let idv = idValue id
+                          (li,co) = idPosn id
+                      in left $ forwardErr ++ idv
+                                ++ errorend li co
   _:fml            -> checkNoForwardFMList fml
   []               -> return ()
 
@@ -92,10 +98,10 @@ insertLabel l = do
   (vm,lm,fm,nm):sms <- get
   let lv = idValue l
       (li,co) = idPosn l
-  case M.lookup lv lm of
+  case M.lookup l lm of
     Just _  -> left $ "Duplicate label declaration: " ++ lv ++
                       errorend li co
-    Nothing -> put $ (vm,M.insert lv False lm,fm,nm):sms
+    Nothing -> put $ (vm,M.insert l False lm,fm,nm):sms
 
 headBodF :: Header -> Body -> Semantics ()
 headBodF h bod = do
@@ -113,7 +119,7 @@ checkresult = \case
     (vm,_,_,_):_ <- get
     let idv = idValue i
         (li,co) = idPosn i
-    case M.lookup "while" vm of
+    case M.lookup (dummy "while") vm of
       Nothing -> left $ "Result not set for function: " ++ idv
                         ++ errorend li co
       _       -> return () 
@@ -127,7 +133,7 @@ headArgsF = \case
 insertResult :: Type -> Semantics ()
 insertResult t = do
   (vm,lm,fm,nm):sms <- get
-  put $ (M.insert "result" t vm,lm,fm,nm):sms 
+  put $ (M.insert (dummy "result") t vm,lm,fm,nm):sms 
 
 insertArgsInTm :: Args -> Semantics ()
 insertArgsInTm = mapM_ insertFormalInTm
@@ -140,8 +146,8 @@ insertIdInTm t id = do
   (vm,lm,fm,nm):sms <- get
   let idv = idValue id
       (li,co) = idPosn id
-  case M.lookup idv vm of
-    Nothing -> put $ (M.insert idv t vm,lm,fm,nm):sms
+  case M.lookup id vm of
+    Nothing -> put $ (M.insert id t vm,lm,fm,nm):sms
     _       -> left $ "duplicate argument: " ++ idv 
                         ++ errorend li co
 
@@ -155,27 +161,27 @@ insertheader i t expr = do
   (vm,lm,fm,nm):sms <- get
   let idv = idValue i
       (li,co) = idPosn i
-  if expr then put $ (vm,lm,M.insert idv t fm,nm):sms
+  if expr then put $ (vm,lm,M.insert i t fm,nm):sms
   else left $ parErr ++ idv ++ errorend li co
 
-searchCallSMs :: String -> [SymbolMap] -> Maybe Callable
+searchCallSMs :: Id -> [SymbolMap] -> Maybe Callable
 searchCallSMs id = \case
   sm:sms -> case searchCallSM id sm of
     Nothing -> searchCallSMs id sms
     x       -> x
   []     -> Nothing
 
-searchCallSM :: String -> SymbolMap -> Maybe Callable
+searchCallSM :: Id -> SymbolMap -> Maybe Callable
 searchCallSM id sm = M.lookup id $ (\(_,_,fm,_) -> fm) sm
 
-searchVarSMs :: String -> [SymbolMap] -> Maybe Type
+searchVarSMs :: Id -> [SymbolMap] -> Maybe Type
 searchVarSMs id = \case
   sm:sms -> case searchVarSM id sm of
     Nothing -> searchVarSMs id sms
     x       -> x
   []     -> Nothing
 
-searchVarSM :: String -> SymbolMap -> Maybe Type
+searchVarSM :: Id -> SymbolMap -> Maybe Type
 searchVarSM id sm = M.lookup id $ (\(vm,_,_,_) -> vm) sm
 
 headProcedureF :: Id -> Args -> [SymbolMap] -> Semantics ()
@@ -184,7 +190,7 @@ headProcedureF i a sms =
       idv = idValue i
       (li,co) = idPosn i
   in
-  case searchCallSMs idv sms of
+  case searchCallSMs i sms of
     Just (FProc b) -> let aTypes = formalsToTypes a'
                           bTypes = formalsToTypes b
                           sameTypes = aTypes == bTypes
@@ -200,7 +206,7 @@ headFunctionF i a t sms =
   let a' = reverse a
       idv = idValue i
       (li,co) = idPosn i in
-  case searchCallSMs idv sms of
+  case searchCallSMs i sms of
     Just (FFunc b t2) -> let aTypes = formalsToTypes a'
                              bTypes = formalsToTypes b
                              sameTypes = aTypes == bTypes
@@ -221,7 +227,7 @@ checkArgsAndPut i as t = do
   (vm,lm,fm,nm):sms <- get
   let idv = idValue i
       (li,co) = idPosn i
-  if all argOk as then put $ (vm,lm,M.insert idv t fm,nm):sms
+  if all argOk as then put $ (vm,lm,M.insert i t fm,nm):sms
   else left $ "Can't pass array by value in: " ++ idv
               ++ errorend li co
 
@@ -235,7 +241,7 @@ insertforward i as t = do
   sms <- get
   let idv = idValue i
       (li,co) = idPosn i
-  case searchCallSMs idv sms of
+  case searchCallSMs i sms of
     Just _ -> left $ dupErr ++ idv ++ errorend li co
     Nothing -> checkArgsAndPut i as t
 
@@ -265,10 +271,10 @@ myinsert ((v,t):xs) = do
   (vm,lm,fm,nm):sms <- get
   let idv = idValue v
       (li,co) = idPosn v
-  case searchVarSMs idv ((vm,lm,fm,nm):sms) of
+  case searchVarSMs v ((vm,lm,fm,nm):sms) of
     Just _  -> left $ dupErr ++ idv ++ errorend li co
     Nothing -> if checkFullType t then 
-                 put ((M.insert idv t vm,lm,fm,nm):sms) >>
+                 put ((M.insert v t vm,lm,fm,nm):sms) >>
                  myinsert xs
                else left "Can't use 'array of' in local vars"
 myinsert [] = return ()
@@ -289,7 +295,7 @@ checkGoTo id = do
   (_,lm,_,_):_ <- get
   let idv = idValue id
       (li,co) = idPosn id
-  case M.lookup idv lm of
+  case M.lookup id lm of
     Just _  -> return ()
     Nothing -> left $ "undefined label: " ++ idv
                       ++ errorend li co
@@ -299,8 +305,8 @@ checkId id = do
   (vm,lm,fm,nm):sms <- get
   let idv = idValue id
       (li,co) = idPosn id
-  case M.lookup idv lm of
-    Just False -> put $ (vm,M.insert idv True lm,fm,nm):sms
+  case M.lookup id lm of
+    Just False -> put $ (vm,M.insert id True lm,fm,nm):sms
     Just True  -> left $ "duplicate label: " ++ idv
                          ++ errorend li co
     Nothing    -> left $ "undefined label: " ++ idv
@@ -326,7 +332,7 @@ fstatement = \case
                               sms <- get
                               let idv = idValue id
                                   (li,co) = idPosn id
-                              case searchCallSMs idv sms of
+                              case searchCallSMs id sms of
                                 Just t  -> callSem id t $
                                            reverse exprs
                                 Nothing -> left $ callErr ++
@@ -414,14 +420,14 @@ totypel = \case
     sms <- get
     let idv = idValue id
         (li,co) = idPosn id
-    case searchVarSMs idv sms of
+    case searchVarSMs id sms of
       Just t  -> return t
       Nothing -> left $ varErr ++ idv ++ errorend li co
   LResult                -> do
     (vm,lm,fm,nm):sms <- get
-    case M.lookup "result" vm of
-      Just t  -> put ((M.insert "while" t vm,lm,fm,nm):sms) >>
-                 return t
+    case M.lookup (dummy "result") vm of
+      Just t  -> put ((M.insert (dummy "while") t vm,
+                       lm,fm,nm):sms) >> return t
       Nothing -> left $ varErr ++ "result"
   LString string         -> right $ ArrayT NoSize Tchar
   LValueExpr lValue expr -> totype expr >>= \case
@@ -519,7 +525,7 @@ totyper = \case
     sms <- get
     let idv = idValue id
         (li,co) = idPosn id
-    case searchCallSMs idv sms of
+    case searchCallSMs id sms of
       Just t  -> funCallSem id t $ reverse exprs
       Nothing -> left $ callErr ++ idv ++ errorend li co
   RPapaki  lValue     -> totypel lValue >>= right . PointerT
@@ -621,11 +627,12 @@ dummy s = Id s (0,0)
 helpprocs :: String->Args->Semantics ()
 helpprocs name myArgs = do
   (vm,lm,fm,nm):sms <- get
-  put $ (vm,lm,M.insert name (Proc myArgs) fm,nm):sms
+  put $ (vm,lm,M.insert (dummy name) (Proc myArgs) fm,nm):sms
 
 --helper function to insert
 --  the predefined functions to the symbol table
 helpfunc :: String->Args->Type->Semantics ()
 helpfunc name myArgs myType = do
   (vm,lm,fm,nm):sms <- get
-  put $ (vm,lm,M.insert name (Func myArgs myType) fm,nm):sms
+  put $ (vm,lm,M.insert (dummy name) (Func myArgs myType) fm,
+         nm):sms
