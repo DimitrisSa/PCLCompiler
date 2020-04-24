@@ -4,9 +4,9 @@ var s : ^real;
 t : integer;
 x : ^array of real;
 y : ^real;
+var ok: real;
 forward procedure oko(var ok: real; a: integer);
 function ok():real;
-var ok: real;
 var f : integer;
 begin
   result := f; 

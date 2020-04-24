@@ -2,6 +2,8 @@ module Main where
 import Parser
 import Control.Monad.State
 import Control.Monad.Trans.Either
+import System.IO
+import System.Exit
 import qualified Data.Map as M
 
 -- pass by value/reference
@@ -26,10 +28,9 @@ main = do
   ast <- parser
   let processAst = evalState . runEitherT . program
   let emptySymbolTable = [emptySymbolMap]
-  putStrLn $
-    case (\x -> x emptySymbolTable) $ processAst ast of
-      Right _  -> "good"
-      Left s   -> s
+  case (\x -> x emptySymbolTable) $ processAst ast of
+    Right _  -> hPutStrLn stdout "good" >> exitSuccess
+    Left s   -> die s 
 
 -- process ast
 program :: Program -> Semantics ()
@@ -60,8 +61,7 @@ flocals :: [Local] -> Semantics ()
 flocals ls = mapM_ flocal ls >> checkNoForward
 
 checkNoForward :: Semantics ()
-checkNoForward = do
-  (_,_,fm,_):_ <- get
+checkNoForward = get >>= \((_,_,fm,_):_) ->
   checkNoForwardFMList $ M.toList fm
 
 forwardErr = "no implementation for forward declaration: "
@@ -83,8 +83,7 @@ insertLabels :: Ids -> Semantics ()
 insertLabels = mapM_ insertLabel
 
 insertLabel :: Id -> Semantics ()
-insertLabel l = do
-  (vm,lm,fm,nm):sms <- get
+insertLabel l = get >>= \((vm,lm,fm,nm):sms) ->
   case M.lookup l lm of
     Just _  -> left $ "Duplicate label declaration: " ++ l
     Nothing -> put $ (vm,M.insert l False lm,fm,nm):sms
@@ -175,7 +174,8 @@ headProcedureF i a sms =
     _              -> left $ dupErr ++ i
 
 funErr = "Function can't have a return type of array "
-headFunctionF ::Id-> Args -> Type ->[SymbolMap] -> Semantics ()
+type SemUnit = Semantics ()
+headFunctionF ::Id -> Args -> Type -> [SymbolMap] -> SemUnit
 headFunctionF i a t sms =
   let a' = reverse a in
   case searchCallSMs i sms of
@@ -287,12 +287,13 @@ fstatement = \case
   SCall (CId id exprs)     -> do
                               sms <- get
                               case searchCallSMs id sms of
-                                Just t  -> callSem id t $ reverse exprs
+                                Just t  -> callSem id t $
+                                           reverse exprs
                                 Nothing -> left $ callErr ++ id
   SIT  expr stmt           -> checkBoolExpr expr "if-then" >>
                               fstatement stmt
-  SITE expr s1 s2          -> checkBoolExpr expr "if-then-else" >>
-                              fstatement s1 >> fstatement s2
+  SITE expr s1 s2          -> checkBoolExpr expr "if-then-else"
+                              >> fstatement s1 >> fstatement s2
   SWhile expr stmt         -> checkBoolExpr expr "while" >>
                               fstatement stmt
   SId id stmt              -> checkId   id >> fstatement stmt
@@ -337,9 +338,9 @@ symbatos lt et = (lt == et && checkFullType lt) ||
 callSemErr = "Wrong type of identifier in call: "
 callSem :: String -> Callable -> Exprs -> Semantics ()
 callSem id = \case
-  FProc as   -> goodArgs id as
-  Proc  as   -> goodArgs id as
-  _           -> \_ -> left $ callSemErr ++ id
+  FProc as -> goodArgs id as
+  Proc  as -> goodArgs id as
+  _        -> \_ -> left $ callSemErr ++ id
 
 goodArgs :: Id -> Args -> Exprs -> Semantics ()
 goodArgs id as exprs =
@@ -348,12 +349,8 @@ goodArgs id as exprs =
 
 forcalltype :: Expr -> Semantics (PassBy,Type)
 forcalltype = \case
-  L lval -> do
-    a <- totypel lval
-    return (Reference,a)
-  R rval -> do
-    b <- totyper rval
-    return (Value,b)
+  L lval -> totypel lval >>= \a -> return (Reference,a)
+  R rval -> totyper rval >>= \b -> return (Value,b)
 
 totype :: Expr -> Semantics Type
 totype = \case
@@ -449,19 +446,18 @@ checknumcomp exp1 exp2 a =
 --comparisons and numeric functions
 --  with one return type in case of correct
 --semantic analysis
-arithmeticbool :: Expr -> String -> Semantics Type -> Semantics Type
-arithmeticbool expr errmsg f =
-  totype expr >>= \case
-    Tint   -> f
-    Treal  -> f
-    _     -> left errmsg
+type SemType = Semantics Type
+arithmeticbool :: Expr -> String -> SemType -> SemType
+arithmeticbool expr errmsg f = totype expr >>= \case
+  Tint   -> f
+  Treal  -> f
+  _     -> left errmsg
 
 pointersbool :: Expr -> String -> Semantics Type
-pointersbool expr a =
-  totype expr >>= \case
-    PointerT _  -> right Tbool
-    Tnil        -> right Tbool
-    _           -> left a
+pointersbool expr a = totype expr >>= \case
+  PointerT _  -> right Tbool
+  Tnil        -> right Tbool
+  _           -> left a
 
 totyper :: RValue -> Semantics Type
 totyper = \case
@@ -512,7 +508,12 @@ typeExprsErr = "Type mismatch of args for: "
 badArgErr id i = concat ["Type mismatch at argument ",show i,
                          " in call of: ", id]
 type PTs = [(PassBy,Type)]
+refErr i id = concat
+  ["Argument ",show i, " in call of \"",
+   id,"\" cannot be passed by reference"]
 argsExprsSems :: Int -> Id -> PTs -> PTs -> Semantics ()
+argsExprsSems i id ((Reference,_):_) ((Value,_):_) =
+  left $ refErr i id
 argsExprsSems i id ((_,t1):t1s) ((_,t2):t2s)
   | symbatos t1 t2 = argsExprsSems (i+1) id t1s t2s
   | otherwise = left $ badArgErr id i
