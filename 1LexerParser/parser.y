@@ -1,71 +1,75 @@
 {
 module Parser where
-import Lexer (AlexPosn,Token(..),alexScanTokens)
+import Lexer
+import Prelude hiding (getChar)
+import Data.Either
 }
 
 %name parse
 %tokentype { Token }
 %error { parseError }
+%monad { Alex }
+%lexer { lexwrap } { Eof }
 
 %token 
-    and                 { TAnd       $$ }
-    array               { TArray     $$ }
-    begin               { TBegin     $$ }
-    boolean             { TBoolean   $$ }
-    char                { TChar      $$ }
-    dispose             { TDispose   $$ }
-    div                 { TDivInt    $$ }
-    do                  { TDo        $$ }
-    else                { TElse      $$ }
-    end                 { TEnd       $$ }
-    false               { TFalse     $$ }
-    forward             { TForward   $$ }
-    function            { TFunction  $$ }
-    goto                { TGoto      $$ }
-    if                  { TIf        $$ }
-    integer             { TInteger   $$ }
-    label               { TLabel     $$ }
-    mod                 { TMod       $$ }
-    new                 { TNew       $$ }
-    nil                 { TNil       $$ }
-    not                 { TNot       $$ }
-    of                  { TOf        $$ }
-    or                  { TOr        $$ }
-    procedure           { TProcedure $$ }
-    program             { TProgram   $$ }
-    real                { TReal      $$ }
-    result              { TResult    $$ }
-    return              { TReturn    $$ }
-    then                { TThen      $$ }
-    true                { TTrue      $$ }
-    var                 { TVar       $$ }
-    while               { TWhile     $$ }
-    id                  { TId          $$ }
-    intconst            { TIntconst    $$ }
-    realconst           { TRealconst   $$ }
-    charconst           { TCharconst   $$ }
-    stringconst         { TStringconst $$ }
-    '='                 { TLogiceq      $$ }
-    '>'                 { TGreater      $$ }
-    '<'                 { TSmaller      $$ }
-    diff                { TDifferent    $$ }
-    greq                { TGreaterequal $$ }
-    smeq                { TSmallerequal $$ }
-    '+'                 { TAdd          $$ }
-    '-'                 { TMinus        $$ }
-    '*'                 { TMul          $$ }
-    '/'                 { TDivReal      $$ }
-    '^'                 { TPointer      $$ }
-    '@'                 { TAdress       $$ }
-    equal               { TEq           $$ }
-    ';'                 { TSeperator    $$ }
-    '.'                 { TDot          $$ }
-    '('                 { TLeftparen    $$ }
-    ')'                 { TRightparen   $$ }
-    ':'                 { TUpdown       $$ }
-    ','                 { TComma        $$ }
-    '['                 { TLeftbracket  $$ }
-    ']'                 { TRightbracket $$ }
+    and                 { TAnd          posn       }
+    array               { TArray        posn       }
+    begin               { TBegin        posn       }
+    boolean             { TBoolean      posn       }
+    char                { TChar         posn       }
+    dispose             { TDispose      posn       }
+    div                 { TDivInt       posn       }
+    do                  { TDo           posn       }
+    else                { TElse         posn       }
+    end                 { TEnd          posn       }
+    false               { TFalse        posn       }
+    forward             { TForward      posn       }
+    function            { TFunction     posn       }
+    goto                { TGoto         posn       }
+    if                  { TIf           posn       }
+    integer             { TInteger      posn       }
+    label               { TLabel        posn       }
+    mod                 { TMod          posn       }
+    new                 { TNew          posn       }
+    nil                 { TNil          posn       }
+    not                 { TNot          posn       }
+    of                  { TOf           posn       }
+    or                  { TOr           posn       }
+    procedure           { TProcedure    posn       }
+    program             { TProgram      posn       }
+    real                { TReal         posn       }
+    result              { TResult       posn       }
+    return              { TReturn       posn       }
+    then                { TThen         posn       }
+    true                { TTrue         posn       }
+    var                 { TVar          posn       }
+    while               { TWhile        posn       }
+    id                  { TId           value posn }
+    intconst            { TIntconst     value posn }
+    realconst           { TRealconst    value posn }
+    charconst           { TCharconst    value posn }
+    stringconst         { TStringconst  value posn }
+    '='                 { TLogiceq      posn       }
+    '>'                 { TGreater      posn       }
+    '<'                 { TSmaller      posn       }
+    diff                { TDifferent    posn       }
+    greq                { TGreaterequal posn       }
+    smeq                { TSmallerequal posn       }
+    '+'                 { TAdd          posn       }
+    '-'                 { TMinus        posn       }
+    '*'                 { TMul          posn       }
+    '/'                 { TDivReal      posn       }
+    '^'                 { TPointer      posn       }
+    '@'                 { TAdress       posn       }
+    equal               { TEq           posn       }
+    ';'                 { TSeperator    posn       }
+    '.'                 { TDot          posn       }
+    '('                 { TLeftparen    posn       }
+    ')'                 { TRightparen   posn       }
+    ':'                 { TUpdown       posn       }
+    ','                 { TComma        posn       }
+    '['                 { TLeftbracket  posn       }
+    ']'                 { TRightbracket posn       }
 
 %left RExpr
 %left LExpr
@@ -80,7 +84,7 @@ import Lexer (AlexPosn,Token(..),alexScanTokens)
 %%
 
 Program    :: { Program }
-           : program id ';' Body '.'            { P ((\(a,_,_)->a) $2) $4 }
+           : program id ';' Body '.'            { P (getId $2) $4 }
 
 Body       :: { Body }
            : Locals Block                       { B $1 $2 }  
@@ -103,12 +107,12 @@ IdsAndType :: { (Ids,Type) }
            : Ids ':' Type ';'                   { ($1,$3) } 
 
 Ids        :: { Ids }
-           : id                                 { [((\(a,_,_)->a) $1)]  }
-           | Ids ',' id                         { ((\(a,_,_)->a) $3):$1 }
+           : id                                 { [getId $1]  }
+           | Ids ',' id                         { getId $3:$1 }
 
 Header     :: { Header }
-           : procedure id '(' Args ')'          { Procedure ((\(a,_,_)->a) $2) $4    }
-           | function  id '(' Args ')' ':' Type { Function  ((\(a,_,_)->a) $2) $4 $7 }
+           : procedure id '(' Args ')'          { Procedure (getId $2) $4    }
+           | function  id '(' Args ')' ':' Type { Function  (getId $2) $4 $7 }
 
 Args       :: { Args }
            : {-empty-}                          { [] }
@@ -135,7 +139,7 @@ Type       :: { Type }
 
 ArrSize    :: { ArrSize }
            : {-empty-}                          { NoSize  }
-           | '[' intconst ']'                   { Size ((\(a,_,_)->a) $2) }
+           | '[' intconst ']'                   { Size (getInt $2) }
 
 Block      :: { Block }
            : begin Stmts end                    { Bl $2 } 
@@ -152,8 +156,8 @@ Stmt       :: { Stmt }
            | if Expr then Stmt                  { SIT      $2 $4          }     
            | if Expr then Stmt else Stmt        { SITE     $2 $4 $6       }     
            | while Expr do Stmt                 { SWhile   $2 $4          }
-           | id ':' Stmt                        { SId      ((\(a,_,_)->a) $1) $3          }
-           | goto id                            { SGoto    ((\(a,_,_)->a) $2)             }
+           | id ':' Stmt                        { SId      (getId $1) $3          }
+           | goto id                            { SGoto    (getId $2)             }
            | return                             { SReturn                 }
            | new New LValue                     { SNew     $2 $3          }
            | dispose Dispose LValue             { SDispose $2 $3          }
@@ -170,19 +174,19 @@ Expr       :: { Expr }
            | RValue %prec RExpr                 { R $1 }
 
 LValue     :: { LValue }
-           : id                                 { LId        ((\(a,_,_)->a) $1)    }
+           : id                                 { LId        (getId $1)    }
            | result                             { LResult          }
-           | stringconst                        { LString    ((\(a,_,_)->a) $1)    }
+           | stringconst                        { LString    (getString $1)    }
            | LValue '[' Expr ']'                { LValueExpr $1 $3 }
            | Expr '^'                           { LExpr      $1    }
            | '(' LValue ')'                     { LParen     $2    }
 
 RValue     :: { RValue }
-           : intconst                           { RInt     ((\(a,_,_)->a) $1) }
+           : intconst                           { RInt     (getInt $1) }
            | true                               { RTrue       }
            | false                              { RFalse      } 
-           | realconst                          { RReal    ((\(a,_,_)->a) $1) }
-           | charconst                          { RChar    ((\(a,_,_)->a) $1) }
+           | realconst                          { RReal    (getReal $1) }
+           | charconst                          { RChar    (getChar $1) }
            | '(' RValue ')'                     { RParen   $2 }
            | nil                                { RNil        }
            | Call                               { RCall    $1 }
@@ -206,7 +210,7 @@ RValue     :: { RValue }
            | Expr smeq Expr                     { RSmeq    $1 $3 }
 
 Call       :: { Call }      
-           : id '(' ArgExprs ')'                { CId ((\(a,_,_)->a) $1) $3 }
+           : id '(' ArgExprs ')'                { CId (getId $1) $3 }
 
 ArgExprs   :: { Exprs }
            : {-empty-}                          { [] }
@@ -218,8 +222,14 @@ Exprs      :: { Exprs }
 
 {
 
-parseError :: [Token] -> a
-parseError = \_ -> error "Parse error\n"
+parseError :: Token -> Alex a
+parseError t =
+  let AlexPn _ l c = posn t
+      ls = show l
+      cs = show c
+      errormsg = "Parse error at line " ++ ls ++
+                 ", column " ++ cs
+  in alexError errormsg
 
 data Program =
   P Id Body
@@ -351,5 +361,7 @@ data Call =
   CId Id [Expr]
   deriving(Show,Eq,Ord)
 
-parser = getContents >>= return . parse . alexScanTokens
+parser s = runAlex s parse
+lexwrap = (alexMonadScan >>=)
+
 }

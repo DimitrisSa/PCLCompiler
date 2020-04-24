@@ -25,12 +25,15 @@ type Semantics a = EitherT Error (State [SymbolMap]) a
 
 emptySymbolMap = (M.empty,M.empty,M.empty,M.empty)
 main = do
-  ast <- parser
-  let processAst = evalState . runEitherT . program
-  let emptySymbolTable = [emptySymbolMap]
-  case (\x -> x emptySymbolTable) $ processAst ast of
-    Right _  -> hPutStrLn stdout "good" >> exitSuccess
-    Left s   -> die s 
+  s    <- getContents
+  case parser s of
+    Left e -> die e
+    Right ast -> do
+      let processAst = evalState . runEitherT . program
+      let emptySymbolTable = [emptySymbolMap]
+      case (\x -> x emptySymbolTable) $ processAst ast of
+        Right _  -> hPutStrLn stdout "good" >> exitSuccess
+        Left s   -> die s 
 
 -- process ast
 program :: Program -> Semantics ()

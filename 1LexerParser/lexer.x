@@ -2,7 +2,7 @@
 module Lexer where
 }
 
-%wrapper "posn"
+%wrapper "monad"
 
 $letter    = [a-z A-Z]
 @id        = $letter [$letter _]*
@@ -27,131 +27,129 @@ $printChar = $printable # [\\ \' \"]
 
 tokens :-
   $white+               ;
-  and                   { \p s -> TAnd        $ posnLC  p }
-  array                 { \p s -> TArray      $ posnLC  p }
-  begin                 { \p s -> TBegin      $ posnLC  p }
-  boolean               { \p s -> TBoolean    $ posnLC  p }
-  char                  { \p s -> TChar       $ posnLC  p }
-  dispose               { \p s -> TDispose    $ posnLC  p }
-  div                   { \p s -> TDivInt     $ posnLC  p }
-  do                    { \p s -> TDo         $ posnLC  p }
-  else                  { \p s -> TElse       $ posnLC  p }
-  end                   { \p s -> TEnd        $ posnLC  p }
-  false                 { \p s -> TFalse      $ posnLC  p }
-  forward               { \p s -> TForward    $ posnLC  p }
-  function              { \p s -> TFunction   $ posnLC  p }
-  goto                  { \p s -> TGoto       $ posnLC  p }
-  if                    { \p s -> TIf         $ posnLC  p }
-  integer               { \p s -> TInteger    $ posnLC  p }
-  label                 { \p s -> TLabel      $ posnLC  p }
-  mod                   { \p s -> TMod        $ posnLC  p }
-  new                   { \p s -> TNew        $ posnLC  p }
-  nil                   { \p s -> TNil        $ posnLC  p }
-  not                   { \p s -> TNot        $ posnLC  p }
-  of                    { \p s -> TOf         $ posnLC  p }
-  or                    { \p s -> TOr         $ posnLC  p }
-  procedure             { \p s -> TProcedure  $ posnLC  p }
-  program               { \p s -> TProgram    $ posnLC  p }
-  real                  { \p s -> TReal       $ posnLC  p }
-  result                { \p s -> TResult     $ posnLC  p }
-  return                { \p s -> TReturn     $ posnLC  p }
-  then                  { \p s -> TThen       $ posnLC  p }
-  true                  { \p s -> TTrue       $ posnLC  p }
-  var                   { \p s -> TVar        $ posnLC  p }
-  while                 { \p s -> TWhile      $ posnLC  p }
-  @id                   { \p s -> TId        $ posnALC s p }
-  @int           { \p s -> TIntconst    $ posnALC (read s) p }
-  @real          { \p s -> TRealconst   $ posnALC (read s) p }
-  @comment       ;
-  @char          { \p s -> TCharconst   $ posnALC (read s) p }
-  @string        { \p s -> TStringconst $ posnALC (read s) p }
-  =                     { \p s -> TLogiceq      $ posnLC p }
-  >                     { \p s -> TGreater      $ posnLC p }
-  \<                    { \p s -> TSmaller      $ posnLC p }
-  \<>                   { \p s -> TDifferent    $ posnLC p }
-  >=                    { \p s -> TGreaterequal $ posnLC p }
-  \<=                   { \p s -> TSmallerequal $ posnLC p }
-  \+                    { \p s -> TAdd          $ posnLC p }
-  \-                    { \p s -> TMinus        $ posnLC p }
-  \*                    { \p s -> TMul          $ posnLC p }
-  \/                    { \p s -> TDivReal      $ posnLC p }
-  \^                    { \p s -> TPointer      $ posnLC p }
-  @                     { \p s -> TAdress       $ posnLC p }
-  :=                    { \p s -> TEq           $ posnLC p }
-  \;                    { \p s -> TSeperator    $ posnLC p }
-  \.                    { \p s -> TDot          $ posnLC p }
-  \(                    { \p s -> TLeftparen    $ posnLC p }
-  \)                    { \p s -> TRightparen   $ posnLC p }
-  :                     { \p s -> TUpdown       $ posnLC p }
-  \,                    { \p s -> TComma        $ posnLC p }
-  \[                    { \p s -> TLeftbracket  $ posnLC p }
-  \]                    { \p s -> TRightbracket $ posnLC p }
+  and                   { \(p,_,_,_) _ -> return $ TAnd           p }
+  array                 { \(p,_,_,_) _ -> return $ TArray         p }
+  begin                 { \(p,_,_,_) _ -> return $ TBegin         p }
+  boolean               { \(p,_,_,_) _ -> return $ TBoolean       p }
+  char                  { \(p,_,_,_) _ -> return $ TChar          p }
+  dispose               { \(p,_,_,_) _ -> return $ TDispose       p }
+  div                   { \(p,_,_,_) _ -> return $ TDivInt        p }
+  do                    { \(p,_,_,_) _ -> return $ TDo            p }
+  else                  { \(p,_,_,_) _ -> return $ TElse          p }
+  end                   { \(p,_,_,_) _ -> return $ TEnd           p }
+  false                 { \(p,_,_,_) _ -> return $ TFalse         p }
+  forward               { \(p,_,_,_) _ -> return $ TForward       p }
+  function              { \(p,_,_,_) _ -> return $ TFunction      p }
+  goto                  { \(p,_,_,_) _ -> return $ TGoto          p }
+  if                    { \(p,_,_,_) _ -> return $ TIf            p }
+  integer               { \(p,_,_,_) _ -> return $ TInteger       p }
+  label                 { \(p,_,_,_) _ -> return $ TLabel         p }
+  mod                   { \(p,_,_,_) _ -> return $ TMod           p }
+  new                   { \(p,_,_,_) _ -> return $ TNew           p }
+  nil                   { \(p,_,_,_) _ -> return $ TNil           p }
+  not                   { \(p,_,_,_) _ -> return $ TNot           p }
+  of                    { \(p,_,_,_) _ -> return $ TOf            p }
+  or                    { \(p,_,_,_) _ -> return $ TOr            p }
+  procedure             { \(p,_,_,_) _ -> return $ TProcedure     p }
+  program               { \(p,_,_,_) _ -> return $ TProgram       p }
+  real                  { \(p,_,_,_) _ -> return $ TReal          p }
+  result                { \(p,_,_,_) _ -> return $ TResult        p }
+  return                { \(p,_,_,_) _ -> return $ TReturn        p }
+  then                  { \(p,_,_,_) _ -> return $ TThen          p }
+  true                  { \(p,_,_,_) _ -> return $ TTrue          p }
+  var                   { \(p,_,_,_) _ -> return $ TVar           p }
+  while                 { \(p,_,_,_) _ -> return $ TWhile         p }
+  @id                   { \(p,_,_,s) l -> return $ TId            (take l s) p }
+  @int                  { \(p,_,_,s) l -> return $ TIntconst      (read $ take l s) p }
+  @real                 { \(p,_,_,s) l -> return $ TRealconst     (read $ take l s) p }
+  @comment              ;
+  @char                 { \(p,_,_,s) l -> return $ TCharconst     (read $ take l s) p }
+  @string               { \(p,_,_,s) l -> return $ TStringconst   (take l s) p }
+  =                     { \(p,_,_,_) _ -> return $ TLogiceq       p }
+  >                     { \(p,_,_,_) _ -> return $ TGreater       p }
+  \<                    { \(p,_,_,_) _ -> return $ TSmaller       p }
+  \<>                   { \(p,_,_,_) _ -> return $ TDifferent     p }
+  >=                    { \(p,_,_,_) _ -> return $ TGreaterequal  p }
+  \<=                   { \(p,_,_,_) _ -> return $ TSmallerequal  p }
+  \+                    { \(p,_,_,_) _ -> return $ TAdd           p }
+  \-                    { \(p,_,_,_) _ -> return $ TMinus         p }
+  \*                    { \(p,_,_,_) _ -> return $ TMul           p }
+  \/                    { \(p,_,_,_) _ -> return $ TDivReal       p }
+  \^                    { \(p,_,_,_) _ -> return $ TPointer       p }
+  @                     { \(p,_,_,_) _ -> return $ TAdress        p }
+  :=                    { \(p,_,_,_) _ -> return $ TEq            p }
+  \;                    { \(p,_,_,_) _ -> return $ TSeperator     p }
+  \.                    { \(p,_,_,_) _ -> return $ TDot           p }
+  \(                    { \(p,_,_,_) _ -> return $ TLeftparen     p }
+  \)                    { \(p,_,_,_) _ -> return $ TRightparen    p }
+  :                     { \(p,_,_,_) _ -> return $ TUpdown        p }
+  \,                    { \(p,_,_,_) _ -> return $ TComma         p }
+  \[                    { \(p,_,_,_) _ -> return $ TLeftbracket   p }
+  \]                    { \(p,_,_,_) _ -> return $ TRightbracket  p }
 
 {
 data Token =
-  TAnd                (Int,Int) |
-  TArray              (Int,Int) |
-  TBegin              (Int,Int) |
-  TBoolean            (Int,Int) |
-  TChar               (Int,Int) |
-  TDispose            (Int,Int) |
-  TDivInt             (Int,Int) |
-  TDo                 (Int,Int) |
-  TElse               (Int,Int) |
-  TEnd                (Int,Int) |
-  TFalse              (Int,Int) |
-  TForward            (Int,Int) |
-  TFunction           (Int,Int) |
-  TGoto               (Int,Int) |
-  TIf                 (Int,Int) |
-  TInteger            (Int,Int) |
-  TLabel              (Int,Int) |
-  TMod                (Int,Int) |
-  TNew                (Int,Int) |
-  TNil                (Int,Int) |
-  TNot                (Int,Int) |
-  TOf                 (Int,Int) |
-  TOr                 (Int,Int) |
-  TProcedure          (Int,Int) |
-  TProgram            (Int,Int) |
-  TReal               (Int,Int) |
-  TResult             (Int,Int) |
-  TReturn             (Int,Int) |
-  TThen               (Int,Int) |
-  TTrue               (Int,Int) |
-  TVar                (Int,Int) |
-  TWhile              (Int,Int) |
-  TId          (String,Int,Int) |
-  TIntconst    (Int   ,Int,Int) |
-  TRealconst   (Double,Int,Int) |
-  TCharconst   (Char  ,Int,Int) |
-  TStringconst (String,Int,Int) |
-  TLogiceq            (Int,Int) |
-  TGreater            (Int,Int) |
-  TSmaller            (Int,Int) |
-  TDifferent          (Int,Int) |
-  TGreaterequal       (Int,Int) |
-  TSmallerequal       (Int,Int) |
-  TAdd                (Int,Int) |
-  TMinus              (Int,Int) |
-  TMul                (Int,Int) |
-  TDivReal            (Int,Int) |
-  TPointer            (Int,Int) |
-  TAdress             (Int,Int) |
-  TEq                 (Int,Int) |
-  TSeperator          (Int,Int) |
-  TDot                (Int,Int) |
-  TLeftparen          (Int,Int) |
-  TRightparen         (Int,Int) |
-  TUpdown             (Int,Int) |
-  TComma              (Int,Int) |
-  TLeftbracket        (Int,Int) |
-  TRightbracket       (Int,Int) 
+  TAnd                {posn :: AlexPosn} |
+  TArray              {posn :: AlexPosn} |
+  TBegin              {posn :: AlexPosn} |
+  TBoolean            {posn :: AlexPosn} |
+  TChar               {posn :: AlexPosn} |
+  TDispose            {posn :: AlexPosn} |
+  TDivInt             {posn :: AlexPosn} |
+  TDo                 {posn :: AlexPosn} |
+  TElse               {posn :: AlexPosn} |
+  TEnd                {posn :: AlexPosn} |
+  TFalse              {posn :: AlexPosn} |
+  TForward            {posn :: AlexPosn} |
+  TFunction           {posn :: AlexPosn} |
+  TGoto               {posn :: AlexPosn} |
+  TIf                 {posn :: AlexPosn} |
+  TInteger            {posn :: AlexPosn} |
+  TLabel              {posn :: AlexPosn} |
+  TMod                {posn :: AlexPosn} |
+  TNew                {posn :: AlexPosn} |
+  TNil                {posn :: AlexPosn} |
+  TNot                {posn :: AlexPosn} |
+  TOf                 {posn :: AlexPosn} |
+  TOr                 {posn :: AlexPosn} |
+  TProcedure          {posn :: AlexPosn} |
+  TProgram            {posn :: AlexPosn} |
+  TReal               {posn :: AlexPosn} |
+  TResult             {posn :: AlexPosn} |
+  TReturn             {posn :: AlexPosn} |
+  TThen               {posn :: AlexPosn} |
+  TTrue               {posn :: AlexPosn} |
+  TVar                {posn :: AlexPosn} |
+  TWhile              {posn :: AlexPosn} |
+  TId          {getId    ::String,posn :: AlexPosn} |
+  TIntconst    {getInt   ::Int   ,posn :: AlexPosn} |
+  TRealconst   {getReal  ::Double,posn :: AlexPosn} |
+  TCharconst   {getChar  ::Char  ,posn :: AlexPosn} |
+  TStringconst {getString::String,posn :: AlexPosn} |
+  TLogiceq            {posn :: AlexPosn} |
+  TGreater            {posn :: AlexPosn} |
+  TSmaller            {posn :: AlexPosn} |
+  TDifferent          {posn :: AlexPosn} |
+  TGreaterequal       {posn :: AlexPosn} |
+  TSmallerequal       {posn :: AlexPosn} |
+  TAdd                {posn :: AlexPosn} |
+  TMinus              {posn :: AlexPosn} |
+  TMul                {posn :: AlexPosn} |
+  TDivReal            {posn :: AlexPosn} |
+  TPointer            {posn :: AlexPosn} |
+  TAdress             {posn :: AlexPosn} |
+  TEq                 {posn :: AlexPosn} |
+  TSeperator          {posn :: AlexPosn} |
+  TDot                {posn :: AlexPosn} |
+  TLeftparen          {posn :: AlexPosn} |
+  TRightparen         {posn :: AlexPosn} |
+  TUpdown             {posn :: AlexPosn} |
+  TComma              {posn :: AlexPosn} |
+  TLeftbracket        {posn :: AlexPosn} |
+  TRightbracket       {posn :: AlexPosn} |
+  Eof
   deriving (Eq,Show)
 
-posnLC :: AlexPosn -> (Int,Int)
-posnLC (AlexPn _ l c) = (l,c)
-
-posnALC :: a -> AlexPosn -> (a,Int,Int)
-posnALC a (AlexPn _ l c) = (a,l,c)
+alexEOF :: Alex Token
+alexEOF = return Eof
 }
