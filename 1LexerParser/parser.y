@@ -84,7 +84,7 @@ import Data.Either
 %%
 
 Program    :: { Program }
-           : program id ';' Body '.'            { P (getId $2) $4 }
+           : program id ';' Body '.'            { P (tokenToId $2) $4 }
 
 Body       :: { Body }
            : Locals Block                       { B $1 $2 }  
@@ -107,12 +107,12 @@ IdsAndType :: { (Ids,Type) }
            : Ids ':' Type ';'                   { ($1,$3) } 
 
 Ids        :: { Ids }
-           : id                                 { [getId $1]  }
-           | Ids ',' id                         { getId $3:$1 }
+           : id                                 { [(tokenToId $1) ]  }
+           | Ids ',' id                         { (tokenToId $3) :$1 }
 
 Header     :: { Header }
-           : procedure id '(' Args ')'          { Procedure (getId $2) $4    }
-           | function  id '(' Args ')' ':' Type { Function  (getId $2) $4 $7 }
+           : procedure id '(' Args ')'          { Procedure (tokenToId $2)  $4    }
+           | function  id '(' Args ')' ':' Type { Function  (tokenToId $2)  $4 $7 }
 
 Args       :: { Args }
            : {-empty-}                          { [] }
@@ -156,8 +156,8 @@ Stmt       :: { Stmt }
            | if Expr then Stmt                  { SIT      $2 $4          }     
            | if Expr then Stmt else Stmt        { SITE     $2 $4 $6       }     
            | while Expr do Stmt                 { SWhile   $2 $4          }
-           | id ':' Stmt                        { SId      (getId $1) $3          }
-           | goto id                            { SGoto    (getId $2)             }
+           | id ':' Stmt                        { SId      (tokenToId $1)  $3          }
+           | goto id                            { SGoto    (tokenToId $2)              }
            | return                             { SReturn                 }
            | new New LValue                     { SNew     $2 $3          }
            | dispose Dispose LValue             { SDispose $2 $3          }
@@ -174,7 +174,7 @@ Expr       :: { Expr }
            | RValue %prec RExpr                 { R $1 }
 
 LValue     :: { LValue }
-           : id                                 { LId        (getId $1)    }
+           : id                                 { LId        (tokenToId $1)     }
            | result                             { LResult          }
            | stringconst                        { LString    (getString $1)    }
            | LValue '[' Expr ']'                { LValueExpr $1 $3 }
@@ -210,7 +210,7 @@ RValue     :: { RValue }
            | Expr smeq Expr                     { RSmeq    $1 $3 }
 
 Call       :: { Call }      
-           : id '(' ArgExprs ')'                { CId (getId $1) $3 }
+           : id '(' ArgExprs ')'                { CId (tokenToId $1)  $3 }
 
 ArgExprs   :: { Exprs }
            : {-empty-}                          { [] }
@@ -242,7 +242,15 @@ data Body =
   B [Local] Block
   deriving(Show)
 
-type Id        = String
+data Id        = Id {idValue::String,idPosn::(Int,Int)}
+  deriving(Show)
+
+instance Eq Id where
+  x == y = idValue x == idValue y
+
+instance Ord Id where
+  x <= y = idValue x <= idValue y
+
 type Ids       = [Id]
 type Variables = [(Ids,Type)]
 
@@ -363,5 +371,10 @@ data Call =
 
 parser s = runAlex s parse
 lexwrap = (alexMonadScan >>=)
+
+tokenToId :: Token -> Id
+tokenToId = \case
+  TId id (AlexPn _ l c) -> Id id (l,c)
+  _   -> error "Shouldn't happen, not id token"
 
 }

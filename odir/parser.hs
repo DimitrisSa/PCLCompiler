@@ -1450,7 +1450,7 @@ happyReduction_1 (_ `HappyStk`
 	_ `HappyStk`
 	happyRest)
 	 = HappyAbsSyn4
-		 (P (getId happy_var_2) happy_var_4
+		 (P (tokenToId happy_var_2) happy_var_4
 	) `HappyStk` happyRest
 
 happyReduce_2 = happySpecReduce_2  5 happyReduction_2
@@ -1538,7 +1538,7 @@ happyReduction_11 (_ `HappyStk`
 happyReduce_12 = happySpecReduce_1  10 happyReduction_12
 happyReduction_12 (HappyTerminal happy_var_1)
 	 =  HappyAbsSyn10
-		 ([getId happy_var_1]
+		 ([(tokenToId happy_var_1) ]
 	)
 happyReduction_12 _  = notHappyAtAll 
 
@@ -1547,7 +1547,7 @@ happyReduction_13 (HappyTerminal happy_var_3)
 	_
 	(HappyAbsSyn10  happy_var_1)
 	 =  HappyAbsSyn10
-		 (getId happy_var_3:happy_var_1
+		 ((tokenToId happy_var_3) :happy_var_1
 	)
 happyReduction_13 _ _ _  = notHappyAtAll 
 
@@ -1559,7 +1559,7 @@ happyReduction_14 (_ `HappyStk`
 	_ `HappyStk`
 	happyRest)
 	 = HappyAbsSyn11
-		 (Procedure (getId happy_var_2) happy_var_4
+		 (Procedure (tokenToId happy_var_2)  happy_var_4
 	) `HappyStk` happyRest
 
 happyReduce_15 = happyReduce 7 11 happyReduction_15
@@ -1572,7 +1572,7 @@ happyReduction_15 ((HappyAbsSyn16  happy_var_7) `HappyStk`
 	_ `HappyStk`
 	happyRest)
 	 = HappyAbsSyn11
-		 (Function  (getId happy_var_2) happy_var_4 happy_var_7
+		 (Function  (tokenToId happy_var_2)  happy_var_4 happy_var_7
 	) `HappyStk` happyRest
 
 happyReduce_16 = happySpecReduce_0  12 happyReduction_16
@@ -1770,7 +1770,7 @@ happyReduction_41 (HappyAbsSyn20  happy_var_3)
 	_
 	(HappyTerminal happy_var_1)
 	 =  HappyAbsSyn20
-		 (SId      (getId happy_var_1) happy_var_3
+		 (SId      (tokenToId happy_var_1)  happy_var_3
 	)
 happyReduction_41 _ _ _  = notHappyAtAll 
 
@@ -1778,7 +1778,7 @@ happyReduce_42 = happySpecReduce_2  20 happyReduction_42
 happyReduction_42 (HappyTerminal happy_var_2)
 	_
 	 =  HappyAbsSyn20
-		 (SGoto    (getId happy_var_2)
+		 (SGoto    (tokenToId happy_var_2)
 	)
 happyReduction_42 _ _  = notHappyAtAll 
 
@@ -1849,7 +1849,7 @@ happyReduction_51 _  = notHappyAtAll
 happyReduce_52 = happySpecReduce_1  24 happyReduction_52
 happyReduction_52 (HappyTerminal happy_var_1)
 	 =  HappyAbsSyn24
-		 (LId        (getId happy_var_1)
+		 (LId        (tokenToId happy_var_1)
 	)
 happyReduction_52 _  = notHappyAtAll 
 
@@ -2113,7 +2113,7 @@ happyReduction_84 (_ `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn26
-		 (CId (getId happy_var_1) happy_var_3
+		 (CId (tokenToId happy_var_1)  happy_var_3
 	) `HappyStk` happyRest
 
 happyReduce_85 = happySpecReduce_0  27 happyReduction_85
@@ -2238,7 +2238,6 @@ parseError t =
                  ", column " ++ cs
   in alexError errormsg
 
-
 data Program =
   P Id Body
   deriving(Show)
@@ -2250,7 +2249,15 @@ data Body =
   B [Local] Block
   deriving(Show)
 
-type Id        = String
+data Id        = Id {idValue::String,idPosn::(Int,Int)}
+  deriving(Show)
+
+instance Eq Id where
+  x == y = idValue x == idValue y
+
+instance Ord Id where
+  x <= y = idValue x <= idValue y
+
 type Ids       = [Id]
 type Variables = [(Ids,Type)]
 
@@ -2371,6 +2378,11 @@ data Call =
 
 parser s = runAlex s parse
 lexwrap = (alexMonadScan >>=)
+
+tokenToId :: Token -> Id
+tokenToId = \case
+  TId id (AlexPn _ l c) -> Id id (l,c)
+  _   -> error "Shouldn't happen, not id token"
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}

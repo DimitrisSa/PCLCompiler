@@ -6,8 +6,6 @@ import System.IO
 import System.Exit
 import qualified Data.Map as M
 
--- pass by value/reference
-
 data Callable =
   Proc Args          |
   Func Args Type     |
@@ -15,9 +13,9 @@ data Callable =
   FFunc Args Type    
   deriving(Show,Eq)
 
-type VarMap   = M.Map Id Type
-type LabelMap = M.Map Id Bool
-type CallMap  = M.Map Id Callable
+type VarMap   = M.Map String Type
+type LabelMap = M.Map String Bool
+type CallMap  = M.Map String Callable
 type NewMap   = M.Map LValue ()
 type SymbolMap = (VarMap,LabelMap,CallMap,NewMap)
 type Error = String
@@ -53,8 +51,11 @@ checkDangledGoTo :: Stmt -> Semantics ()
 checkDangledGoTo = \case
   SGoto id -> do
     (_,lm,_,_):_ <- get
-    case M.lookup id lm of
-      Just False -> left $ dangledGotoErr ++ id
+    let idv = idValue id
+        (li,co) = idPosn id
+    case M.lookup idv lm of
+      Just False -> left $ dangledGotoErr ++ idv ++
+                    errorend li co
       _          -> return ()
   SBlock (Bl ss) -> checkDangledGoTos $ reverse ss
   _              -> return ()
@@ -68,7 +69,7 @@ checkNoForward = get >>= \((_,_,fm,_):_) ->
   checkNoForwardFMList $ M.toList fm
 
 forwardErr = "no implementation for forward declaration: "
-checkNoForwardFMList :: [(Id,Callable)] -> Semantics ()
+checkNoForwardFMList :: [(String,Callable)] -> Semantics ()
 checkNoForwardFMList = \case
   (id,FProc _  ):_ -> left $ forwardErr ++ id
   (id,FFunc _ _):_ -> left $ forwardErr ++ id
@@ -85,11 +86,16 @@ flocal = \case
 insertLabels :: Ids -> Semantics ()
 insertLabels = mapM_ insertLabel
 
+errorend l c = " at line " ++ show l ++ ", column " ++ show c
 insertLabel :: Id -> Semantics ()
-insertLabel l = get >>= \((vm,lm,fm,nm):sms) ->
-  case M.lookup l lm of
-    Just _  -> left $ "Duplicate label declaration: " ++ l
-    Nothing -> put $ (vm,M.insert l False lm,fm,nm):sms
+insertLabel l = do
+  (vm,lm,fm,nm):sms <- get
+  let lv = idValue l
+      (li,co) = idPosn l
+  case M.lookup lv lm of
+    Just _  -> left $ "Duplicate label declaration: " ++ lv ++
+                      errorend li co
+    Nothing -> put $ (vm,M.insert lv False lm,fm,nm):sms
 
 headBodF :: Header -> Body -> Semantics ()
 headBodF h bod = do
@@ -105,8 +111,11 @@ checkresult :: Header -> Semantics ()
 checkresult = \case
   Function i _ _ -> do
     (vm,_,_,_):_ <- get
+    let idv = idValue i
+        (li,co) = idPosn i
     case M.lookup "while" vm of
-      Nothing -> left $ "Result not set for function: " ++ i
+      Nothing -> left $ "Result not set for function: " ++ idv
+                        ++ errorend li co
       _       -> return () 
   _ -> return ()
 
@@ -129,9 +138,12 @@ insertFormalInTm (_,ids,t) = mapM_ (insertIdInTm t) ids
 insertIdInTm :: Type -> Id -> Semantics ()
 insertIdInTm t id = do
   (vm,lm,fm,nm):sms <- get
-  case M.lookup id vm of
-    Nothing -> put $ (M.insert id t vm,lm,fm,nm):sms
-    _       -> left $ "duplicate argument: " ++ id
+  let idv = idValue id
+      (li,co) = idPosn id
+  case M.lookup idv vm of
+    Nothing -> put $ (M.insert idv t vm,lm,fm,nm):sms
+    _       -> left $ "duplicate argument: " ++ idv 
+                        ++ errorend li co
 
 -- to check if func/proc with forward is defined
 parErr = "Parameter missmatch between " ++
@@ -141,56 +153,63 @@ dupErr = "Duplicate Variable: "
 insertheader :: Id -> Callable -> Bool -> Semantics ()
 insertheader i t expr = do
   (vm,lm,fm,nm):sms <- get
-  if expr then put $ (vm,lm,M.insert i t fm,nm):sms
-  else left $ parErr ++ i
+  let idv = idValue i
+      (li,co) = idPosn i
+  if expr then put $ (vm,lm,M.insert idv t fm,nm):sms
+  else left $ parErr ++ idv ++ errorend li co
 
-searchCallSMs :: Id -> [SymbolMap] -> Maybe Callable
+searchCallSMs :: String -> [SymbolMap] -> Maybe Callable
 searchCallSMs id = \case
   sm:sms -> case searchCallSM id sm of
     Nothing -> searchCallSMs id sms
     x       -> x
   []     -> Nothing
 
-searchCallSM :: Id -> SymbolMap -> Maybe Callable
+searchCallSM :: String -> SymbolMap -> Maybe Callable
 searchCallSM id sm = M.lookup id $ (\(_,_,fm,_) -> fm) sm
 
-searchVarSMs :: Id -> [SymbolMap] -> Maybe Type
+searchVarSMs :: String -> [SymbolMap] -> Maybe Type
 searchVarSMs id = \case
   sm:sms -> case searchVarSM id sm of
     Nothing -> searchVarSMs id sms
     x       -> x
   []     -> Nothing
 
-searchVarSM :: Id -> SymbolMap -> Maybe Type
+searchVarSM :: String -> SymbolMap -> Maybe Type
 searchVarSM id sm = M.lookup id $ (\(vm,_,_,_) -> vm) sm
 
 headProcedureF :: Id -> Args -> [SymbolMap] -> Semantics ()
 headProcedureF i a sms =
-  let a' = reverse a in
-  case searchCallSMs i sms of
+  let a' = reverse a 
+      idv = idValue i
+      (li,co) = idPosn i
+  in
+  case searchCallSMs idv sms of
     Just (FProc b) -> let aTypes = formalsToTypes a'
                           bTypes = formalsToTypes b
                           sameTypes = aTypes == bTypes
                           p = Proc a'
                       in insertheader i p sameTypes
     Nothing        -> checkArgsAndPut i a' $ Proc a'
-    _              -> left $ dupErr ++ i
+    _              -> left $ dupErr ++ idv ++ errorend li co
 
 funErr = "Function can't have a return type of array "
 type SemUnit = Semantics ()
 headFunctionF ::Id -> Args -> Type -> [SymbolMap] -> SemUnit
 headFunctionF i a t sms =
-  let a' = reverse a in
-  case searchCallSMs i sms of
+  let a' = reverse a
+      idv = idValue i
+      (li,co) = idPosn i in
+  case searchCallSMs idv sms of
     Just (FFunc b t2) -> let aTypes = formalsToTypes a'
                              bTypes = formalsToTypes b
                              sameTypes = aTypes == bTypes
                              f = Func a' t
                       in insertheader i f (t==t2 && sameTypes)
     Nothing -> case t of
-      ArrayT _ _ -> left $ funErr ++ i
+      ArrayT _ _ -> left $ funErr ++ idv ++ errorend li co
       _          -> checkArgsAndPut i a' $ Func a' t
-    _       -> left $ dupErr ++ i
+    _       -> left $ dupErr ++ idv ++ errorend li co
 
 headF :: Header -> Semantics ()
 headF h = get >>= \sms -> case h of
@@ -200,8 +219,11 @@ headF h = get >>= \sms -> case h of
 checkArgsAndPut :: Id -> Args -> Callable -> Semantics ()
 checkArgsAndPut i as t = do
   (vm,lm,fm,nm):sms <- get
-  if all argOk as then put $ (vm,lm,M.insert i t fm,nm):sms
-  else left $ "Can't pass array by value in: " ++ i
+  let idv = idValue i
+      (li,co) = idPosn i
+  if all argOk as then put $ (vm,lm,M.insert idv t fm,nm):sms
+  else left $ "Can't pass array by value in: " ++ idv
+              ++ errorend li co
 
 argOk :: Formal -> Bool
 argOk = \case
@@ -211,15 +233,19 @@ argOk = \case
 insertforward :: Id -> Args -> Callable -> Semantics ()
 insertforward i as t = do
   sms <- get
-  case searchCallSMs i sms of
-    Just _ -> left $ dupErr ++ i
+  let idv = idValue i
+      (li,co) = idPosn i
+  case searchCallSMs idv sms of
+    Just _ -> left $ dupErr ++ idv ++ errorend li co
     Nothing -> checkArgsAndPut i as t
 
 forwardF :: Header -> Semantics ()
 forwardF h = case h of
   Procedure i a   -> insertforward i a (FProc $ reverse a)
   Function  i a t -> case t of 
-    ArrayT _ _ -> left $ funErr ++ i
+    ArrayT _ _ -> let idv = idValue i
+                      (li,co) = idPosn i
+                  in left $ funErr ++ idv ++ errorend li co
     _          -> insertforward i a (FFunc (reverse a) t)
 
 toSems :: Variables -> Semantics ()
@@ -237,10 +263,12 @@ makelisthelp (pb,in1,myt) = Prelude.map (\_ -> (pb,myt)) in1
 myinsert :: [(Id,Type)] -> Semantics ()
 myinsert ((v,t):xs) = do
   (vm,lm,fm,nm):sms <- get
-  case searchVarSMs v ((vm,lm,fm,nm):sms) of
-    Just _  -> left $ dupErr ++ v
+  let idv = idValue v
+      (li,co) = idPosn v
+  case searchVarSMs idv ((vm,lm,fm,nm):sms) of
+    Just _  -> left $ dupErr ++ idv ++ errorend li co
     Nothing -> if checkFullType t then 
-                 put ((M.insert v t vm,lm,fm,nm):sms) >>
+                 put ((M.insert idv t vm,lm,fm,nm):sms) >>
                  myinsert xs
                else left "Can't use 'array of' in local vars"
 myinsert [] = return ()
@@ -256,20 +284,27 @@ checkBoolExpr expr stmtDesc = do
   if et == Tbool then return ()
   else left $ "Non-boolean expression in " ++ stmtDesc
 
-checkGoTo :: String -> Semantics ()
+checkGoTo :: Id -> Semantics ()
 checkGoTo id = do
   (_,lm,_,_):_ <- get
-  case M.lookup id lm of
+  let idv = idValue id
+      (li,co) = idPosn id
+  case M.lookup idv lm of
     Just _  -> return ()
-    Nothing -> left $ "undefined label: " ++ id
+    Nothing -> left $ "undefined label: " ++ idv
+                      ++ errorend li co
 
-checkId :: String -> Semantics ()
+checkId :: Id -> Semantics ()
 checkId id = do
   (vm,lm,fm,nm):sms <- get
-  case M.lookup id lm of
-    Just False -> put $ (vm,M.insert id True lm,fm,nm):sms
-    Just True  -> left $ "duplicate label: " ++ id
-    Nothing    -> left $ "undefined label: " ++ id
+  let idv = idValue id
+      (li,co) = idPosn id
+  case M.lookup idv lm of
+    Just False -> put $ (vm,M.insert idv True lm,fm,nm):sms
+    Just True  -> left $ "duplicate label: " ++ idv
+                         ++ errorend li co
+    Nothing    -> left $ "undefined label: " ++ idv
+                         ++ errorend li co
 
 checkpointer :: LValue -> Error -> Semantics Type
 checkpointer lValue err = totypel lValue >>= \case
@@ -289,10 +324,14 @@ fstatement = \case
   SBlock (Bl ss)           -> fblock $ reverse ss
   SCall (CId id exprs)     -> do
                               sms <- get
-                              case searchCallSMs id sms of
+                              let idv = idValue id
+                                  (li,co) = idPosn id
+                              case searchCallSMs idv sms of
                                 Just t  -> callSem id t $
                                            reverse exprs
-                                Nothing -> left $ callErr ++ id
+                                Nothing -> left $ callErr ++
+                                           idv ++
+                                           errorend li co
   SIT  expr stmt           -> checkBoolExpr expr "if-then" >>
                               fstatement stmt
   SITE expr s1 s2          -> checkBoolExpr expr "if-then-else"
@@ -324,7 +363,7 @@ fstatement = \case
 
 deleteNewMap :: LValue -> NewMap -> Semantics NewMap
 deleteNewMap l nm = case M.lookup l nm of
-  Nothing -> left "disposing null pointer"
+  Nothing -> left $ "disposing null pointer"
   _       -> right $ M.delete l nm
 
 checkFullType :: Type -> Bool
@@ -339,11 +378,14 @@ symbatos lt et = (lt == et && checkFullType lt) ||
                  (lt == Treal && et == Tint)
 
 callSemErr = "Wrong type of identifier in call: "
-callSem :: String -> Callable -> Exprs -> Semantics ()
+callSem :: Id -> Callable -> Exprs -> Semantics ()
 callSem id = \case
   FProc as -> goodArgs id as
   Proc  as -> goodArgs id as
-  _        -> \_ -> left $ callSemErr ++ id
+  _        -> let idv = idValue id
+                  (li,co) = idPosn id
+              in \_ -> left $ callSemErr ++ idv
+                              ++ errorend li co
 
 goodArgs :: Id -> Args -> Exprs -> Semantics ()
 goodArgs id as exprs =
@@ -370,9 +412,11 @@ totypel :: LValue -> Semantics Type
 totypel = \case
   LId id                 -> do
     sms <- get
-    case searchVarSMs id sms of
+    let idv = idValue id
+        (li,co) = idPosn id
+    case searchVarSMs idv sms of
       Just t  -> return t
-      Nothing -> left $ varErr ++ id
+      Nothing -> left $ varErr ++ idv ++ errorend li co
   LResult                -> do
     (vm,lm,fm,nm):sms <- get
     case M.lookup "result" vm of
@@ -473,9 +517,11 @@ totyper = \case
   RNil                -> right Tnil
   RCall (CId id exprs) -> do
     sms <- get
-    case searchCallSMs id sms of
+    let idv = idValue id
+        (li,co) = idPosn id
+    case searchCallSMs idv sms of
       Just t  -> funCallSem id t $ reverse exprs
-      Nothing -> left $ callErr ++ id
+      Nothing -> left $ callErr ++ idv ++ errorend li co
   RPapaki  lValue     -> totypel lValue >>= right . PointerT
   RNot     expr       -> totype expr >>= \case
     Tbool -> right Tbool
@@ -504,7 +550,10 @@ funCallSem :: Id -> Callable -> Exprs -> Semantics Type
 funCallSem id = \case
   FFunc as t -> \exprs -> goodArgs id as exprs >> right t
   Func  as t -> \exprs -> goodArgs id as exprs >> right t
-  _           -> \_ -> left $ callSemErr ++ id
+  _           -> let idv = idValue id
+                     (li,co) = idPosn id
+                 in \_ -> left $ callSemErr ++ idv
+                                 ++ errorend li co
 
 argsExprsErr = "Wrong number of args for: "
 typeExprsErr = "Type mismatch of args for: "
@@ -514,44 +563,58 @@ type PTs = [(PassBy,Type)]
 refErr i id = concat
   ["Argument ",show i, " in call of \"",
    id,"\" cannot be passed by reference"]
+
 argsExprsSems :: Int -> Id -> PTs -> PTs -> Semantics ()
 argsExprsSems i id ((Reference,_):_) ((Value,_):_) =
-  left $ refErr i id
+    let idv = idValue id
+        (li,co) = idPosn id
+    in left $ refErr i idv ++ errorend li co
 argsExprsSems i id ((_,t1):t1s) ((_,t2):t2s)
   | symbatos t1 t2 = argsExprsSems (i+1) id t1s t2s
-  | otherwise = left $ badArgErr id i
+  | otherwise =
+    let idv = idValue id
+        (li,co) = idPosn id
+    in left $ badArgErr idv i ++ errorend li co
 argsExprsSems _ _ [] [] = return ()
-argsExprsSems _ id _ _ = left $ argsExprsErr ++ id
+argsExprsSems _ id _ _ =
+    let idv = idValue id
+        (li,co) = idPosn id
+    in left $ argsExprsErr ++ idv ++ errorend li co
 
 --initialize Symbol Table with predefined procedures
 initSymbolTable :: Semantics ()
 initSymbolTable = do
-  helpprocs "writeInteger" [(Value,["n"],Tint)]
-  helpprocs "writeBoolean" [(Value,["b"],Tbool)]
-  helpprocs "writeChar" [(Value,["c"],Tchar)]
-  helpprocs "writeReal" [(Value,["r"],Treal)]
-  helpprocs "writeString" [(Reference,["s"],ArrayT NoSize Tchar)]
+  helpprocs "writeInteger" [(Value,[dummy "n"],Tint)]
+  helpprocs "writeBoolean" [(Value,[dummy "b"],Tbool)]
+  helpprocs "writeChar" [(Value,[dummy "c"],Tchar)]
+  helpprocs "writeReal" [(Value,[dummy "r"],Treal)]
+  helpprocs "writeString" [(Reference,
+                           [dummy "s"],ArrayT NoSize Tchar)]
   helpfunc "readInteger" [] Tint
   helpfunc "readBoolean" [] Tbool
   helpfunc "readChar" [] Tchar
   helpfunc "readReal" [] Treal
-  helpprocs "readString" [(Value,["size"],Tint),
-                           (Reference,["s"],ArrayT NoSize Tchar)]
-  helpfunc "abs" [(Value,["n"],Tint)] Tint
-  helpfunc "fabs" [(Value,["r"],Treal)] Treal
-  helpfunc "sqrt" [(Value,["r"],Treal)] Treal
-  helpfunc "sin" [(Value,["r"],Treal)] Treal
-  helpfunc "cos" [(Value,["r"],Treal)] Treal
-  helpfunc "tan" [(Value,["r"],Treal)] Treal
-  helpfunc "arctan" [(Value,["r"],Treal)] Treal
-  helpfunc "exp" [(Value,["r"],Treal)] Treal
-  helpfunc "ln" [(Value,["r"],Treal)] Treal
+  helpprocs "readString" [(Value,[dummy "size"],Tint),
+                           (Reference,[dummy "s"],
+                            ArrayT NoSize Tchar)]
+  helpfunc "abs" [(Value,[dummy "n"],Tint)] Tint
+  helpfunc "fabs" [(Value,[dummy "r"],Treal)] Treal
+  helpfunc "sqrt" [(Value,[dummy "r"],Treal)] Treal
+  helpfunc "sin" [(Value,[dummy "r"],Treal)] Treal
+  helpfunc "cos" [(Value,[dummy "r"],Treal)] Treal
+  helpfunc "tan" [(Value,[dummy "r"],Treal)] Treal
+  helpfunc "arctan" [(Value,[dummy "r"],Treal)] Treal
+  helpfunc "exp" [(Value,[dummy "r"],Treal)] Treal
+  helpfunc "ln" [(Value,[dummy "r"],Treal)] Treal
   helpfunc "pi" [] Treal
-  helpfunc "trunc" [(Value,["r"],Treal)] Tint
-  helpfunc "round" [(Value,["r"],Treal)] Tint
-  helpfunc "ord" [(Value,["r"],Tchar)] Tint
-  helpfunc "chr" [(Value,["r"],Tint)] Tchar
+  helpfunc "trunc" [(Value,[dummy "r"],Treal)] Tint
+  helpfunc "round" [(Value,[dummy "r"],Treal)] Tint
+  helpfunc "ord" [(Value,[dummy "r"],Tchar)] Tint
+  helpfunc "chr" [(Value,[dummy "r"],Tint)] Tchar
   return ()
+
+dummy :: String -> Id
+dummy s = Id s (0,0)
 
 --helper function to insert the predefined procedures
 --  to the symbol table
