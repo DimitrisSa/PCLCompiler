@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -w #-}
 module Parser where
-import Lexer (Token(..),alexScanTokens)
+import Lexer (AlexPosn,Token(..),alexScanTokens)
 import qualified Data.Array as Happy_Data_Array
 import qualified Data.Bits as Bits
 import Control.Applicative(Applicative(..))
@@ -1448,7 +1448,7 @@ happyReduction_1 (_ `HappyStk`
 	_ `HappyStk`
 	happyRest)
 	 = HappyAbsSyn4
-		 (P happy_var_2 happy_var_4
+		 (P ((\(a,_,_)->a) happy_var_2) happy_var_4
 	) `HappyStk` happyRest
 
 happyReduce_2 = happySpecReduce_2  5 happyReduction_2
@@ -1536,7 +1536,7 @@ happyReduction_11 (_ `HappyStk`
 happyReduce_12 = happySpecReduce_1  10 happyReduction_12
 happyReduction_12 (HappyTerminal (TId          happy_var_1))
 	 =  HappyAbsSyn10
-		 ([happy_var_1]
+		 ([((\(a,_,_)->a) happy_var_1)]
 	)
 happyReduction_12 _  = notHappyAtAll 
 
@@ -1545,7 +1545,7 @@ happyReduction_13 (HappyTerminal (TId          happy_var_3))
 	_
 	(HappyAbsSyn10  happy_var_1)
 	 =  HappyAbsSyn10
-		 (happy_var_3:happy_var_1
+		 (((\(a,_,_)->a) happy_var_3):happy_var_1
 	)
 happyReduction_13 _ _ _  = notHappyAtAll 
 
@@ -1557,7 +1557,7 @@ happyReduction_14 (_ `HappyStk`
 	_ `HappyStk`
 	happyRest)
 	 = HappyAbsSyn11
-		 (Procedure happy_var_2 happy_var_4
+		 (Procedure ((\(a,_,_)->a) happy_var_2) happy_var_4
 	) `HappyStk` happyRest
 
 happyReduce_15 = happyReduce 7 11 happyReduction_15
@@ -1570,7 +1570,7 @@ happyReduction_15 ((HappyAbsSyn16  happy_var_7) `HappyStk`
 	_ `HappyStk`
 	happyRest)
 	 = HappyAbsSyn11
-		 (Function  happy_var_2 happy_var_4 happy_var_7
+		 (Function  ((\(a,_,_)->a) happy_var_2) happy_var_4 happy_var_7
 	) `HappyStk` happyRest
 
 happyReduce_16 = happySpecReduce_0  12 happyReduction_16
@@ -1674,7 +1674,7 @@ happyReduction_30 _
 	(HappyTerminal (TIntconst    happy_var_2))
 	_
 	 =  HappyAbsSyn17
-		 (Size happy_var_2
+		 (Size ((\(a,_,_)->a) happy_var_2)
 	)
 happyReduction_30 _ _ _  = notHappyAtAll 
 
@@ -1768,7 +1768,7 @@ happyReduction_41 (HappyAbsSyn20  happy_var_3)
 	_
 	(HappyTerminal (TId          happy_var_1))
 	 =  HappyAbsSyn20
-		 (SId      happy_var_1 happy_var_3
+		 (SId      ((\(a,_,_)->a) happy_var_1) happy_var_3
 	)
 happyReduction_41 _ _ _  = notHappyAtAll 
 
@@ -1776,7 +1776,7 @@ happyReduce_42 = happySpecReduce_2  20 happyReduction_42
 happyReduction_42 (HappyTerminal (TId          happy_var_2))
 	_
 	 =  HappyAbsSyn20
-		 (SGoto    happy_var_2
+		 (SGoto    ((\(a,_,_)->a) happy_var_2)
 	)
 happyReduction_42 _ _  = notHappyAtAll 
 
@@ -1847,7 +1847,7 @@ happyReduction_51 _  = notHappyAtAll
 happyReduce_52 = happySpecReduce_1  24 happyReduction_52
 happyReduction_52 (HappyTerminal (TId          happy_var_1))
 	 =  HappyAbsSyn24
-		 (LId        happy_var_1
+		 (LId        ((\(a,_,_)->a) happy_var_1)
 	)
 happyReduction_52 _  = notHappyAtAll 
 
@@ -1860,7 +1860,7 @@ happyReduction_53 _
 happyReduce_54 = happySpecReduce_1  24 happyReduction_54
 happyReduction_54 (HappyTerminal (TStringconst happy_var_1))
 	 =  HappyAbsSyn24
-		 (LString    happy_var_1
+		 (LString    ((\(a,_,_)->a) happy_var_1)
 	)
 happyReduction_54 _  = notHappyAtAll 
 
@@ -1894,7 +1894,7 @@ happyReduction_57 _ _ _  = notHappyAtAll
 happyReduce_58 = happySpecReduce_1  25 happyReduction_58
 happyReduction_58 (HappyTerminal (TIntconst    happy_var_1))
 	 =  HappyAbsSyn25
-		 (RInt     happy_var_1
+		 (RInt     ((\(a,_,_)->a) happy_var_1)
 	)
 happyReduction_58 _  = notHappyAtAll 
 
@@ -1913,14 +1913,14 @@ happyReduction_60 _
 happyReduce_61 = happySpecReduce_1  25 happyReduction_61
 happyReduction_61 (HappyTerminal (TRealconst   happy_var_1))
 	 =  HappyAbsSyn25
-		 (RReal    happy_var_1
+		 (RReal    ((\(a,_,_)->a) happy_var_1)
 	)
 happyReduction_61 _  = notHappyAtAll 
 
 happyReduce_62 = happySpecReduce_1  25 happyReduction_62
 happyReduction_62 (HappyTerminal (TCharconst   happy_var_1))
 	 =  HappyAbsSyn25
-		 (RChar    happy_var_1
+		 (RChar    ((\(a,_,_)->a) happy_var_1)
 	)
 happyReduction_62 _  = notHappyAtAll 
 
@@ -2111,7 +2111,7 @@ happyReduction_84 (_ `HappyStk`
 	(HappyTerminal (TId          happy_var_1)) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn26
-		 (CId happy_var_1 happy_var_3
+		 (CId ((\(a,_,_)->a) happy_var_1) happy_var_3
 	) `HappyStk` happyRest
 
 happyReduce_85 = happySpecReduce_0  27 happyReduction_85
@@ -2148,64 +2148,64 @@ happyNewToken action sts stk [] =
 happyNewToken action sts stk (tk:tks) =
 	let cont i = action i i tk (HappyState action) sts stk tks in
 	case tk of {
-	TAnd -> cont 29;
-	TArray -> cont 30;
-	TBegin -> cont 31;
-	TBoolean -> cont 32;
-	TChar -> cont 33;
-	TDispose -> cont 34;
-	TDivInt -> cont 35;
-	TDo -> cont 36;
-	TElse -> cont 37;
-	TEnd -> cont 38;
-	TFalse -> cont 39;
-	TForward -> cont 40;
-	TFunction -> cont 41;
-	TGoto -> cont 42;
-	TIf -> cont 43;
-	TInteger -> cont 44;
-	TLabel -> cont 45;
-	TMod -> cont 46;
-	TNew -> cont 47;
-	TNil -> cont 48;
-	TNot -> cont 49;
-	TOf -> cont 50;
-	TOr -> cont 51;
-	TProcedure -> cont 52;
-	TProgram -> cont 53;
-	TReal -> cont 54;
-	TResult -> cont 55;
-	TReturn -> cont 56;
-	TThen -> cont 57;
-	TTrue -> cont 58;
-	TVar -> cont 59;
-	TWhile -> cont 60;
+	TAnd       happy_dollar_dollar -> cont 29;
+	TArray     happy_dollar_dollar -> cont 30;
+	TBegin     happy_dollar_dollar -> cont 31;
+	TBoolean   happy_dollar_dollar -> cont 32;
+	TChar      happy_dollar_dollar -> cont 33;
+	TDispose   happy_dollar_dollar -> cont 34;
+	TDivInt    happy_dollar_dollar -> cont 35;
+	TDo        happy_dollar_dollar -> cont 36;
+	TElse      happy_dollar_dollar -> cont 37;
+	TEnd       happy_dollar_dollar -> cont 38;
+	TFalse     happy_dollar_dollar -> cont 39;
+	TForward   happy_dollar_dollar -> cont 40;
+	TFunction  happy_dollar_dollar -> cont 41;
+	TGoto      happy_dollar_dollar -> cont 42;
+	TIf        happy_dollar_dollar -> cont 43;
+	TInteger   happy_dollar_dollar -> cont 44;
+	TLabel     happy_dollar_dollar -> cont 45;
+	TMod       happy_dollar_dollar -> cont 46;
+	TNew       happy_dollar_dollar -> cont 47;
+	TNil       happy_dollar_dollar -> cont 48;
+	TNot       happy_dollar_dollar -> cont 49;
+	TOf        happy_dollar_dollar -> cont 50;
+	TOr        happy_dollar_dollar -> cont 51;
+	TProcedure happy_dollar_dollar -> cont 52;
+	TProgram   happy_dollar_dollar -> cont 53;
+	TReal      happy_dollar_dollar -> cont 54;
+	TResult    happy_dollar_dollar -> cont 55;
+	TReturn    happy_dollar_dollar -> cont 56;
+	TThen      happy_dollar_dollar -> cont 57;
+	TTrue      happy_dollar_dollar -> cont 58;
+	TVar       happy_dollar_dollar -> cont 59;
+	TWhile     happy_dollar_dollar -> cont 60;
 	TId          happy_dollar_dollar -> cont 61;
 	TIntconst    happy_dollar_dollar -> cont 62;
 	TRealconst   happy_dollar_dollar -> cont 63;
 	TCharconst   happy_dollar_dollar -> cont 64;
 	TStringconst happy_dollar_dollar -> cont 65;
-	TLogiceq -> cont 66;
-	TGreater -> cont 67;
-	TSmaller -> cont 68;
-	TDifferent -> cont 69;
-	TGreaterequal -> cont 70;
-	TSmallerequal -> cont 71;
-	TAdd -> cont 72;
-	TMinus -> cont 73;
-	TMul -> cont 74;
-	TDivReal -> cont 75;
-	TPointer -> cont 76;
-	TAdress -> cont 77;
-	TEq -> cont 78;
-	TSeperator -> cont 79;
-	TDot -> cont 80;
-	TLeftparen -> cont 81;
-	TRightparen -> cont 82;
-	TUpdown -> cont 83;
-	TComma -> cont 84;
-	TLeftbracket -> cont 85;
-	TRightbracket -> cont 86;
+	TLogiceq      happy_dollar_dollar -> cont 66;
+	TGreater      happy_dollar_dollar -> cont 67;
+	TSmaller      happy_dollar_dollar -> cont 68;
+	TDifferent    happy_dollar_dollar -> cont 69;
+	TGreaterequal happy_dollar_dollar -> cont 70;
+	TSmallerequal happy_dollar_dollar -> cont 71;
+	TAdd          happy_dollar_dollar -> cont 72;
+	TMinus        happy_dollar_dollar -> cont 73;
+	TMul          happy_dollar_dollar -> cont 74;
+	TDivReal      happy_dollar_dollar -> cont 75;
+	TPointer      happy_dollar_dollar -> cont 76;
+	TAdress       happy_dollar_dollar -> cont 77;
+	TEq           happy_dollar_dollar -> cont 78;
+	TSeperator    happy_dollar_dollar -> cont 79;
+	TDot          happy_dollar_dollar -> cont 80;
+	TLeftparen    happy_dollar_dollar -> cont 81;
+	TRightparen   happy_dollar_dollar -> cont 82;
+	TUpdown       happy_dollar_dollar -> cont 83;
+	TComma        happy_dollar_dollar -> cont 84;
+	TLeftbracket  happy_dollar_dollar -> cont 85;
+	TRightbracket happy_dollar_dollar -> cont 86;
 	_ -> happyError' ((tk:tks), [])
 	}
 

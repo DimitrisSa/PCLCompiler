@@ -89,7 +89,7 @@ import Array
 
 
 {-# LINE 9 "<command-line>" #-}
-{-# LINE 1 "/tmp/ghc551d_0/ghc_2.h" #-}
+{-# LINE 1 "/tmp/ghc5f56_0/ghc_2.h" #-}
 
 
 
@@ -311,7 +311,25 @@ type Byte = Word8
 -- -----------------------------------------------------------------------------
 -- The input type
 
-{-# LINE 79 "templates/wrappers.hs" #-}
+
+type AlexInput = (AlexPosn,     -- current position,
+                  Char,         -- previous char
+                  [Byte],       -- pending bytes on current char
+                  String)       -- current input string
+
+ignorePendingBytes :: AlexInput -> AlexInput
+ignorePendingBytes (p,c,_ps,s) = (p,c,[],s)
+
+alexInputPrevChar :: AlexInput -> Char
+alexInputPrevChar (_p,c,_bs,_s) = c
+
+alexGetByte :: AlexInput -> Maybe (Byte,AlexInput)
+alexGetByte (p,c,(b:bs),s) = Just (b,(p,c,bs,s))
+alexGetByte (_,_,[],[]) = Nothing
+alexGetByte (p,_,[],(c:s))  = let p' = alexMove p c
+                                  (b:bs) = utf8Encode c
+                              in p' `seq`  Just (b, (p', c, bs, s))
+
 
 {-# LINE 102 "templates/wrappers.hs" #-}
 
@@ -329,7 +347,18 @@ type Byte = Word8
 -- `move_pos' calculates the new position after traversing a given character,
 -- assuming the usual eight character tab stops.
 
-{-# LINE 161 "templates/wrappers.hs" #-}
+
+data AlexPosn = AlexPn !Int !Int !Int
+        deriving (Eq,Show)
+
+alexStartPos :: AlexPosn
+alexStartPos = AlexPn 0 1 1
+
+alexMove :: AlexPosn -> Char -> AlexPosn
+alexMove (AlexPn a l c) '\t' = AlexPn (a+1)  l     (((c+alex_tab_size-1) `div` alex_tab_size)*alex_tab_size+1)
+alexMove (AlexPn a l _) '\n' = AlexPn (a+1) (l+1)   1
+alexMove (AlexPn a l c) _    = AlexPn (a+1)  l     (c+1)
+
 
 -- -----------------------------------------------------------------------------
 -- Default monad
@@ -346,28 +375,7 @@ type Byte = Word8
 -- -----------------------------------------------------------------------------
 -- Basic wrapper
 
-
-type AlexInput = (Char,[Byte],String)
-
-alexInputPrevChar :: AlexInput -> Char
-alexInputPrevChar (c,_,_) = c
-
--- alexScanTokens :: String -> [token]
-alexScanTokens str = go ('\n',[],str)
-  where go inp__@(_,_bs,s) =
-          case alexScan inp__ 0 of
-                AlexEOF -> []
-                AlexError _ -> error "lexical error"
-                AlexSkip  inp__' _ln     -> go inp__'
-                AlexToken inp__' len act -> act (take len s) : go inp__'
-
-alexGetByte :: AlexInput -> Maybe (Byte,AlexInput)
-alexGetByte (c,(b:bs),s) = Just (b,(c,bs,s))
-alexGetByte (_,[],[])    = Nothing
-alexGetByte (_,[],(c:s)) = case utf8Encode c of
-                             (b:bs) -> Just (b, (c, bs, s))
-                             [] -> Nothing
-
+{-# LINE 406 "templates/wrappers.hs" #-}
 
 
 -- -----------------------------------------------------------------------------
@@ -383,7 +391,16 @@ alexGetByte (_,[],(c:s)) = case utf8Encode c of
 
 -- Adds text positions to the basic model.
 
-{-# LINE 457 "templates/wrappers.hs" #-}
+
+--alexScanTokens :: String -> [token]
+alexScanTokens str0 = go (alexStartPos,'\n',[],str0)
+  where go inp__@(pos,_,_,str) =
+          case alexScan inp__ 0 of
+                AlexEOF -> []
+                AlexError ((AlexPn _ line column),_,_,_) -> error $ "lexical error at line " ++ (show line) ++ ", column " ++ (show column)
+                AlexSkip  inp__' _ln     -> go inp__'
+                AlexToken inp__' len act -> act pos (take len str) : go inp__'
+
 
 
 -- -----------------------------------------------------------------------------
@@ -21658,124 +21675,130 @@ alex_actions = array (0 :: Int, 152)
 {-# LINE 90 "1LexerParser/lexer.x" #-}
 
 data Token =
-  TAnd                 |
-  TArray               |
-  TBegin               |
-  TBoolean             |
-  TChar                |
-  TDispose             |
-  TDivInt              |
-  TDo                  |
-  TElse                |
-  TEnd                 |
-  TFalse               |
-  TForward             |
-  TFunction            |
-  TGoto                |
-  TIf                  |
-  TInteger             |
-  TLabel               |
-  TMod                 |
-  TNew                 |
-  TNil                 |
-  TNot                 |
-  TOf                  |
-  TOr                  |
-  TProcedure           |
-  TProgram             |
-  TReal                |
-  TResult              |
-  TReturn              |
-  TThen                |
-  TTrue                |
-  TVar                 |
-  TWhile               |
-  TId String           |
-  TIntconst    Int    |
-  TRealconst   Double |
-  TCharconst   Char   |
-  TStringconst String |
-  TLogiceq             |
-  TGreater             |
-  TSmaller             |
-  TDifferent           |
-  TGreaterequal        |
-  TSmallerequal        |
-  TAdd                 |
-  TMinus               |
-  TMul                 |
-  TDivReal             |
-  TPointer             |
-  TAdress              |
-  TEq                  |
-  TSeperator           |
-  TDot                 |
-  TLeftparen           |
-  TRightparen          |
-  TUpdown              |
-  TComma               |
-  TLeftbracket         |
-  TRightbracket        
+  TAnd                (Int,Int) |
+  TArray              (Int,Int) |
+  TBegin              (Int,Int) |
+  TBoolean            (Int,Int) |
+  TChar               (Int,Int) |
+  TDispose            (Int,Int) |
+  TDivInt             (Int,Int) |
+  TDo                 (Int,Int) |
+  TElse               (Int,Int) |
+  TEnd                (Int,Int) |
+  TFalse              (Int,Int) |
+  TForward            (Int,Int) |
+  TFunction           (Int,Int) |
+  TGoto               (Int,Int) |
+  TIf                 (Int,Int) |
+  TInteger            (Int,Int) |
+  TLabel              (Int,Int) |
+  TMod                (Int,Int) |
+  TNew                (Int,Int) |
+  TNil                (Int,Int) |
+  TNot                (Int,Int) |
+  TOf                 (Int,Int) |
+  TOr                 (Int,Int) |
+  TProcedure          (Int,Int) |
+  TProgram            (Int,Int) |
+  TReal               (Int,Int) |
+  TResult             (Int,Int) |
+  TReturn             (Int,Int) |
+  TThen               (Int,Int) |
+  TTrue               (Int,Int) |
+  TVar                (Int,Int) |
+  TWhile              (Int,Int) |
+  TId          (String,Int,Int) |
+  TIntconst    (Int   ,Int,Int) |
+  TRealconst   (Double,Int,Int) |
+  TCharconst   (Char  ,Int,Int) |
+  TStringconst (String,Int,Int) |
+  TLogiceq            (Int,Int) |
+  TGreater            (Int,Int) |
+  TSmaller            (Int,Int) |
+  TDifferent          (Int,Int) |
+  TGreaterequal       (Int,Int) |
+  TSmallerequal       (Int,Int) |
+  TAdd                (Int,Int) |
+  TMinus              (Int,Int) |
+  TMul                (Int,Int) |
+  TDivReal            (Int,Int) |
+  TPointer            (Int,Int) |
+  TAdress             (Int,Int) |
+  TEq                 (Int,Int) |
+  TSeperator          (Int,Int) |
+  TDot                (Int,Int) |
+  TLeftparen          (Int,Int) |
+  TRightparen         (Int,Int) |
+  TUpdown             (Int,Int) |
+  TComma              (Int,Int) |
+  TLeftbracket        (Int,Int) |
+  TRightbracket       (Int,Int) 
   deriving (Eq,Show)
 
-alex_action_1 =  \s -> TAnd                   
-alex_action_2 =  \s -> TArray                 
-alex_action_3 =  \s -> TBegin                 
-alex_action_4 =  \s -> TBoolean               
-alex_action_5 =  \s -> TChar                  
-alex_action_6 =  \s -> TDispose               
-alex_action_7 =  \s -> TDivInt                
-alex_action_8 =  \s -> TDo                    
-alex_action_9 =  \s -> TElse                  
-alex_action_10 =  \s -> TEnd                   
-alex_action_11 =  \s -> TFalse                 
-alex_action_12 =  \s -> TForward               
-alex_action_13 =  \s -> TFunction              
-alex_action_14 =  \s -> TGoto                  
-alex_action_15 =  \s -> TIf                    
-alex_action_16 =  \s -> TInteger               
-alex_action_17 =  \s -> TLabel                 
-alex_action_18 =  \s -> TMod                   
-alex_action_19 =  \s -> TNew                   
-alex_action_20 =  \s -> TNil                   
-alex_action_21 =  \s -> TNot                   
-alex_action_22 =  \s -> TOf                    
-alex_action_23 =  \s -> TOr                    
-alex_action_24 =  \s -> TProcedure             
-alex_action_25 =  \s -> TProgram               
-alex_action_26 =  \s -> TReal                  
-alex_action_27 =  \s -> TResult                
-alex_action_28 =  \s -> TReturn                
-alex_action_29 =  \s -> TThen                  
-alex_action_30 =  \s -> TTrue                  
-alex_action_31 =  \s -> TVar                   
-alex_action_32 =  \s -> TWhile                 
-alex_action_33 =  \s -> TId s                  
-alex_action_34 =  \s -> TIntconst    (read s) 
-alex_action_35 =  \s -> TRealconst   (read s) 
-alex_action_37 =  \s -> TCharconst   (read s) 
-alex_action_38 =  \s -> TStringconst (read s) 
-alex_action_39 =  \s -> TLogiceq               
-alex_action_40 =  \s -> TGreater               
-alex_action_41 =  \s -> TSmaller               
-alex_action_42 =  \s -> TDifferent             
-alex_action_43 =  \s -> TGreaterequal          
-alex_action_44 =  \s -> TSmallerequal          
-alex_action_45 =  \s -> TAdd                   
-alex_action_46 =  \s -> TMinus                 
-alex_action_47 =  \s -> TMul                   
-alex_action_48 =  \s -> TDivReal               
-alex_action_49 =  \s -> TPointer               
-alex_action_50 =  \s -> TAdress                
-alex_action_51 =  \s -> TEq                    
-alex_action_52 =  \s -> TSeperator             
-alex_action_53 =  \s -> TDot                   
-alex_action_54 =  \s -> TLeftparen             
-alex_action_55 =  \s -> TRightparen            
-alex_action_56 =  \s -> TUpdown                
-alex_action_57 =  \s -> TComma                 
-alex_action_58 =  \s -> TLeftbracket           
-alex_action_59 =  \s -> TRightbracket          
+posnLC :: AlexPosn -> (Int,Int)
+posnLC (AlexPn _ l c) = (l,c)
+
+posnALC :: a -> AlexPosn -> (a,Int,Int)
+posnALC a (AlexPn _ l c) = (a,l,c)
+
+alex_action_1 =  \p s -> TAnd        $ posnLC  p 
+alex_action_2 =  \p s -> TArray      $ posnLC  p 
+alex_action_3 =  \p s -> TBegin      $ posnLC  p 
+alex_action_4 =  \p s -> TBoolean    $ posnLC  p 
+alex_action_5 =  \p s -> TChar       $ posnLC  p 
+alex_action_6 =  \p s -> TDispose    $ posnLC  p 
+alex_action_7 =  \p s -> TDivInt     $ posnLC  p 
+alex_action_8 =  \p s -> TDo         $ posnLC  p 
+alex_action_9 =  \p s -> TElse       $ posnLC  p 
+alex_action_10 =  \p s -> TEnd        $ posnLC  p 
+alex_action_11 =  \p s -> TFalse      $ posnLC  p 
+alex_action_12 =  \p s -> TForward    $ posnLC  p 
+alex_action_13 =  \p s -> TFunction   $ posnLC  p 
+alex_action_14 =  \p s -> TGoto       $ posnLC  p 
+alex_action_15 =  \p s -> TIf         $ posnLC  p 
+alex_action_16 =  \p s -> TInteger    $ posnLC  p 
+alex_action_17 =  \p s -> TLabel      $ posnLC  p 
+alex_action_18 =  \p s -> TMod        $ posnLC  p 
+alex_action_19 =  \p s -> TNew        $ posnLC  p 
+alex_action_20 =  \p s -> TNil        $ posnLC  p 
+alex_action_21 =  \p s -> TNot        $ posnLC  p 
+alex_action_22 =  \p s -> TOf         $ posnLC  p 
+alex_action_23 =  \p s -> TOr         $ posnLC  p 
+alex_action_24 =  \p s -> TProcedure  $ posnLC  p 
+alex_action_25 =  \p s -> TProgram    $ posnLC  p 
+alex_action_26 =  \p s -> TReal       $ posnLC  p 
+alex_action_27 =  \p s -> TResult     $ posnLC  p 
+alex_action_28 =  \p s -> TReturn     $ posnLC  p 
+alex_action_29 =  \p s -> TThen       $ posnLC  p 
+alex_action_30 =  \p s -> TTrue       $ posnLC  p 
+alex_action_31 =  \p s -> TVar        $ posnLC  p 
+alex_action_32 =  \p s -> TWhile      $ posnLC  p 
+alex_action_33 =  \p s -> TId        $ posnALC s p 
+alex_action_34 =  \p s -> TIntconst    $ posnALC (read s) p 
+alex_action_35 =  \p s -> TRealconst   $ posnALC (read s) p 
+alex_action_37 =  \p s -> TCharconst   $ posnALC (read s) p 
+alex_action_38 =  \p s -> TStringconst $ posnALC (read s) p 
+alex_action_39 =  \p s -> TLogiceq      $ posnLC p 
+alex_action_40 =  \p s -> TGreater      $ posnLC p 
+alex_action_41 =  \p s -> TSmaller      $ posnLC p 
+alex_action_42 =  \p s -> TDifferent    $ posnLC p 
+alex_action_43 =  \p s -> TGreaterequal $ posnLC p 
+alex_action_44 =  \p s -> TSmallerequal $ posnLC p 
+alex_action_45 =  \p s -> TAdd          $ posnLC p 
+alex_action_46 =  \p s -> TMinus        $ posnLC p 
+alex_action_47 =  \p s -> TMul          $ posnLC p 
+alex_action_48 =  \p s -> TDivReal      $ posnLC p 
+alex_action_49 =  \p s -> TPointer      $ posnLC p 
+alex_action_50 =  \p s -> TAdress       $ posnLC p 
+alex_action_51 =  \p s -> TEq           $ posnLC p 
+alex_action_52 =  \p s -> TSeperator    $ posnLC p 
+alex_action_53 =  \p s -> TDot          $ posnLC p 
+alex_action_54 =  \p s -> TLeftparen    $ posnLC p 
+alex_action_55 =  \p s -> TRightparen   $ posnLC p 
+alex_action_56 =  \p s -> TUpdown       $ posnLC p 
+alex_action_57 =  \p s -> TComma        $ posnLC p 
+alex_action_58 =  \p s -> TLeftbracket  $ posnLC p 
+alex_action_59 =  \p s -> TRightbracket $ posnLC p 
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}
