@@ -6,6 +6,10 @@ import System.IO
 import System.Exit
 import qualified Data.Map as M
 
+-- new/dispose
+-- checkbool
+-- sequal
+
 data Callable =
   Proc Args          |
   Func Args Type     |
@@ -276,7 +280,8 @@ myinsert ((v,t):xs) = do
     Nothing -> if checkFullType t then 
                  put ((M.insert v t vm,lm,fm,nm):sms) >>
                  myinsert xs
-               else left "Can't use 'array of' in local vars"
+               else left $ "Can't use 'array of' at: "
+                           ++ idv ++ errorend li co
 myinsert [] = return ()
 
 fblock :: Stmts -> Semantics ()
