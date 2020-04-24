@@ -10,14 +10,14 @@ function ok():real;
 var f : integer;
 begin
   result := f; 
-  oko(ok,t);
 end;
-(*procedure oko(var ok: real; a: integer);
-begin end;*)
+procedure oko(var ok: real; a: integer);
+begin end;
 begin
   begin
   new [42] x;
   new y;
   dispose [] x;
   end;
+  ok := @t^ div 1;
 end.

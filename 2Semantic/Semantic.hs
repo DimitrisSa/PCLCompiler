@@ -445,56 +445,56 @@ totypel = \case
     _          -> left pointErr
   LParen lValue          -> totypel lValue
 
-checkposneg :: Expr -> String -> Semantics Type
-checkposneg expr a = totype expr >>= \case
+checkposneg :: (Int,Int) -> Expr -> String -> Semantics Type
+checkposneg (li,co) expr a = totype expr >>= \case
     Tint  -> right Tint
     Treal -> right Treal
-    _     -> left $ "non-number expression after " ++ a
+    _     -> left $ "non-number expression after " ++ a ++ errorend li co
 
-checkarithmetic :: Expr -> Expr -> String -> Semantics Type
-checkarithmetic exp1 exp2 a = totype exp1 >>= \case
+checkarithmetic :: (Int,Int) -> Expr -> Expr -> String -> Semantics Type
+checkarithmetic (li,co) exp1 exp2 a = totype exp1 >>= \case
   Tint  -> totype exp2 >>= \case
     Tint  -> right Tint
     Treal -> right Treal
-    _     -> left $ "non-number expression after "++a
+    _     -> left $ "non-number expression after "++a ++ errorend li co
   Treal -> totype exp2 >>= \case
     Treal -> right Treal
     Tint  -> right Treal
-    _     -> left $ "non-number expression after "++a
-  _     -> left $ "non-number expression before "++a
+    _     -> left $ "non-number expression after "++a ++ errorend li co
+  _     -> left $ "non-number expression before "++a ++ errorend li co
 
-checkinthmetic :: Expr -> Expr -> String -> Semantics Type
-checkinthmetic exp1 exp2 a = totype exp1 >>= \case
+checkinthmetic :: (Int,Int) -> Expr -> Expr -> String -> Semantics Type
+checkinthmetic (li,co) exp1 exp2 a = totype exp1 >>= \case
   Tint  -> totype exp2 >>= \case
     Tint  -> right Tint
-    _     -> left $ "non-integer expression after "++a
-  _     -> left $ "non-integer expression before "++a
+    _     -> left $ "non-integer expression after "++a ++ errorend li co
+  _     -> left $ "non-integer expression before "++a ++ errorend li co
 
-checklogic :: Expr -> Expr -> String -> Semantics Type
-checklogic exp1 exp2 a = totype exp1 >>= \case
+checklogic :: (Int,Int) -> Expr -> Expr -> String -> Semantics Type
+checklogic (li,co) exp1 exp2 a = totype exp1 >>= \case
     Tbool  -> totype exp2 >>= \case
       Tbool  -> right Tbool
-      _     -> left $ "non-boolean expression after "++a
-    _     -> left $ "non-boolean expression before "++a
+      _     -> left $ "non-boolean expression after " ++ a ++ errorend li co
+    _     -> left $ "non-boolean expression before " ++ a ++ errorend li co
 
-checkcompare :: Expr -> Expr -> String -> Semantics Type
-checkcompare exp1 exp2 a = totype exp1 >>= \case
-  Tint  -> arithmeticbool exp2 ("mismatched types at "++a)
+checkcompare :: (Int,Int) -> Expr -> Expr -> String -> Semantics Type
+checkcompare (li,co) exp1 exp2 a = totype exp1 >>= \case
+  Tint  -> arithmeticbool exp2 ("mismatched types at "++a ++ errorend li co)
                           (right Tbool)
-  Treal -> arithmeticbool exp2 ("mismatched types at "++a)
+  Treal -> arithmeticbool exp2 ("mismatched types at "++a ++ errorend li co)
                           (right Tbool)
   Tbool -> totype exp2 >>= \case
     Tbool  -> right Tbool
-    _      -> left $ "mismatched types at "++a
+    _      -> left $ "mismatched types at "++a ++ errorend li co
   Tchar -> totype exp2 >>= \case
     Tchar  -> right Tbool
-    _      -> left $ "mismatched types at "++a
-  PointerT _ -> pointersbool exp2 ("mismatched types at "++a)
-  Tnil       -> pointersbool exp2 ("mismatched types at "++a)
-  _     -> left $ "mismatched types at "++a
+    _      -> left $ "mismatched types at "++a ++ errorend li co
+  PointerT _ -> pointersbool exp2 ("mismatched types at "++a ++ errorend li co)
+  Tnil       -> pointersbool exp2 ("mismatched types at "++a ++ errorend li co)
+  _     -> left $ "mismatched types at "++a ++ errorend li co
 
-checknumcomp :: Expr -> Expr -> String -> Semantics Type
-checknumcomp exp1 exp2 a =
+checknumcomp :: (Int,Int) -> Expr -> Expr -> String -> Semantics Type
+checknumcomp (li,co) exp1 exp2 a =
   arithmeticbool exp1 ("non-number expression before " ++ a)
   (arithmeticbool exp2 ("non-number expression after " ++ a)
                   (right Tbool))
@@ -533,29 +533,30 @@ totyper = \case
     case searchCallSMs id sms of
       Just t  -> funCallSem id t $ reverse exprs
       Nothing -> left $ callErr ++ idv ++ errorend li co
-  RPapaki  lValue     -> totypel lValue >>= right . PointerT
-  RNot     expr       -> totype expr >>= \case
+  RPapaki  posn lValue     -> totypel lValue >>= 
+                              right . PointerT
+  RNot     posn expr       -> totype expr >>= \case
     Tbool -> right Tbool
     _     -> left "non-boolean expression after not"
-  RPos     expr       -> checkposneg expr "'+'"
-  RNeg     expr       -> checkposneg expr "'-'"
-  RPlus    exp1 exp2  -> checkarithmetic exp1 exp2 "'+'"
-  RMul     exp1 exp2  -> checkarithmetic exp1 exp2 "'*'"
-  RMinus   exp1 exp2  -> checkarithmetic exp1 exp2 "'-'"
-  RRealDiv exp1 exp2  ->
-    arithmeticbool exp1 ("non-number expression before '/'")
-    (arithmeticbool exp2 ("non-number expression after '/'")
-                    (right Treal))
-  RDiv     exp1 exp2  -> checkinthmetic exp1 exp2 "'div'"
-  RMod     exp1 exp2  -> checkinthmetic exp1 exp2 "'mod'"
-  ROr      exp1 exp2  -> checklogic exp1 exp2 "'or'"
-  RAnd     exp1 exp2  -> checklogic exp1 exp2 "'and'"
-  REq      exp1 exp2  -> checkcompare exp1 exp2 "'='"
-  RDiff    exp1 exp2  -> checkcompare exp1 exp2 "'<>'"
-  RLess    exp1 exp2  -> checknumcomp exp1 exp2 "'<'"
-  RGreater exp1 exp2  -> checknumcomp exp1 exp2 "'>'"
-  RGreq    exp1 exp2  -> checknumcomp exp1 exp2 "'>='"
-  RSmeq    exp1 exp2  -> checknumcomp exp1 exp2 "'<='"
+  RPos     posn expr       -> checkposneg posn expr "'+'"
+  RNeg     posn expr       -> checkposneg posn expr "'-'"
+  RPlus    posn exp1 exp2  -> checkarithmetic posn exp1 exp2 "'+'"
+  RMul     posn exp1 exp2  -> checkarithmetic posn exp1 exp2 "'*'"
+  RMinus   posn exp1 exp2  -> checkarithmetic posn exp1 exp2 "'-'"
+  RRealDiv (li,co) exp1 exp2  ->
+    arithmeticbool exp1 ("non-number expression before '/'" ++ errorend li co)
+    (arithmeticbool exp2 ("non-number expression after '/'" ++ errorend li co)
+                     (right Treal))
+  RDiv     posn exp1 exp2  -> checkinthmetic posn exp1 exp2 "'div'"
+  RMod     posn exp1 exp2  -> checkinthmetic posn exp1 exp2 "'mod'"
+  ROr      posn exp1 exp2  -> checklogic   posn exp1 exp2 "'or'"
+  RAnd     posn exp1 exp2  -> checklogic   posn exp1 exp2 "'and'"
+  REq      posn exp1 exp2  -> checkcompare posn exp1 exp2 "'='"
+  RDiff    posn exp1 exp2  -> checkcompare posn exp1 exp2 "'<>'"
+  RLess    posn exp1 exp2  -> checknumcomp posn exp1 exp2 "'<'"
+  RGreater posn exp1 exp2  -> checknumcomp posn exp1 exp2 "'>'"
+  RGreq    posn exp1 exp2  -> checknumcomp posn exp1 exp2 "'>='"
+  RSmeq    posn exp1 exp2  -> checknumcomp posn exp1 exp2 "'<='"
 
 funCallSem :: Id -> Callable -> Exprs -> Semantics Type
 funCallSem id = \case

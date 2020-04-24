@@ -12,64 +12,64 @@ import Data.Either
 %lexer { lexwrap } { Eof }
 
 %token 
-    and                 { TAnd          posn       }
-    array               { TArray        posn       }
-    begin               { TBegin        posn       }
-    boolean             { TBoolean      posn       }
-    char                { TChar         posn       }
-    dispose             { TDispose      posn       }
-    div                 { TDivInt       posn       }
-    do                  { TDo           posn       }
-    else                { TElse         posn       }
-    end                 { TEnd          posn       }
-    false               { TFalse        posn       }
-    forward             { TForward      posn       }
-    function            { TFunction     posn       }
-    goto                { TGoto         posn       }
-    if                  { TIf           posn       }
-    integer             { TInteger      posn       }
-    label               { TLabel        posn       }
-    mod                 { TMod          posn       }
-    new                 { TNew          posn       }
-    nil                 { TNil          posn       }
-    not                 { TNot          posn       }
-    of                  { TOf           posn       }
-    or                  { TOr           posn       }
-    procedure           { TProcedure    posn       }
-    program             { TProgram      posn       }
-    real                { TReal         posn       }
-    result              { TResult       posn       }
-    return              { TReturn       posn       }
-    then                { TThen         posn       }
-    true                { TTrue         posn       }
-    var                 { TVar          posn       }
-    while               { TWhile        posn       }
+    and                 { TAnd          $$       }
+    array               { TArray        $$       }
+    begin               { TBegin        $$       }
+    boolean             { TBoolean      $$       }
+    char                { TChar         $$       }
+    dispose             { TDispose      $$       }
+    div                 { TDivInt       $$       }
+    do                  { TDo           $$       }
+    else                { TElse         $$       }
+    end                 { TEnd          $$       }
+    false               { TFalse        $$       }
+    forward             { TForward      $$       }
+    function            { TFunction     $$       }
+    goto                { TGoto         $$       }
+    if                  { TIf           $$       }
+    integer             { TInteger      $$       }
+    label               { TLabel        $$       }
+    mod                 { TMod          $$       }
+    new                 { TNew          $$       }
+    nil                 { TNil          $$       }
+    not                 { TNot          $$       }
+    of                  { TOf           $$       }
+    or                  { TOr           $$       }
+    procedure           { TProcedure    $$       }
+    program             { TProgram      $$       }
+    real                { TReal         $$       }
+    result              { TResult       $$       }
+    return              { TReturn       $$       }
+    then                { TThen         $$       }
+    true                { TTrue         $$       }
+    var                 { TVar          $$       }
+    while               { TWhile        $$       }
     id                  { TId           value posn }
     intconst            { TIntconst     value posn }
     realconst           { TRealconst    value posn }
     charconst           { TCharconst    value posn }
     stringconst         { TStringconst  value posn }
-    '='                 { TLogiceq      posn       }
-    '>'                 { TGreater      posn       }
-    '<'                 { TSmaller      posn       }
-    diff                { TDifferent    posn       }
-    greq                { TGreaterequal posn       }
-    smeq                { TSmallerequal posn       }
-    '+'                 { TAdd          posn       }
-    '-'                 { TMinus        posn       }
-    '*'                 { TMul          posn       }
-    '/'                 { TDivReal      posn       }
-    '^'                 { TPointer      posn       }
-    '@'                 { TAdress       posn       }
-    equal               { TEq           posn       }
-    ';'                 { TSeperator    posn       }
-    '.'                 { TDot          posn       }
-    '('                 { TLeftparen    posn       }
-    ')'                 { TRightparen   posn       }
-    ':'                 { TUpdown       posn       }
-    ','                 { TComma        posn       }
-    '['                 { TLeftbracket  posn       }
-    ']'                 { TRightbracket posn       }
+    '='                 { TLogiceq      $$       }
+    '>'                 { TGreater      $$       }
+    '<'                 { TSmaller      $$       }
+    diff                { TDifferent    $$       }
+    greq                { TGreaterequal $$       }
+    smeq                { TSmallerequal $$       }
+    '+'                 { TAdd          $$       }
+    '-'                 { TMinus        $$       }
+    '*'                 { TMul          $$       }
+    '/'                 { TDivReal      $$       }
+    '^'                 { TPointer      $$       }
+    '@'                 { TAdress       $$       }
+    equal               { TEq           $$       }
+    ';'                 { TSeperator    $$       }
+    '.'                 { TDot          $$       }
+    '('                 { TLeftparen    $$       }
+    ')'                 { TRightparen   $$       }
+    ':'                 { TUpdown       $$       }
+    ','                 { TComma        $$       }
+    '['                 { TLeftbracket  $$       }
+    ']'                 { TRightbracket $$       }
 
 %left RExpr
 %left LExpr
@@ -190,24 +190,24 @@ RValue     :: { RValue }
            | '(' RValue ')'                     { RParen   $2 }
            | nil                                { RNil        }
            | Call                               { RCall    $1 }
-           | '@' LValue                         { RPapaki  $2 }
-           | not  Expr                          { RNot     $2 }
-           | '+'  Expr %prec POS                { RPos     $2 }
-           | '-'  Expr %prec NEG                { RNeg     $2 }
-           | Expr '+'  Expr                     { RPlus    $1 $3 }
-           | Expr '*'  Expr                     { RMul     $1 $3 }
-           | Expr '-'  Expr                     { RMinus   $1 $3 }
-           | Expr '/'  Expr                     { RRealDiv $1 $3 }
-           | Expr div  Expr                     { RDiv     $1 $3 }
-           | Expr mod  Expr                     { RMod     $1 $3 }
-           | Expr or   Expr                     { ROr      $1 $3 }
-           | Expr and  Expr                     { RAnd     $1 $3 }
-           | Expr '='  Expr                     { REq      $1 $3 }
-           | Expr diff Expr                     { RDiff    $1 $3 }
-           | Expr '<'  Expr                     { RLess    $1 $3 }
-           | Expr '>'  Expr                     { RGreater $1 $3 }
-           | Expr greq Expr                     { RGreq    $1 $3 }
-           | Expr smeq Expr                     { RSmeq    $1 $3 }
+           | '@' LValue                         { RPapaki  (posnToIntInt $1) $2 }
+           | not  Expr                          { RNot     (posnToIntInt $1) $2 }
+           | '+'  Expr %prec POS                { RPos     (posnToIntInt $1) $2 }
+           | '-'  Expr %prec NEG                { RNeg     (posnToIntInt $1) $2 }
+           | Expr '+'  Expr                     { RPlus    (posnToIntInt $2) $1 $3 }
+           | Expr '*'  Expr                     { RMul     (posnToIntInt $2) $1 $3 }
+           | Expr '-'  Expr                     { RMinus   (posnToIntInt $2) $1 $3 }
+           | Expr '/'  Expr                     { RRealDiv (posnToIntInt $2) $1 $3 }
+           | Expr div  Expr                     { RDiv     (posnToIntInt $2) $1 $3 }
+           | Expr mod  Expr                     { RMod     (posnToIntInt $2) $1 $3 }
+           | Expr or   Expr                     { ROr      (posnToIntInt $2) $1 $3 }
+           | Expr and  Expr                     { RAnd     (posnToIntInt $2) $1 $3 }
+           | Expr '='  Expr                     { REq      (posnToIntInt $2) $1 $3 }
+           | Expr diff Expr                     { RDiff    (posnToIntInt $2) $1 $3 }
+           | Expr '<'  Expr                     { RLess    (posnToIntInt $2) $1 $3 }
+           | Expr '>'  Expr                     { RGreater (posnToIntInt $2) $1 $3 }
+           | Expr greq Expr                     { RGreq    (posnToIntInt $2) $1 $3 }
+           | Expr smeq Expr                     { RSmeq    (posnToIntInt $2) $1 $3 }
 
 Call       :: { Call }      
            : id '(' ArgExprs ')'                { CId (tokenToId $1)  $3 }
@@ -345,24 +345,24 @@ data RValue =
   RParen RValue      |
   RNil               |
   RCall    Call      |
-  RPapaki  LValue    |
-  RNot     Expr      |
-  RPos     Expr      |
-  RNeg     Expr      |
-  RPlus    Expr Expr |
-  RMul     Expr Expr |
-  RMinus   Expr Expr |
-  RRealDiv Expr Expr |
-  RDiv     Expr Expr |
-  RMod     Expr Expr |
-  ROr      Expr Expr |
-  RAnd     Expr Expr |
-  REq      Expr Expr |
-  RDiff    Expr Expr |
-  RLess    Expr Expr |
-  RGreater Expr Expr |
-  RGreq    Expr Expr |
-  RSmeq    Expr Expr
+  RPapaki  (Int,Int) LValue    |
+  RNot     (Int,Int) Expr      |
+  RPos     (Int,Int) Expr      |
+  RNeg     (Int,Int) Expr      |
+  RPlus    (Int,Int) Expr Expr |
+  RMul     (Int,Int) Expr Expr |
+  RMinus   (Int,Int) Expr Expr |
+  RRealDiv (Int,Int) Expr Expr |
+  RDiv     (Int,Int) Expr Expr |
+  RMod     (Int,Int) Expr Expr |
+  ROr      (Int,Int) Expr Expr |
+  RAnd     (Int,Int) Expr Expr |
+  REq      (Int,Int) Expr Expr |
+  RDiff    (Int,Int) Expr Expr |
+  RLess    (Int,Int) Expr Expr |
+  RGreater (Int,Int) Expr Expr |
+  RGreq    (Int,Int) Expr Expr |
+  RSmeq    (Int,Int) Expr Expr
   deriving(Show,Eq,Ord)
 
 data Call =
@@ -376,5 +376,8 @@ tokenToId :: Token -> Id
 tokenToId = \case
   TId id (AlexPn _ l c) -> Id id (l,c)
   _   -> error "Shouldn't happen, not id token"
+
+posnToIntInt :: AlexPosn -> (Int,Int)
+posnToIntInt (AlexPn _ l c) = (l,c)
 
 }

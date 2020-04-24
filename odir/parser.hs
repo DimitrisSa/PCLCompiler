@@ -1950,159 +1950,159 @@ happyReduction_65 _  = notHappyAtAll
 
 happyReduce_66 = happySpecReduce_2  25 happyReduction_66
 happyReduction_66 (HappyAbsSyn24  happy_var_2)
-	_
+	(HappyTerminal (TAdress       happy_var_1))
 	 =  HappyAbsSyn25
-		 (RPapaki  happy_var_2
+		 (RPapaki  (posnToIntInt happy_var_1) happy_var_2
 	)
 happyReduction_66 _ _  = notHappyAtAll 
 
 happyReduce_67 = happySpecReduce_2  25 happyReduction_67
 happyReduction_67 (HappyAbsSyn23  happy_var_2)
-	_
+	(HappyTerminal (TNot          happy_var_1))
 	 =  HappyAbsSyn25
-		 (RNot     happy_var_2
+		 (RNot     (posnToIntInt happy_var_1) happy_var_2
 	)
 happyReduction_67 _ _  = notHappyAtAll 
 
 happyReduce_68 = happySpecReduce_2  25 happyReduction_68
 happyReduction_68 (HappyAbsSyn23  happy_var_2)
-	_
+	(HappyTerminal (TAdd          happy_var_1))
 	 =  HappyAbsSyn25
-		 (RPos     happy_var_2
+		 (RPos     (posnToIntInt happy_var_1) happy_var_2
 	)
 happyReduction_68 _ _  = notHappyAtAll 
 
 happyReduce_69 = happySpecReduce_2  25 happyReduction_69
 happyReduction_69 (HappyAbsSyn23  happy_var_2)
-	_
+	(HappyTerminal (TMinus        happy_var_1))
 	 =  HappyAbsSyn25
-		 (RNeg     happy_var_2
+		 (RNeg     (posnToIntInt happy_var_1) happy_var_2
 	)
 happyReduction_69 _ _  = notHappyAtAll 
 
 happyReduce_70 = happySpecReduce_3  25 happyReduction_70
 happyReduction_70 (HappyAbsSyn23  happy_var_3)
-	_
+	(HappyTerminal (TAdd          happy_var_2))
 	(HappyAbsSyn23  happy_var_1)
 	 =  HappyAbsSyn25
-		 (RPlus    happy_var_1 happy_var_3
+		 (RPlus    (posnToIntInt happy_var_2) happy_var_1 happy_var_3
 	)
 happyReduction_70 _ _ _  = notHappyAtAll 
 
 happyReduce_71 = happySpecReduce_3  25 happyReduction_71
 happyReduction_71 (HappyAbsSyn23  happy_var_3)
-	_
+	(HappyTerminal (TMul          happy_var_2))
 	(HappyAbsSyn23  happy_var_1)
 	 =  HappyAbsSyn25
-		 (RMul     happy_var_1 happy_var_3
+		 (RMul     (posnToIntInt happy_var_2) happy_var_1 happy_var_3
 	)
 happyReduction_71 _ _ _  = notHappyAtAll 
 
 happyReduce_72 = happySpecReduce_3  25 happyReduction_72
 happyReduction_72 (HappyAbsSyn23  happy_var_3)
-	_
+	(HappyTerminal (TMinus        happy_var_2))
 	(HappyAbsSyn23  happy_var_1)
 	 =  HappyAbsSyn25
-		 (RMinus   happy_var_1 happy_var_3
+		 (RMinus   (posnToIntInt happy_var_2) happy_var_1 happy_var_3
 	)
 happyReduction_72 _ _ _  = notHappyAtAll 
 
 happyReduce_73 = happySpecReduce_3  25 happyReduction_73
 happyReduction_73 (HappyAbsSyn23  happy_var_3)
-	_
+	(HappyTerminal (TDivReal      happy_var_2))
 	(HappyAbsSyn23  happy_var_1)
 	 =  HappyAbsSyn25
-		 (RRealDiv happy_var_1 happy_var_3
+		 (RRealDiv (posnToIntInt happy_var_2) happy_var_1 happy_var_3
 	)
 happyReduction_73 _ _ _  = notHappyAtAll 
 
 happyReduce_74 = happySpecReduce_3  25 happyReduction_74
 happyReduction_74 (HappyAbsSyn23  happy_var_3)
-	_
+	(HappyTerminal (TDivInt       happy_var_2))
 	(HappyAbsSyn23  happy_var_1)
 	 =  HappyAbsSyn25
-		 (RDiv     happy_var_1 happy_var_3
+		 (RDiv     (posnToIntInt happy_var_2) happy_var_1 happy_var_3
 	)
 happyReduction_74 _ _ _  = notHappyAtAll 
 
 happyReduce_75 = happySpecReduce_3  25 happyReduction_75
 happyReduction_75 (HappyAbsSyn23  happy_var_3)
-	_
+	(HappyTerminal (TMod          happy_var_2))
 	(HappyAbsSyn23  happy_var_1)
 	 =  HappyAbsSyn25
-		 (RMod     happy_var_1 happy_var_3
+		 (RMod     (posnToIntInt happy_var_2) happy_var_1 happy_var_3
 	)
 happyReduction_75 _ _ _  = notHappyAtAll 
 
 happyReduce_76 = happySpecReduce_3  25 happyReduction_76
 happyReduction_76 (HappyAbsSyn23  happy_var_3)
-	_
+	(HappyTerminal (TOr           happy_var_2))
 	(HappyAbsSyn23  happy_var_1)
 	 =  HappyAbsSyn25
-		 (ROr      happy_var_1 happy_var_3
+		 (ROr      (posnToIntInt happy_var_2) happy_var_1 happy_var_3
 	)
 happyReduction_76 _ _ _  = notHappyAtAll 
 
 happyReduce_77 = happySpecReduce_3  25 happyReduction_77
 happyReduction_77 (HappyAbsSyn23  happy_var_3)
-	_
+	(HappyTerminal (TAnd          happy_var_2))
 	(HappyAbsSyn23  happy_var_1)
 	 =  HappyAbsSyn25
-		 (RAnd     happy_var_1 happy_var_3
+		 (RAnd     (posnToIntInt happy_var_2) happy_var_1 happy_var_3
 	)
 happyReduction_77 _ _ _  = notHappyAtAll 
 
 happyReduce_78 = happySpecReduce_3  25 happyReduction_78
 happyReduction_78 (HappyAbsSyn23  happy_var_3)
-	_
+	(HappyTerminal (TLogiceq      happy_var_2))
 	(HappyAbsSyn23  happy_var_1)
 	 =  HappyAbsSyn25
-		 (REq      happy_var_1 happy_var_3
+		 (REq      (posnToIntInt happy_var_2) happy_var_1 happy_var_3
 	)
 happyReduction_78 _ _ _  = notHappyAtAll 
 
 happyReduce_79 = happySpecReduce_3  25 happyReduction_79
 happyReduction_79 (HappyAbsSyn23  happy_var_3)
-	_
+	(HappyTerminal (TDifferent    happy_var_2))
 	(HappyAbsSyn23  happy_var_1)
 	 =  HappyAbsSyn25
-		 (RDiff    happy_var_1 happy_var_3
+		 (RDiff    (posnToIntInt happy_var_2) happy_var_1 happy_var_3
 	)
 happyReduction_79 _ _ _  = notHappyAtAll 
 
 happyReduce_80 = happySpecReduce_3  25 happyReduction_80
 happyReduction_80 (HappyAbsSyn23  happy_var_3)
-	_
+	(HappyTerminal (TSmaller      happy_var_2))
 	(HappyAbsSyn23  happy_var_1)
 	 =  HappyAbsSyn25
-		 (RLess    happy_var_1 happy_var_3
+		 (RLess    (posnToIntInt happy_var_2) happy_var_1 happy_var_3
 	)
 happyReduction_80 _ _ _  = notHappyAtAll 
 
 happyReduce_81 = happySpecReduce_3  25 happyReduction_81
 happyReduction_81 (HappyAbsSyn23  happy_var_3)
-	_
+	(HappyTerminal (TGreater      happy_var_2))
 	(HappyAbsSyn23  happy_var_1)
 	 =  HappyAbsSyn25
-		 (RGreater happy_var_1 happy_var_3
+		 (RGreater (posnToIntInt happy_var_2) happy_var_1 happy_var_3
 	)
 happyReduction_81 _ _ _  = notHappyAtAll 
 
 happyReduce_82 = happySpecReduce_3  25 happyReduction_82
 happyReduction_82 (HappyAbsSyn23  happy_var_3)
-	_
+	(HappyTerminal (TGreaterequal happy_var_2))
 	(HappyAbsSyn23  happy_var_1)
 	 =  HappyAbsSyn25
-		 (RGreq    happy_var_1 happy_var_3
+		 (RGreq    (posnToIntInt happy_var_2) happy_var_1 happy_var_3
 	)
 happyReduction_82 _ _ _  = notHappyAtAll 
 
 happyReduce_83 = happySpecReduce_3  25 happyReduction_83
 happyReduction_83 (HappyAbsSyn23  happy_var_3)
-	_
+	(HappyTerminal (TSmallerequal happy_var_2))
 	(HappyAbsSyn23  happy_var_1)
 	 =  HappyAbsSyn25
-		 (RSmeq    happy_var_1 happy_var_3
+		 (RSmeq    (posnToIntInt happy_var_2) happy_var_1 happy_var_3
 	)
 happyReduction_83 _ _ _  = notHappyAtAll 
 
@@ -2149,64 +2149,64 @@ happyNewToken action sts stk
 	let cont i = action i i tk (HappyState action) sts stk in
 	case tk of {
 	Eof -> action 87 87 tk (HappyState action) sts stk;
-	TAnd          posn -> cont 29;
-	TArray        posn -> cont 30;
-	TBegin        posn -> cont 31;
-	TBoolean      posn -> cont 32;
-	TChar         posn -> cont 33;
-	TDispose      posn -> cont 34;
-	TDivInt       posn -> cont 35;
-	TDo           posn -> cont 36;
-	TElse         posn -> cont 37;
-	TEnd          posn -> cont 38;
-	TFalse        posn -> cont 39;
-	TForward      posn -> cont 40;
-	TFunction     posn -> cont 41;
-	TGoto         posn -> cont 42;
-	TIf           posn -> cont 43;
-	TInteger      posn -> cont 44;
-	TLabel        posn -> cont 45;
-	TMod          posn -> cont 46;
-	TNew          posn -> cont 47;
-	TNil          posn -> cont 48;
-	TNot          posn -> cont 49;
-	TOf           posn -> cont 50;
-	TOr           posn -> cont 51;
-	TProcedure    posn -> cont 52;
-	TProgram      posn -> cont 53;
-	TReal         posn -> cont 54;
-	TResult       posn -> cont 55;
-	TReturn       posn -> cont 56;
-	TThen         posn -> cont 57;
-	TTrue         posn -> cont 58;
-	TVar          posn -> cont 59;
-	TWhile        posn -> cont 60;
+	TAnd          happy_dollar_dollar -> cont 29;
+	TArray        happy_dollar_dollar -> cont 30;
+	TBegin        happy_dollar_dollar -> cont 31;
+	TBoolean      happy_dollar_dollar -> cont 32;
+	TChar         happy_dollar_dollar -> cont 33;
+	TDispose      happy_dollar_dollar -> cont 34;
+	TDivInt       happy_dollar_dollar -> cont 35;
+	TDo           happy_dollar_dollar -> cont 36;
+	TElse         happy_dollar_dollar -> cont 37;
+	TEnd          happy_dollar_dollar -> cont 38;
+	TFalse        happy_dollar_dollar -> cont 39;
+	TForward      happy_dollar_dollar -> cont 40;
+	TFunction     happy_dollar_dollar -> cont 41;
+	TGoto         happy_dollar_dollar -> cont 42;
+	TIf           happy_dollar_dollar -> cont 43;
+	TInteger      happy_dollar_dollar -> cont 44;
+	TLabel        happy_dollar_dollar -> cont 45;
+	TMod          happy_dollar_dollar -> cont 46;
+	TNew          happy_dollar_dollar -> cont 47;
+	TNil          happy_dollar_dollar -> cont 48;
+	TNot          happy_dollar_dollar -> cont 49;
+	TOf           happy_dollar_dollar -> cont 50;
+	TOr           happy_dollar_dollar -> cont 51;
+	TProcedure    happy_dollar_dollar -> cont 52;
+	TProgram      happy_dollar_dollar -> cont 53;
+	TReal         happy_dollar_dollar -> cont 54;
+	TResult       happy_dollar_dollar -> cont 55;
+	TReturn       happy_dollar_dollar -> cont 56;
+	TThen         happy_dollar_dollar -> cont 57;
+	TTrue         happy_dollar_dollar -> cont 58;
+	TVar          happy_dollar_dollar -> cont 59;
+	TWhile        happy_dollar_dollar -> cont 60;
 	TId           value posn -> cont 61;
 	TIntconst     value posn -> cont 62;
 	TRealconst    value posn -> cont 63;
 	TCharconst    value posn -> cont 64;
 	TStringconst  value posn -> cont 65;
-	TLogiceq      posn -> cont 66;
-	TGreater      posn -> cont 67;
-	TSmaller      posn -> cont 68;
-	TDifferent    posn -> cont 69;
-	TGreaterequal posn -> cont 70;
-	TSmallerequal posn -> cont 71;
-	TAdd          posn -> cont 72;
-	TMinus        posn -> cont 73;
-	TMul          posn -> cont 74;
-	TDivReal      posn -> cont 75;
-	TPointer      posn -> cont 76;
-	TAdress       posn -> cont 77;
-	TEq           posn -> cont 78;
-	TSeperator    posn -> cont 79;
-	TDot          posn -> cont 80;
-	TLeftparen    posn -> cont 81;
-	TRightparen   posn -> cont 82;
-	TUpdown       posn -> cont 83;
-	TComma        posn -> cont 84;
-	TLeftbracket  posn -> cont 85;
-	TRightbracket posn -> cont 86;
+	TLogiceq      happy_dollar_dollar -> cont 66;
+	TGreater      happy_dollar_dollar -> cont 67;
+	TSmaller      happy_dollar_dollar -> cont 68;
+	TDifferent    happy_dollar_dollar -> cont 69;
+	TGreaterequal happy_dollar_dollar -> cont 70;
+	TSmallerequal happy_dollar_dollar -> cont 71;
+	TAdd          happy_dollar_dollar -> cont 72;
+	TMinus        happy_dollar_dollar -> cont 73;
+	TMul          happy_dollar_dollar -> cont 74;
+	TDivReal      happy_dollar_dollar -> cont 75;
+	TPointer      happy_dollar_dollar -> cont 76;
+	TAdress       happy_dollar_dollar -> cont 77;
+	TEq           happy_dollar_dollar -> cont 78;
+	TSeperator    happy_dollar_dollar -> cont 79;
+	TDot          happy_dollar_dollar -> cont 80;
+	TLeftparen    happy_dollar_dollar -> cont 81;
+	TRightparen   happy_dollar_dollar -> cont 82;
+	TUpdown       happy_dollar_dollar -> cont 83;
+	TComma        happy_dollar_dollar -> cont 84;
+	TLeftbracket  happy_dollar_dollar -> cont 85;
+	TRightbracket happy_dollar_dollar -> cont 86;
 	_ -> happyError' (tk, [])
 	})
 
@@ -2352,24 +2352,24 @@ data RValue =
   RParen RValue      |
   RNil               |
   RCall    Call      |
-  RPapaki  LValue    |
-  RNot     Expr      |
-  RPos     Expr      |
-  RNeg     Expr      |
-  RPlus    Expr Expr |
-  RMul     Expr Expr |
-  RMinus   Expr Expr |
-  RRealDiv Expr Expr |
-  RDiv     Expr Expr |
-  RMod     Expr Expr |
-  ROr      Expr Expr |
-  RAnd     Expr Expr |
-  REq      Expr Expr |
-  RDiff    Expr Expr |
-  RLess    Expr Expr |
-  RGreater Expr Expr |
-  RGreq    Expr Expr |
-  RSmeq    Expr Expr
+  RPapaki  (Int,Int) LValue    |
+  RNot     (Int,Int) Expr      |
+  RPos     (Int,Int) Expr      |
+  RNeg     (Int,Int) Expr      |
+  RPlus    (Int,Int) Expr Expr |
+  RMul     (Int,Int) Expr Expr |
+  RMinus   (Int,Int) Expr Expr |
+  RRealDiv (Int,Int) Expr Expr |
+  RDiv     (Int,Int) Expr Expr |
+  RMod     (Int,Int) Expr Expr |
+  ROr      (Int,Int) Expr Expr |
+  RAnd     (Int,Int) Expr Expr |
+  REq      (Int,Int) Expr Expr |
+  RDiff    (Int,Int) Expr Expr |
+  RLess    (Int,Int) Expr Expr |
+  RGreater (Int,Int) Expr Expr |
+  RGreq    (Int,Int) Expr Expr |
+  RSmeq    (Int,Int) Expr Expr
   deriving(Show,Eq,Ord)
 
 data Call =
@@ -2383,6 +2383,9 @@ tokenToId :: Token -> Id
 tokenToId = \case
   TId id (AlexPn _ l c) -> Id id (l,c)
   _   -> error "Shouldn't happen, not id token"
+
+posnToIntInt :: AlexPosn -> (Int,Int)
+posnToIntInt (AlexPn _ l c) = (l,c)
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}
