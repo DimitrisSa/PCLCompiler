@@ -11,7 +11,7 @@ import Data.Either
 %monad { Alex }
 %lexer { lexwrap } { Eof }
 
-%token 
+%token
     and                 { TAnd          $$       }
     array               { TArray        $$       }
     begin               { TBegin        $$       }
@@ -87,7 +87,7 @@ Program    :: { Program }
            : program id ';' Body '.'            { P (tokenToId $2) $4 }
 
 Body       :: { Body }
-           : Locals Block                       { B $1 $2 }  
+           : Locals Block                       { B $1 $2 }
 
 Locals     :: { [Local] }
            : {-empty-}                          { []    }
@@ -104,7 +104,7 @@ Variables  :: { Variables }
            | Variables IdsAndType               { $2:$1 }
 
 IdsAndType :: { (Ids,Type) }
-           : Ids ':' Type ';'                   { ($1,$3) } 
+           : Ids ':' Type ';'                   { ($1,$3) }
 
 Ids        :: { Ids }
            : id                                 { [(tokenToId $1) ]  }
@@ -130,7 +130,7 @@ Optvar     : {-empty-}                          { Value     }
            | var                                { Reference }
 
 Type       :: { Type }
-           : integer                            { Tint           }    
+           : integer                            { Tint           }
            | real                               { Treal          }
            | boolean                            { Tbool          }
            | char                               { Tchar          }
@@ -142,25 +142,25 @@ ArrSize    :: { ArrSize }
            | '[' intconst ']'                   { Size (getInt $2) }
 
 Block      :: { Block }
-           : begin Stmts end                    { Bl $2 } 
+           : begin Stmts end                    { Bl $2 }
 
 Stmts      :: { Stmts }
            : Stmt                               { [$1]    }
-           | Stmts ';' Stmt                     { $3 : $1 } 
+           | Stmts ';' Stmt                     { $3 : $1 }
 
 Stmt       :: { Stmt }
-           : {-empty-}                          { SEmpty                  } 
+           : {-empty-}                          { SEmpty                  }
            | LValue equal Expr                  { SEqual   $1 $3          }
            | Block                              { SBlock   $1             }
            | Call                               { SCall    $1             }
-           | if Expr then Stmt                  { SIT      $2 $4          }     
-           | if Expr then Stmt else Stmt        { SITE     $2 $4 $6       }     
-           | while Expr do Stmt                 { SWhile   $2 $4          }
+           | if Expr then Stmt                  { SIT      (posnToIntInt $1) $2 $4          }
+           | if Expr then Stmt else Stmt        { SITE     (posnToIntInt $1) $2 $4 $6       }
+           | while Expr do Stmt                 { SWhile   (posnToIntInt $1) $2 $4          }
            | id ':' Stmt                        { SId      (tokenToId $1)  $3          }
            | goto id                            { SGoto    (tokenToId $2)              }
            | return                             { SReturn                 }
-           | new New LValue                     { SNew     $2 $3          }
-           | dispose Dispose LValue             { SDispose $2 $3          }
+           | new New LValue                     { SNew     (posnToIntInt $1) $2 $3          }
+           | dispose Dispose LValue             { SDispose (posnToIntInt $1) $2 $3          }
 
 New        :: { New }
            :  {-empty-}                         { NewEmpty   }
@@ -174,17 +174,17 @@ Expr       :: { Expr }
            | RValue %prec RExpr                 { R $1 }
 
 LValue     :: { LValue }
-           : id                                 { LId        (tokenToId $1)     }
-           | result                             { LResult          }
+           : id                                 { LId        (tokenToId $1)    }
+           | result                             { LResult    (posnToIntInt $1) }
            | stringconst                        { LString    (getString $1)    }
-           | LValue '[' Expr ']'                { LValueExpr $1 $3 }
-           | Expr '^'                           { LExpr      $1    }
+           | LValue '[' Expr ']'                { LValueExpr (posnToIntInt $2) $1 $3 }
+           | Expr '^'                           { LExpr      (posnToIntInt $2) $1    }
            | '(' LValue ')'                     { LParen     $2    }
 
 RValue     :: { RValue }
            : intconst                           { RInt     (getInt $1) }
            | true                               { RTrue       }
-           | false                              { RFalse      } 
+           | false                              { RFalse      }
            | realconst                          { RReal    (getReal $1) }
            | charconst                          { RChar    (getChar $1) }
            | '(' RValue ')'                     { RParen   $2 }
@@ -209,7 +209,7 @@ RValue     :: { RValue }
            | Expr greq Expr                     { RGreq    (posnToIntInt $2) $1 $3 }
            | Expr smeq Expr                     { RSmeq    (posnToIntInt $2) $1 $3 }
 
-Call       :: { Call }      
+Call       :: { Call }
            : id '(' ArgExprs ')'                { CId (tokenToId $1)  $3 }
 
 ArgExprs   :: { Exprs }
@@ -218,7 +218,7 @@ ArgExprs   :: { Exprs }
 
 Exprs      :: { Exprs }
            : Expr                               { [$1]  }
-           | Exprs ',' Expr                     { $3:$1 } 
+           | Exprs ',' Expr                     { $3:$1 }
 
 {
 
@@ -275,13 +275,13 @@ type Formal = (PassBy,Ids,Type)
 type Args   = [Formal]
 
 data Type =
-  Tnil                | 
-  Tint                | 
+  Tnil                |
+  Tint                |
   Treal               |
   Tbool               |
   Tchar               |
   ArrayT ArrSize Type |
-  PointerT Type 
+  PointerT Type
   deriving(Show,Eq)
 
 data ArrSize =
@@ -292,22 +292,22 @@ data ArrSize =
 data Block =
   Bl Stmts
   deriving(Show)
-  
+
 type Stmts = [Stmt]
 
-data Stmt = 
-  SEmpty              | 
+data Stmt =
+  SEmpty              |
   SEqual LValue Expr  |
   SBlock Block        |
   SCall Call          |
-  SIT  Expr Stmt      |
-  SITE Expr Stmt Stmt |
-  SWhile Expr Stmt    |
+  SIT  (Int,Int) Expr Stmt      |
+  SITE (Int,Int) Expr Stmt Stmt |
+  SWhile (Int,Int) Expr Stmt    |
   SId Id Stmt         |
   SGoto Id            |
   SReturn             |
-  SNew New LValue     |
-  SDispose DispType LValue     
+  SNew (Int,Int) New LValue     |
+  SDispose (Int,Int) DispType LValue
   deriving(Show)
 
 data DispType =
@@ -324,15 +324,15 @@ data New =
 
 data Expr =
  L LValue |
- R RValue 
+ R RValue
  deriving(Show,Ord,Eq)
 
 data LValue =
   LId Id                 |
-  LResult                |
+  LResult (Int,Int)      |
   LString String         |
-  LValueExpr LValue Expr |
-  LExpr Expr             |
+  LValueExpr (Int,Int) LValue Expr |
+  LExpr (Int,Int) Expr             |
   LParen LValue
   deriving(Show,Ord,Eq)
 

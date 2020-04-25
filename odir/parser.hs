@@ -1737,10 +1737,10 @@ happyReduce_38 = happyReduce 4 20 happyReduction_38
 happyReduction_38 ((HappyAbsSyn20  happy_var_4) `HappyStk`
 	_ `HappyStk`
 	(HappyAbsSyn23  happy_var_2) `HappyStk`
-	_ `HappyStk`
+	(HappyTerminal (TIf           happy_var_1)) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn20
-		 (SIT      happy_var_2 happy_var_4
+		 (SIT      (posnToIntInt happy_var_1) happy_var_2 happy_var_4
 	) `HappyStk` happyRest
 
 happyReduce_39 = happyReduce 6 20 happyReduction_39
@@ -1749,20 +1749,20 @@ happyReduction_39 ((HappyAbsSyn20  happy_var_6) `HappyStk`
 	(HappyAbsSyn20  happy_var_4) `HappyStk`
 	_ `HappyStk`
 	(HappyAbsSyn23  happy_var_2) `HappyStk`
-	_ `HappyStk`
+	(HappyTerminal (TIf           happy_var_1)) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn20
-		 (SITE     happy_var_2 happy_var_4 happy_var_6
+		 (SITE     (posnToIntInt happy_var_1) happy_var_2 happy_var_4 happy_var_6
 	) `HappyStk` happyRest
 
 happyReduce_40 = happyReduce 4 20 happyReduction_40
 happyReduction_40 ((HappyAbsSyn20  happy_var_4) `HappyStk`
 	_ `HappyStk`
 	(HappyAbsSyn23  happy_var_2) `HappyStk`
-	_ `HappyStk`
+	(HappyTerminal (TWhile        happy_var_1)) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn20
-		 (SWhile   happy_var_2 happy_var_4
+		 (SWhile   (posnToIntInt happy_var_1) happy_var_2 happy_var_4
 	) `HappyStk` happyRest
 
 happyReduce_41 = happySpecReduce_3  20 happyReduction_41
@@ -1791,18 +1791,18 @@ happyReduction_43 _
 happyReduce_44 = happySpecReduce_3  20 happyReduction_44
 happyReduction_44 (HappyAbsSyn24  happy_var_3)
 	(HappyAbsSyn21  happy_var_2)
-	_
+	(HappyTerminal (TNew          happy_var_1))
 	 =  HappyAbsSyn20
-		 (SNew     happy_var_2 happy_var_3
+		 (SNew     (posnToIntInt happy_var_1) happy_var_2 happy_var_3
 	)
 happyReduction_44 _ _ _  = notHappyAtAll 
 
 happyReduce_45 = happySpecReduce_3  20 happyReduction_45
 happyReduction_45 (HappyAbsSyn24  happy_var_3)
 	(HappyAbsSyn22  happy_var_2)
-	_
+	(HappyTerminal (TDispose      happy_var_1))
 	 =  HappyAbsSyn20
-		 (SDispose happy_var_2 happy_var_3
+		 (SDispose (posnToIntInt happy_var_1) happy_var_2 happy_var_3
 	)
 happyReduction_45 _ _ _  = notHappyAtAll 
 
@@ -1854,10 +1854,11 @@ happyReduction_52 (HappyTerminal happy_var_1)
 happyReduction_52 _  = notHappyAtAll 
 
 happyReduce_53 = happySpecReduce_1  24 happyReduction_53
-happyReduction_53 _
+happyReduction_53 (HappyTerminal (TResult       happy_var_1))
 	 =  HappyAbsSyn24
-		 (LResult
+		 (LResult    (posnToIntInt happy_var_1)
 	)
+happyReduction_53 _  = notHappyAtAll 
 
 happyReduce_54 = happySpecReduce_1  24 happyReduction_54
 happyReduction_54 (HappyTerminal happy_var_1)
@@ -1869,18 +1870,18 @@ happyReduction_54 _  = notHappyAtAll
 happyReduce_55 = happyReduce 4 24 happyReduction_55
 happyReduction_55 (_ `HappyStk`
 	(HappyAbsSyn23  happy_var_3) `HappyStk`
-	_ `HappyStk`
+	(HappyTerminal (TLeftbracket  happy_var_2)) `HappyStk`
 	(HappyAbsSyn24  happy_var_1) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn24
-		 (LValueExpr happy_var_1 happy_var_3
+		 (LValueExpr (posnToIntInt happy_var_2) happy_var_1 happy_var_3
 	) `HappyStk` happyRest
 
 happyReduce_56 = happySpecReduce_2  24 happyReduction_56
-happyReduction_56 _
+happyReduction_56 (HappyTerminal (TPointer      happy_var_2))
 	(HappyAbsSyn23  happy_var_1)
 	 =  HappyAbsSyn24
-		 (LExpr      happy_var_1
+		 (LExpr      (posnToIntInt happy_var_2) happy_var_1
 	)
 happyReduction_56 _ _  = notHappyAtAll 
 
@@ -2282,13 +2283,13 @@ type Formal = (PassBy,Ids,Type)
 type Args   = [Formal]
 
 data Type =
-  Tnil                | 
-  Tint                | 
+  Tnil                |
+  Tint                |
   Treal               |
   Tbool               |
   Tchar               |
   ArrayT ArrSize Type |
-  PointerT Type 
+  PointerT Type
   deriving(Show,Eq)
 
 data ArrSize =
@@ -2299,22 +2300,22 @@ data ArrSize =
 data Block =
   Bl Stmts
   deriving(Show)
-  
+
 type Stmts = [Stmt]
 
-data Stmt = 
-  SEmpty              | 
+data Stmt =
+  SEmpty              |
   SEqual LValue Expr  |
   SBlock Block        |
   SCall Call          |
-  SIT  Expr Stmt      |
-  SITE Expr Stmt Stmt |
-  SWhile Expr Stmt    |
+  SIT  (Int,Int) Expr Stmt      |
+  SITE (Int,Int) Expr Stmt Stmt |
+  SWhile (Int,Int) Expr Stmt    |
   SId Id Stmt         |
   SGoto Id            |
   SReturn             |
-  SNew New LValue     |
-  SDispose DispType LValue     
+  SNew (Int,Int) New LValue     |
+  SDispose (Int,Int) DispType LValue
   deriving(Show)
 
 data DispType =
@@ -2331,15 +2332,15 @@ data New =
 
 data Expr =
  L LValue |
- R RValue 
+ R RValue
  deriving(Show,Ord,Eq)
 
 data LValue =
   LId Id                 |
-  LResult                |
+  LResult (Int,Int)      |
   LString String         |
-  LValueExpr LValue Expr |
-  LExpr Expr             |
+  LValueExpr (Int,Int) LValue Expr |
+  LExpr (Int,Int) Expr             |
   LParen LValue
   deriving(Show,Ord,Eq)
 

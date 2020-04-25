@@ -2,7 +2,8 @@ program hello;
 label lab;
 var s : ^real;
 t : integer;
-x : ^array of real;
+bb : array [42] of integer ;
+x : ^real;
 y : ^real;
 var ok: real;
 forward procedure oko(var ok: real; a: integer);
@@ -15,9 +16,9 @@ procedure oko(var ok: real; a: integer);
 begin end;
 begin
   begin
-  new [42] x;
+  new x;
   new y;
-  dispose [] x;
+  dispose x;
   end;
-  ok := @t^ div 1;
+  ok := bb[41] div 1;
 end.

@@ -1,17 +1,22 @@
 program danglingif;
-var x: boolean;
+var x,comparedo: boolean;
 label john;
+var mitsos,john:integer;
 forward function ok(var k : real):real;
-function ok(l : integer):real; 
-  begin end;
+function ok(var l : real):real; 
+begin 
+ result := 5;
+end;
   (*forward procedure ok();*)
 begin
 (* * 
  *)
 comparedo := true ; 
 if comparedo then
- if not comparedo then
+ if comparedo then
   mitsos := 42
  else
-  john := mitsos
+  while (1 = 1) do
+    john := mitsos
+ 
 end.

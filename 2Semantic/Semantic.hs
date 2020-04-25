@@ -14,7 +14,7 @@ data Callable =
   Proc Args          |
   Func Args Type     |
   FProc Args         |
-  FFunc Args Type    
+  FFunc Args Type
   deriving(Show,Eq)
 
 type VarMap   = M.Map Id Type
@@ -35,7 +35,7 @@ main = do
       let emptySymbolTable = [emptySymbolMap]
       case (\x -> x emptySymbolTable) $ processAst ast of
         Right _  -> hPutStrLn stdout "good" >> exitSuccess
-        Left s   -> die s 
+        Left s   -> die s
 
 -- process ast
 program :: Program -> Semantics ()
@@ -126,18 +126,18 @@ checkresult = \case
     case M.lookup (dummy "while") vm of
       Nothing -> left $ "Result not set for function: " ++ idv
                         ++ errorend li co
-      _       -> return () 
+      _       -> return ()
   _ -> return ()
 
 headArgsF :: Header -> Semantics ()
-headArgsF = \case 
+headArgsF = \case
   Procedure _ a   -> insertArgsInTm a
   Function  _ a t -> insertArgsInTm a >> insertResult t
 
 insertResult :: Type -> Semantics ()
 insertResult t = do
   (vm,lm,fm,nm):sms <- get
-  put $ (M.insert (dummy "result") t vm,lm,fm,nm):sms 
+  put $ (M.insert (dummy "result") t vm,lm,fm,nm):sms
 
 insertArgsInTm :: Args -> Semantics ()
 insertArgsInTm = mapM_ insertFormalInTm
@@ -152,7 +152,7 @@ insertIdInTm t id = do
       (li,co) = idPosn id
   case M.lookup id vm of
     Nothing -> put $ (M.insert id t vm,lm,fm,nm):sms
-    _       -> left $ "duplicate argument: " ++ idv 
+    _       -> left $ "duplicate argument: " ++ idv
                         ++ errorend li co
 
 -- to check if func/proc with forward is defined
@@ -190,7 +190,7 @@ searchVarSM id sm = M.lookup id $ (\(vm,_,_,_) -> vm) sm
 
 headProcedureF :: Id -> Args -> [SymbolMap] -> Semantics ()
 headProcedureF i a sms =
-  let a' = reverse a 
+  let a' = reverse a
       idv = idValue i
       (li,co) = idPosn i
   in
@@ -223,7 +223,7 @@ headFunctionF i a t sms =
 
 headF :: Header -> Semantics ()
 headF h = get >>= \sms -> case h of
-  Procedure i a   -> headProcedureF i a sms 
+  Procedure i a   -> headProcedureF i a sms
   Function  i a t -> headFunctionF i a t sms
 
 checkArgsAndPut :: Id -> Args -> Callable -> Semantics ()
@@ -252,7 +252,7 @@ insertforward i as t = do
 forwardF :: Header -> Semantics ()
 forwardF h = case h of
   Procedure i a   -> insertforward i a (FProc $ reverse a)
-  Function  i a t -> case t of 
+  Function  i a t -> case t of
     ArrayT _ _ -> let idv = idValue i
                       (li,co) = idPosn i
                   in left $ funErr ++ idv ++ errorend li co
@@ -277,7 +277,7 @@ myinsert ((v,t):xs) = do
       (li,co) = idPosn v
   case searchVarSMs v ((vm,lm,fm,nm):sms) of
     Just _  -> left $ dupErr ++ idv ++ errorend li co
-    Nothing -> if checkFullType t then 
+    Nothing -> if checkFullType t then
                  put ((M.insert v t vm,lm,fm,nm):sms) >>
                  myinsert xs
                else left $ "Can't use 'array of' at: "
@@ -343,38 +343,38 @@ fstatement = \case
                                 Nothing -> left $ callErr ++
                                            idv ++
                                            errorend li co
-  SIT  expr stmt           -> checkBoolExpr expr "if-then" >>
+  SIT  (li,co) expr stmt           -> checkBoolExpr expr ("if-then" ++ errorend li co) >>
                               fstatement stmt
-  SITE expr s1 s2          -> checkBoolExpr expr "if-then-else"
+  SITE (li,co) expr s1 s2          -> checkBoolExpr expr ("if-then-else" ++ errorend li co)
                               >> fstatement s1 >> fstatement s2
-  SWhile expr stmt         -> checkBoolExpr expr "while" >>
+  SWhile (li,co) expr stmt         -> checkBoolExpr expr ("while" ++ errorend li co) >>
                               fstatement stmt
   SId id stmt              -> checkId   id >> fstatement stmt
   SGoto id                 -> checkGoTo id
   SReturn                  -> return ()
-  SNew new lValue          -> do
+  SNew (li,co) new lValue          -> do
     (vm,lm,fm,nm):sms <- get
-    put $ (vm,lm,fm,M.insert lValue () nm):sms 
-    t <- checkpointer lValue "non-pointer in new statement"
+    put $ (vm,lm,fm,M.insert lValue () nm):sms
+    t <- checkpointer lValue $ "non-pointer in new statement" ++ errorend li co
     case (new,checkFullType t) of
       (NewEmpty,True)   -> return ()
       (NewExpr e,False) -> totype e >>= \case
         Tint -> return ()
-        _    -> left "non-integer expression in new statement"
-      _ -> left "bad pointer type in new expression"
-  SDispose disptype lValue -> do
+        _    -> left $ "non-integer expression in new statement"++ errorend li co
+      _ -> left $ "bad pointer type in new expression"++errorend li co
+  SDispose (li,co) disptype lValue -> do
     (vm,lm,fm,nm):sms <- get
-    newnm <- deleteNewMap lValue nm
-    put $ (vm,lm,fm,newnm):sms 
-    t <- checkpointer lValue "non-pointer in dispose statement"
+    newnm <- deleteNewMap lValue nm $ "disposing null pointer" ++ errorend li co
+    put $ (vm,lm,fm,newnm):sms
+    t <- checkpointer lValue $ "non-pointer in dispose statement"++errorend li co
     case (disptype,checkFullType t) of
       (With,False)   -> return ()
       (Without,True) -> return ()
-      _ -> left "bad pointer type in dispose expression"
+      _ -> left $ "bad pointer type in dispose expression"++errorend li co
 
-deleteNewMap :: LValue -> NewMap -> Semantics NewMap
-deleteNewMap l nm = case M.lookup l nm of
-  Nothing -> left $ "disposing null pointer"
+deleteNewMap :: LValue -> NewMap -> String -> Semantics NewMap
+deleteNewMap l nm errmsg= case M.lookup l nm of
+  Nothing -> left errmsg
   _       -> right $ M.delete l nm
 
 checkFullType :: Type -> Bool
@@ -401,7 +401,7 @@ callSem id = \case
 goodArgs :: Id -> Args -> Exprs -> Semantics ()
 goodArgs id as exprs =
   mapM forcalltype exprs >>=
-  argsExprsSems 1 id (formalsToTypes as) 
+  argsExprsSems 1 id (formalsToTypes as)
 
 forcalltype :: Expr -> Semantics (PassBy,Type)
 forcalltype = \case
@@ -428,21 +428,21 @@ totypel = \case
     case searchVarSMs id sms of
       Just t  -> return t
       Nothing -> left $ varErr ++ idv ++ errorend li co
-  LResult                -> do
+  LResult (li,co)        -> do
     (vm,lm,fm,nm):sms <- get
     case M.lookup (dummy "result") vm of
       Just t  -> put ((M.insert (dummy "while") t vm,
                        lm,fm,nm):sms) >> return t
-      Nothing -> left $ varErr ++ "result"
+      Nothing -> left $ "Can only use result in a function call "++errorend li co
   LString string         -> right $ ArrayT NoSize Tchar
-  LValueExpr lValue expr -> totype expr >>= \case
+  LValueExpr (li,co) lValue expr -> totype expr >>= \case
     Tint -> totypel lValue >>= \case
       ArrayT _ t -> right t
-      _          -> left arrErr
-    _    -> left indErr
-  LExpr expr             -> totype expr >>= \case
+      _          -> left $ arrErr ++ errorend li co
+    _    -> left $ indErr ++ errorend li co
+  LExpr (li,co) expr     -> totype expr >>= \case
     PointerT t -> right t
-    _          -> left pointErr
+    _          -> left $ pointErr ++ errorend li co
   LParen lValue          -> totypel lValue
 
 checkposneg :: (Int,Int) -> Expr -> String -> Semantics Type
@@ -533,11 +533,11 @@ totyper = \case
     case searchCallSMs id sms of
       Just t  -> funCallSem id t $ reverse exprs
       Nothing -> left $ callErr ++ idv ++ errorend li co
-  RPapaki  posn lValue     -> totypel lValue >>= 
+  RPapaki  posn lValue     -> totypel lValue >>=
                               right . PointerT
-  RNot     posn expr       -> totype expr >>= \case
+  RNot     (li,co) expr       -> totype expr >>= \case
     Tbool -> right Tbool
-    _     -> left "non-boolean expression after not"
+    _     -> left $ "non-boolean expression after not" ++ errorend li co
   RPos     posn expr       -> checkposneg posn expr "'+'"
   RNeg     posn expr       -> checkposneg posn expr "'-'"
   RPlus    posn exp1 exp2  -> checkarithmetic posn exp1 exp2 "'+'"
