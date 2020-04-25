@@ -17,7 +17,7 @@ both: $(sr)
 	ghc -XFlexibleInstances -XLambdaCase -o $(c) -odir $(o) -hidir $(o) $^
 
 clean:
-	rm -f $(o)/* $(c)
+	rm -f $(o)/*.o $(o)/*.hi $(o)/*.hs $(c)
 
 clean_:
-	rm -f $(o)/* 
+	rm -f $(o)/*.o $(o)/*.hi $(o)/*.hs 
