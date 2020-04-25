@@ -1,1 +1,2 @@
-odir/*
+odir/*.hi
+odir/*.o
