@@ -150,7 +150,7 @@ Stmts      :: { Stmts }
 
 Stmt       :: { Stmt }
            : {-empty-}                          { SEmpty                  }
-           | LValue equal Expr                  { SEqual   $1 $3          }
+           | LValue equal Expr                  { SEqual   (posnToIntInt $2) $1 $3          }
            | Block                              { SBlock   $1             }
            | Call                               { SCall    $1             }
            | if Expr then Stmt                  { SIT      (posnToIntInt $1) $2 $4          }
@@ -297,7 +297,7 @@ type Stmts = [Stmt]
 
 data Stmt =
   SEmpty              |
-  SEqual LValue Expr  |
+  SEqual (Int,Int) LValue Expr  |
   SBlock Block        |
   SCall Call          |
   SIT  (Int,Int) Expr Stmt      |

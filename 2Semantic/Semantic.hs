@@ -325,13 +325,15 @@ checkpointer lValue err = totypel lValue >>= \case
 fstatement :: Stmt -> Semantics ()
 fstatement = \case
   SEmpty                   -> return ()
-  SEqual lValue expr       -> case lValue of
-    LString _ -> left "assignment to string"
+  SEqual (li,co) lValue expr       -> case lValue of
+    LString _ -> left $ "assignment to string" ++
+                                           errorend li co
     _         -> do
       lt <- totypel lValue
       et <- totype  expr
       if symbatos lt et then return ()
-      else left "type mismatch in assignment"
+      else left $ "type mismatch in assignment" ++
+                                           errorend li co
   SBlock (Bl ss)           -> fblock $ reverse ss
   SCall (CId id exprs)     -> do
                               sms <- get

@@ -20,5 +20,5 @@ begin
   new y;
   dispose x;
   end;
-  ok := bb[41] div 1;
+  "hello world" := ok;
 end.
