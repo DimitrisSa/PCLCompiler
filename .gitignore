@@ -1,3 +1,4 @@
 odir/*.hi
 odir/*.hs
 odir/*.o
+*.swp
