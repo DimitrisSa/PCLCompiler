@@ -1,29 +1,11 @@
 module Main where
+import SemTypes
 import Parser
 import Control.Monad.State
 import Control.Monad.Trans.Either
 import System.IO
 import System.Exit
 import qualified Data.Map as M
-
--- new/dispose
--- checkbool
--- sequal
-
-data Callable =
-  Proc Args          |
-  Func Args Type     |
-  FProc Args         |
-  FFunc Args Type
-  deriving(Show,Eq)
-
-type VarMap   = M.Map Id Type
-type LabelMap = M.Map Id Bool
-type CallMap  = M.Map Id Callable
-type NewMap   = M.Map LValue ()
-type SymbolMap = (VarMap,LabelMap,CallMap,NewMap)
-type Error = String
-type Semantics a = EitherT Error (State [SymbolMap]) a
 
 emptySymbolMap = (M.empty,M.empty,M.empty,M.empty)
 main = do
@@ -70,7 +52,7 @@ flocals ls = mapM_ flocal ls >> checkNoForward
 
 checkNoForward :: Semantics ()
 checkNoForward = get >>= \((_,_,fm,_):_) ->
-  checkNoForwardFMList $ M.toList fm
+  checkNoForwardFMList $ map (\(x,y)->(x,ca y)) $ M.toList fm
 
 forwardErr = "no implementation for forward declaration: "
 checkNoForwardFMList :: [(Id,Callable)] -> Semantics ()
@@ -137,7 +119,7 @@ headArgsF = \case
 insertResult :: Type -> Semantics ()
 insertResult t = do
   (vm,lm,fm,nm):sms <- get
-  put $ (M.insert (dummy "result") t vm,lm,fm,nm):sms
+  put $ (M.insert (dummy "result") (var t) vm,lm,fm,nm):sms
 
 insertArgsInTm :: Args -> Semantics ()
 insertArgsInTm = mapM_ insertFormalInTm
@@ -151,7 +133,7 @@ insertIdInTm t id = do
   let idv = idValue id
       (li,co) = idPosn id
   case M.lookup id vm of
-    Nothing -> put $ (M.insert id t vm,lm,fm,nm):sms
+    Nothing -> put $ (M.insert id (var t) vm,lm,fm,nm):sms
     _       -> left $ "duplicate argument: " ++ idv
                         ++ errorend li co
 
@@ -165,7 +147,7 @@ insertheader i t expr = do
   (vm,lm,fm,nm):sms <- get
   let idv = idValue i
       (li,co) = idPosn i
-  if expr then put $ (vm,lm,M.insert i t fm,nm):sms
+  if expr then put $ (vm,lm,M.insert i (fp t) fm,nm):sms
   else left $ parErr ++ idv ++ errorend li co
 
 searchCallSMs :: Id -> [SymbolMap] -> Maybe Callable
@@ -176,7 +158,8 @@ searchCallSMs id = \case
   []     -> Nothing
 
 searchCallSM :: Id -> SymbolMap -> Maybe Callable
-searchCallSM id sm = M.lookup id $ (\(_,_,fm,_) -> fm) sm
+searchCallSM id sm = 
+  fmap ca $ M.lookup id $ (\(_,_,fm,_) -> fm) sm
 
 searchVarSMs :: Id -> [SymbolMap] -> Maybe Type
 searchVarSMs id = \case
@@ -186,7 +169,8 @@ searchVarSMs id = \case
   []     -> Nothing
 
 searchVarSM :: Id -> SymbolMap -> Maybe Type
-searchVarSM id sm = M.lookup id $ (\(vm,_,_,_) -> vm) sm
+searchVarSM id sm =
+  fmap ty $ M.lookup id $ (\(vm,_,_,_) -> vm) sm
 
 headProcedureF :: Id -> Args -> [SymbolMap] -> Semantics ()
 headProcedureF i a sms =
@@ -231,7 +215,7 @@ checkArgsAndPut i as t = do
   (vm,lm,fm,nm):sms <- get
   let idv = idValue i
       (li,co) = idPosn i
-  if all argOk as then put $ (vm,lm,M.insert i t fm,nm):sms
+  if all argOk as then put $ (vm,lm,M.insert i (fp t) fm,nm):sms
   else left $ "Can't pass array by value in: " ++ idv
               ++ errorend li co
 
@@ -278,7 +262,7 @@ myinsert ((v,t):xs) = do
   case searchVarSMs v ((vm,lm,fm,nm):sms) of
     Just _  -> left $ dupErr ++ idv ++ errorend li co
     Nothing -> if checkFullType t then
-                 put ((M.insert v t vm,lm,fm,nm):sms) >>
+                 put ((M.insert v (var t) vm,lm,fm,nm):sms) >>
                  myinsert xs
                else left $ "Can't use 'array of' at: "
                            ++ idv ++ errorend li co
@@ -433,8 +417,8 @@ totypel = \case
   LResult (li,co)        -> do
     (vm,lm,fm,nm):sms <- get
     case M.lookup (dummy "result") vm of
-      Just t  -> put ((M.insert (dummy "while") t vm,
-                       lm,fm,nm):sms) >> return t
+      Just v  -> put ((M.insert (dummy "while") v vm,
+                       lm,fm,nm):sms) >> return (ty v)
       Nothing -> left $ "Can only use result in a function call "++errorend li co
   LString string         -> right $ ArrayT NoSize Tchar
   LValueExpr (li,co) lValue expr -> totype expr >>= \case
@@ -635,12 +619,14 @@ dummy s = Id s (0,0)
 helpprocs :: String->Args->Semantics ()
 helpprocs name myArgs = do
   (vm,lm,fm,nm):sms <- get
-  put $ (vm,lm,M.insert (dummy name) (Proc myArgs) fm,nm):sms
+  put $ (vm,lm,
+         M.insert (dummy name) (fp $ Proc myArgs) fm,nm):sms
 
 --helper function to insert
 --  the predefined functions to the symbol table
 helpfunc :: String->Args->Type->Semantics ()
 helpfunc name myArgs myType = do
   (vm,lm,fm,nm):sms <- get
-  put $ (vm,lm,M.insert (dummy name) (Func myArgs myType) fm,
+  put $ (vm,lm,
+         M.insert (dummy name) (fp $ Func myArgs myType) fm,
          nm):sms
