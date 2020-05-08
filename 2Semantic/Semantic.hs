@@ -5,23 +5,25 @@ import Control.Monad.State
 import Control.Monad.Trans.Either
 import System.IO
 import System.Exit
+import SemErrors
 import qualified Data.Map as M
-
+ 
+-- Read, Parse, Process sems
 main = do
   s    <- getContents
   case parser s of
     Left e -> die e
     Right ast -> do
       let processAst = evalState . runEitherT . program
-      case (\x -> x emptyCGS) $ processAst ast of
+      case processAst ast emptyCGS of
         Right _  -> hPutStrLn stdout "good" >> exitSuccess
         Left s   -> die s
 
--- process ast
+-- predefined funs + body sems
 program :: Program -> Semantics ()
 program (P _ body) = initSymbolTable >> bodySems body
 
--- process body
+-- locals sems + block sems + unused declared labels
 bodySems :: Body -> Semantics ()
 bodySems (B locals (Bl s)) =
   flocals (reverse locals) >> fblock (reverse s) >>
@@ -30,7 +32,6 @@ bodySems (B locals (Bl s)) =
 checkDangledGoTos :: Stmts -> Semantics ()
 checkDangledGoTos = mapM_ checkDangledGoTo
 
-dangledGotoErr = "goto label declared but not used: "
 checkDangledGoTo :: Stmt -> Semantics ()
 checkDangledGoTo = \case
   SGoto id -> do
@@ -44,7 +45,7 @@ checkDangledGoTo = \case
   SBlock (Bl ss) -> checkDangledGoTos $ reverse ss
   _              -> return ()
 
--- process locals (vars, labels, headbod, forward)
+-- process locals + unimplemented forward
 flocals :: [Local] -> Semantics ()
 flocals ls = mapM_ flocal ls >> checkNoForward
 
@@ -52,7 +53,6 @@ checkNoForward :: Semantics ()
 checkNoForward = gets symtab >>= \((_,_,fm,_):_) ->
   checkNoForwardFMList $ map (\(x,y)->(x,ca y)) $ M.toList fm
 
-forwardErr = "no implementation for forward declaration: "
 checkNoForwardFMList :: [(Id,Callable)] -> Semantics ()
 checkNoForwardFMList = \case
   (id,FProc _  ):_ -> let idv = idValue id
@@ -66,6 +66,7 @@ checkNoForwardFMList = \case
   _:fml            -> checkNoForwardFMList fml
   []               -> return ()
 
+-- Pattern match and call appropriate fun
 flocal :: Local -> Semantics ()
 flocal = \case
   LoVar vars     -> toSems vars
@@ -76,15 +77,13 @@ flocal = \case
 insertLabels :: Ids -> Semantics ()
 insertLabels = mapM_ insertLabel
 
-errorend l c = " at line " ++ show l ++ ", column " ++ show c
 insertLabel :: Id -> Semantics ()
 insertLabel l = do
   (vm,lm,fm,nm):sms <- gets symtab
   let lv = idValue l
       (li,co) = idPosn l
   case M.lookup l lm of
-    Just _  -> left $ "Duplicate label declaration: " ++ lv ++
-                      errorend li co
+    Just _  -> left $ dupLabDecErr ++ lv ++ errorend li co
     Nothing -> modify $ \s->s {symtab =
       (vm,M.insert l False lm,fm,nm):sms }
 
@@ -92,13 +91,11 @@ headBodF :: Header -> Body -> Semantics ()
 headBodF h bod = do
   headF h
   sms <- gets symtab
-  modify $ \s->s {symtab =
-    emptySymbolMap:sms }
+  modify $ \s->s {symtab = emptySymbolMap:sms }
   headArgsF h
   bodySems bod
   checkresult h
-  modify $ \s->s {symtab =
-    sms }
+  modify $ \s->s {symtab = sms }
 
 checkresult :: Header -> Semantics ()
 checkresult = \case
@@ -107,8 +104,7 @@ checkresult = \case
     let idv = idValue i
         (li,co) = idPosn i
     case M.lookup (dummy "while") vm of
-      Nothing -> left $ "Result not set for function: " ++ idv
-                        ++ errorend li co
+      Nothing -> left $ noResInFunErr ++ idv ++ errorend li co
       _       -> return ()
   _ -> return ()
 
@@ -137,14 +133,9 @@ insertIdInTm t id = do
   case M.lookup id vm of
     Nothing -> modify $ \s->s {symtab =
       (M.insert id (var t) vm,lm,fm,nm):sms }
-    _       -> left $ "duplicate argument: " ++ idv
-                        ++ errorend li co
+    _       -> left $ dupArgErr ++ idv ++ errorend li co
 
 -- to check if func/proc with forward is defined
-parErr = "Parameter missmatch between " ++
-         "forward and declaration for: "
-dupErr = "Duplicate Variable: "
-
 insertheader :: Id -> Callable -> Bool -> Semantics ()
 insertheader i t expr = do
   (vm,lm,fm,nm):sms <- gets symtab
@@ -191,9 +182,8 @@ headProcedureF i a sms =
     Nothing        -> checkArgsAndPut i a' $ Proc a'
     _              -> left $ dupErr ++ idv ++ errorend li co
 
-funErr = "Function can't have a return type of array "
 type SemUnit = Semantics ()
-headFunctionF ::Id -> Args -> P.Type -> [SymbolMap] -> SemUnit
+headFunctionF :: Id -> Args -> P.Type -> [SymbolMap] -> SemUnit
 headFunctionF i a t sms =
   let a' = reverse a
       idv = idValue i
@@ -221,8 +211,7 @@ checkArgsAndPut i as t = do
       (li,co) = idPosn i
   if all argOk as then modify $ \s->s {symtab =
     (vm,lm,M.insert i (fp t) fm,nm):sms }
-  else left $ "Can't pass array by value in: " ++ idv
-              ++ errorend li co
+  else left $ arrByValErr ++ idv ++ errorend li co
 
 argOk :: Formal -> Bool
 argOk = \case
@@ -270,20 +259,17 @@ myinsert ((v,t):xs) = do
                  modify ( \s->s {symtab =
                    (M.insert v (var t) vm,lm,fm,nm):sms })>> 
                  myinsert xs
-               else left $ "Can't use 'array of' at: "
-                           ++ idv ++ errorend li co
+               else left $ arrayOfErr ++ idv ++ errorend li co
 myinsert [] = return ()
 
 fblock :: Stmts -> Semantics ()
 fblock ss = mapM_ fstatement ss
 
-gotoErr = "Undeclared Label: "
-callErr = "Undeclared function or procedure in call: "
 checkBoolExpr :: Expr -> String -> Semantics ()
 checkBoolExpr expr stmtDesc = do
   et <- totype expr
   if et == Tbool then return ()
-  else left $ "Non-boolean expression in " ++ stmtDesc
+  else left $ nonBoolErr ++ stmtDesc
 
 checkGoTo :: Id -> Semantics ()
 checkGoTo id = do
@@ -292,8 +278,7 @@ checkGoTo id = do
       (li,co) = idPosn id
   case M.lookup id lm of
     Just _  -> return ()
-    Nothing -> left $ "undefined label: " ++ idv
-                      ++ errorend li co
+    Nothing -> left $ undefLabErr ++ idv ++ errorend li co
 
 checkId :: Id -> Semantics ()
 checkId id = do
@@ -303,10 +288,8 @@ checkId id = do
   case M.lookup id lm of
     Just False -> modify $ \s->s {symtab =
       (vm,M.insert id True lm,fm,nm):sms }
-    Just True  -> left $ "duplicate label: " ++ idv
-                         ++ errorend li co
-    Nothing    -> left $ "undefined label: " ++ idv
-                         ++ errorend li co
+    Just True  -> left $ dupLabErr ++ idv ++ errorend li co
+    Nothing    -> left $ undefLabErr ++ idv ++ errorend li co
 
 checkpointer :: LValue -> Error -> Semantics P.Type
 checkpointer lValue err = totypel lValue >>= \case
@@ -317,14 +300,12 @@ fstatement :: Stmt -> Semantics ()
 fstatement = \case
   SEmpty                   -> return ()
   SEqual (li,co) lValue expr       -> case lValue of
-    LString _ -> left $ "assignment to string" ++
-                                           errorend li co
+    LString _ -> left $ strAssErr ++ errorend li co
     _         -> do
       lt <- totypel lValue
       et <- totype  expr
       if symbatos lt et then return ()
-      else left $ "type mismatch in assignment" ++
-                                           errorend li co
+      else left $ assTypeMisErr ++ errorend li co
   SBlock (Bl ss)           -> fblock $ reverse ss
   SCall (CId id exprs)     -> do
                               sms <- gets symtab
@@ -336,39 +317,39 @@ fstatement = \case
                                 Nothing -> left $ callErr ++
                                            idv ++
                                            errorend li co
-  SIT  (li,co) expr stmt           -> checkBoolExpr expr ("if-then" ++ errorend li co) >>
+  SIT  (li,co) expr stmt -> checkBoolExpr expr ("if-then" ++ errorend li co) >>
                               fstatement stmt
-  SITE (li,co) expr s1 s2          -> checkBoolExpr expr ("if-then-else" ++ errorend li co)
+  SITE (li,co) expr s1 s2 -> checkBoolExpr expr ("if-then-else" ++ errorend li co)
                               >> fstatement s1 >> fstatement s2
-  SWhile (li,co) expr stmt         -> checkBoolExpr expr ("while" ++ errorend li co) >>
+  SWhile (li,co) expr stmt -> checkBoolExpr expr ("while" ++ errorend li co) >>
                               fstatement stmt
   SId id stmt              -> checkId   id >> fstatement stmt
   SGoto id                 -> checkGoTo id
   SReturn                  -> return ()
-  SNew (li,co) new lValue          -> do
+  SNew (li,co) new lVal          -> do
     (vm,lm,fm,nm):sms <- gets symtab
     modify $ \s->s {symtab =
-      (vm,lm,fm,M.insert lValue () nm):sms }
-    t <- checkpointer lValue $ "non-pointer in new statement" ++ errorend li co
+      (vm,lm,fm,M.insert lVal () nm):sms }
+    t <- checkpointer lVal $ nonPointNewErr ++ errorend li co
     case (new,checkFullType t) of
       (NewEmpty,True)   -> return ()
       (NewExpr e,False) -> totype e >>= \case
         Tint -> return ()
-        _    -> left $ "non-integer expression in new statement"++ errorend li co
-      _ -> left $ "bad pointer type in new expression"++errorend li co
-  SDispose (li,co) disptype lValue -> do
+        _    -> left $ nonIntNewErr ++ errorend li co
+      _ -> left $ badPointNewErr ++ errorend li co
+  SDispose (li,co) disptype lVal -> do
     (vm,lm,fm,nm):sms <- gets symtab
-    newnm <- deleteNewMap lValue nm $ "disposing null pointer" ++ errorend li co
-    modify $ \s->s {symtab =
-      (vm,lm,fm,newnm):sms }
-    t <- checkpointer lValue $ "non-pointer in dispose statement"++errorend li co
+    newnm <- deleteNewMap lVal nm $
+              dispNullPointErr ++ errorend li co
+    modify $ \s->s {symtab = (vm,lm,fm,newnm):sms }
+    t <- checkpointer lVal $ dispNonPointErr ++ errorend li co
     case (disptype,checkFullType t) of
       (With,False)   -> return ()
       (Without,True) -> return ()
-      _ -> left $ "bad pointer type in dispose expression"++errorend li co
+      _ -> left $ badPointDispErr ++ errorend li co
 
 deleteNewMap :: LValue -> NewMap -> String -> Semantics NewMap
-deleteNewMap l nm errmsg= case M.lookup l nm of
+deleteNewMap l nm errmsg = case M.lookup l nm of
   Nothing -> left errmsg
   _       -> right $ M.delete l nm
 
@@ -383,7 +364,6 @@ symbatos (PointerT (ArrayT NoSize t1))
 symbatos lt et = (lt == et && checkFullType lt) ||
                  (lt == Treal && et == Tint)
 
-callSemErr = "Wrong type of identifier in call: "
 callSem :: Id -> Callable -> Exprs -> Semantics ()
 callSem id = \case
   FProc as -> goodArgs id as
@@ -407,12 +387,6 @@ totype :: Expr -> Semantics P.Type
 totype = \case
   L lval -> totypel lval
   R rval -> totyper rval
-
-varErr = "Undeclared variable: "
-retErr = "'return' in function argument"
-indErr = "index not integer"
-arrErr = "indexing something that is not an array"
-pointErr = "dereferencing non-pointer"
 
 totypel :: LValue -> Semantics P.Type
 totypel = \case

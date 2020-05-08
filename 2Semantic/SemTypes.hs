@@ -5,23 +5,26 @@ import Parser as P
 import Control.Monad.State
 import Control.Monad.Trans.Either
 import LLVM.AST as L
-import Data.ByteString.Short (toShort,fromShort)
+import Data.ByteString.Short (ShortByteString,toShort,
+                              fromShort)
 import Data.ByteString.Char8 (pack,unpack)
 import qualified Data.Map as M
 
 data Variable =
-  Var { ty :: P.Type }
+  Var { ty :: P.Type ,
+        vop :: Maybe Operand}
   deriving(Show,Eq)
 
 var :: P.Type -> Variable
-var t = Var t
+var t = Var t Nothing
 
 data FaP =
-  FP { ca :: Callable }
+  FP { ca :: Callable ,
+       fop :: Maybe Operand}
   deriving(Show,Eq)
 
 fp :: Callable -> FaP
-fp t = FP t
+fp t = FP t Nothing
 
 data Callable =
   Proc Args         |
@@ -50,7 +53,7 @@ data CodegenState
 
 emptySymbolMap = (M.empty,M.empty,M.empty,M.empty)
 emptyCGS = CodegenState {
-    currentBlock = Name $ toShort $ pack ""
+    currentBlock = Name $ tsp ""
   , blocks       = M.empty
   , symtab       = [emptySymbolMap]
   , blockCount   = 0
@@ -75,3 +78,17 @@ uniqueName nm ns =
 
 newtype LLVM a = LLVM (State L.Module a)
   deriving (Functor, Applicative, Monad, MonadState L.Module )
+
+runLLVM :: L.Module -> LLVM a -> L.Module
+runLLVM mod (LLVM m) = execState m mod
+
+emptyModule :: String -> L.Module
+emptyModule label = defaultModule { moduleName = tsp label }
+
+addDefn :: Definition -> LLVM ()
+addDefn d = do
+  defs <- gets moduleDefinitions
+  modify $ \s -> s { moduleDefinitions = defs ++ [d] }
+
+tsp :: String -> ShortByteString
+tsp = toShort . pack
