@@ -18,7 +18,8 @@ begin
   begin
   new x;
   new y;
+  new y;
+  dispose x;
   dispose x;
   end;
-  "hello world" := ok;
 end.
