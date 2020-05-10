@@ -5,9 +5,11 @@ import Parser as P
 import Control.Monad.State
 import Control.Monad.Trans.Either
 import LLVM.AST as L
+import LLVM.AST.Type as T
 import Data.ByteString.Short (ShortByteString,toShort,
                               fromShort)
 import Data.ByteString.Char8 (pack,unpack)
+import Data.Bits.Extras
 import qualified Data.Map as M
 
 data Variable =
@@ -92,3 +94,23 @@ addDefn d = do
 
 tsp :: String -> ShortByteString
 tsp = toShort . pack
+
+tollvmTy :: P.Type -> T.Type
+tollvmTy = \case 
+  Tnil              -> undefined
+  Tint              -> i32
+  Treal             -> double
+  Tbool             -> i1
+  Tchar             -> i8
+  ArrayT arrSize ty -> tollvmArrTy arrSize ty
+  PointerT ty       -> ptr (tollvmTy ty)
+
+tollvmArrTy arrSize ty = case arrSize of
+  NoSize -> ptr (tollvmTy ty)
+  Size i -> ArrayType (w64 i) $ tollvmTy ty
+
+toSig :: Args -> [(L.Type, L.Name)] 
+toSig = concat . map formalToSig
+
+formalToSig (_,ids,ty) =
+  map (\id -> (tollvmTy ty,L.Name $ tsp $ idValue id)) ids

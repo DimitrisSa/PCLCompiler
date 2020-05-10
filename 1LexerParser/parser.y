@@ -242,7 +242,10 @@ data Body =
   B [Local] Block
   deriving(Show)
 
-data Id        = Id {idValue::String,idPosn::(Int,Int)}
+data Id        = Id {
+    idValue::String
+  , idPosn::(Int,Int)
+  }
   deriving(Show)
 
 instance Eq Id where
@@ -262,8 +265,15 @@ data Local =
   deriving(Show)
 
 data Header =
-  Procedure Id Args      |
-  Function  Id Args Type
+  Procedure {
+    pname :: Id
+  , pargs :: Args
+  }  |
+  Function  {
+    fname :: Id
+  , fargs :: Args
+  , fty :: Type
+  }
   deriving(Show)
 
 data PassBy =

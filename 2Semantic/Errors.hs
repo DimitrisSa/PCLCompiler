@@ -1,6 +1,6 @@
 module SemErrors where
-
-dangledGotoErr = "goto label declared but not used: "
+ 
+unusedGotoErr = "goto label declared but not used: "
 forwardErr = "no implementation for forward declaration: "
 errorend l c = " at line " ++ show l ++ ", column " ++ show c
 dupLabDecErr = "Duplicate label declaration: "
@@ -31,5 +31,20 @@ retErr = "'return' in function argument"
 indErr = "index not integer"
 arrErr = "indexing something that is not an array"
 pointErr = "dereferencing non-pointer"
+resultNoFunErr = "Can only use result in a function call "  
+nonNumAfErr = "non-number expression after " 
+nonNumBefErr = "non-number expression before "
+nonIntAfErr = "non-integer expression after "
+nonIntBefErr = "non-integer expression before "
+nonBoolAfErr = "non-boolean expression after "
+nonBoolBefErr = "non-boolean expression before "
+mismTypesErr = "mismatched types at "
+argsExprsErr = "Wrong number of args for: "
+typeExprsErr = "Type mismatch of args for: "
+badArgErr id i = concat ["Type mismatch at argument ",show i,
+                         " in call of: ", id]
+refErr i id = concat
+  ["Argument ",show i, " in call of \"",
+   id,"\" cannot be passed by reference"]
 
 
