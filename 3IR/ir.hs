@@ -7,6 +7,8 @@ import LLVM.AST.Type
 import Parser as P
 import SemTypes
 
+--codeGenProgram :: Program -> LLVM ()
+--codeGenProgram (P id body) = 
 --codegenFun :: Header -> Body -> LLVM ()
 --codegenFun header body = do
 --  let name = idValue $ fname header
@@ -31,3 +33,4 @@ import SemTypes
 --  P.Procedure _ _   -> codegenFun header body
 --  P.Function  _ _ _ -> codegenProc header body
 --
+-- Type Sizes

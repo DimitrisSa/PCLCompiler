@@ -8,6 +8,7 @@ import System.Exit
 import SemErrors
 import qualified Data.Map as M
  
+-- same name of fun inside of other fun?
 -- Read, Parse, Process sems
 main = do
   s    <- getContents
@@ -108,6 +109,8 @@ insertLabel l = do
     Nothing -> modify $ \s->s {symtab =
                   (vm,M.insert l False lm,fm,nm):sms }
 
+-- headerSems + newSymTab + argsInNewSymTab + bodySems + 
+-- existsResult
 headBodF :: Header -> Body -> Semantics ()
 headBodF h bod = do
   headF h
@@ -190,20 +193,20 @@ searchVarSM id sm =
 headProcedureF :: Id -> Args -> [SymbolMap] -> Semantics ()
 headProcedureF i a sms =
   let a' = reverse a in
-  case searchCallSMs i sms of
+  case searchCallSM i (head sms) of
     Just (FProc b) -> let aTypes = formalsToTypes a'
                           bTypes = formalsToTypes b
                           sameTypes = aTypes == bTypes
                           p = Proc a'
                       in insertheader i p sameTypes
     Nothing        -> checkArgsAndPut i a' $ Proc a'
-    _              -> errAtId dupErr i
+    _              -> errAtId dupProcErr i
 
 type SemUnit = Semantics ()
 headFunctionF :: Id -> Args -> P.Type -> [SymbolMap] -> SemUnit
 headFunctionF i a t sms =
   let a' = reverse a in
-  case searchCallSMs i sms of
+  case searchCallSM i (head sms) of
     Just (FFunc b t2) -> let aTypes = formalsToTypes a'
                              bTypes = formalsToTypes b
                              sameTypes = aTypes == bTypes
@@ -212,7 +215,7 @@ headFunctionF i a t sms =
     Nothing -> case t of
       ArrayT _ _ -> errAtId funErr i
       _          -> checkArgsAndPut i a' $ Func a' t
-    _       -> errAtId dupErr i
+    _       -> errAtId dupFunErr i
 
 headF :: Header -> Semantics ()
 headF h = gets symtab >>= \sms -> case h of
@@ -260,7 +263,7 @@ makelisthelp (pb,in1,myt) = Prelude.map (\_ -> (pb,myt)) in1
 myinsert :: [(Id,Type)] -> Semantics ()
 myinsert ((v,t):xs) = do
   (vm,lm,fm,nm):sms <- gets symtab
-  case searchVarSMs v ((vm,lm,fm,nm):sms) of
+  case M.lookup v vm of
     Just _  -> errAtId dupErr v
     Nothing -> if checkFullType t then
                  modify ( \s->s {symtab =

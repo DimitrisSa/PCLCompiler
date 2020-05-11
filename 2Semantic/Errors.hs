@@ -7,6 +7,8 @@ dupLabDecErr = "Duplicate label declaration: "
 parErr = "Parameter missmatch between " ++
          "forward and declaration for: "
 dupErr = "Duplicate Variable: "
+dupProcErr = "Duplicate Procedure: "
+dupFunErr = "Duplicate Function: "
 dupArgErr = "duplicate argument: " 
 noResInFunErr = "Result not set for function: " 
 funErr = "Function can't have a return type of array "
