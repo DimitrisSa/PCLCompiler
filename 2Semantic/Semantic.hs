@@ -237,7 +237,7 @@ argOk = \case
 insertforward :: Id -> Args -> Callable -> Semantics ()
 insertforward i as t = do
   sms <- gets symtab
-  case searchCallSMs i sms of
+  case searchCallSM i (head sms) of
     Just _ -> errAtId dupErr i
     Nothing -> checkArgsAndPut i as t
 
