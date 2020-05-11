@@ -489,11 +489,9 @@ totyper = \case
   RNil                -> right Tnil
   RCall (CId id exprs) -> do
     sms <- gets symtab
-    let idv = idValue id
-        (li,co) = idPosn id
     case searchCallSMs id sms of
       Just t  -> funCallSem id t $ reverse exprs
-      Nothing -> left $ callErr ++ idv ++ errorend li co
+      Nothing -> errAtId callErr id
   RPapaki  posn lValue     -> totypel lValue >>=
                               right . PointerT
   RNot     (li,co) expr       -> totype expr >>= \case
@@ -523,28 +521,22 @@ funCallSem :: Id -> Callable -> Exprs -> Semantics P.Type
 funCallSem id = \case
   FFunc as t -> \exprs -> goodArgs id as exprs >> right t
   Func  as t -> \exprs -> goodArgs id as exprs >> right t
-  _           -> let idv = idValue id
-                     (li,co) = idPosn id
-                 in \_ -> left $ callSemErr ++ idv
-                                 ++ errorend li co
+  _          -> \_ -> errAtId callSemErr id
+
+errAtArg err i id =
+  let idv = idValue id
+      (li,co) = idPosn id
+  in left $ err i idv ++ errorend li co
 
 type PTs = [(PassBy,Type)]
 argsExprsSems :: Int -> Id -> PTs -> PTs -> Semantics ()
 argsExprsSems i id ((Reference,_):_) ((Value,_):_) =
-    let idv = idValue id
-        (li,co) = idPosn id
-    in left $ refErr i idv ++ errorend li co
+    errAtArg refErr i id
 argsExprsSems i id ((_,t1):t1s) ((_,t2):t2s)
   | symbatos t1 t2 = argsExprsSems (i+1) id t1s t2s
-  | otherwise =
-    let idv = idValue id
-        (li,co) = idPosn id
-    in left $ badArgErr idv i ++ errorend li co
+  | otherwise = errAtArg badArgErr i id 
 argsExprsSems _ _ [] [] = return ()
-argsExprsSems _ id _ _ =
-    let idv = idValue id
-        (li,co) = idPosn id
-    in left $ argsExprsErr ++ idv ++ errorend li co
+argsExprsSems _ id _ _ = errAtId argsExprsErr id
 
 --initialize Symbol Table with predefined procedures
 initSymbolTable :: Semantics ()

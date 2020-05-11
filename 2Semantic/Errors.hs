@@ -41,10 +41,8 @@ nonBoolBefErr = "non-boolean expression before "
 mismTypesErr = "mismatched types at "
 argsExprsErr = "Wrong number of args for: "
 typeExprsErr = "Type mismatch of args for: "
-badArgErr id i = concat ["Type mismatch at argument ",show i,
+badArgErr i id = concat ["Type mismatch at argument ",show i,
                          " in call of: ", id]
 refErr i id = concat
   ["Argument ",show i, " in call of \"",
    id,"\" cannot be passed by reference"]
-
-
