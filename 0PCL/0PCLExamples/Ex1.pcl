@@ -1,28 +1,6 @@
 program hello;
-label lab;
-var s : ^real;
-t : integer;
-bb : array [42] of integer ;
-x : ^real;
-y : ^real;
-var ok: real;
-forward procedure oko(var ok: real; a: integer);
-procedure oko(var ok: real; a: integer);
-begin end;
-function ok():real;
-var f : integer;
-procedure oko(var ok: real; a: integer);
-begin end;
-procedure oko(var ok: real; a: integer);
-begin end;
+function ok():integer;
 begin
-  result := f; 
 end;
 begin
-  begin
-  new x;
-  new y;
-  new y;
-  dispose x;
-  end;
 end.

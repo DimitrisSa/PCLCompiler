@@ -1,4 +1,4 @@
-module Main where
+module Semantics where
 import SemTypes
 import Parser as P
 import Control.Monad.State
@@ -10,14 +10,16 @@ import qualified Data.Map as M
  
 -- same name of fun inside of other fun?
 -- Read, Parse, Process sems
-main = do
+sems = do
   s    <- getContents
   case parser s of
     Left e -> die e
     Right ast -> do
       let processAst = evalState . runEitherT . program
       case processAst ast emptyCGS of
-        Right _  -> hPutStrLn stdout "good" >> exitSuccess
+        Right _  -> do
+          hPutStrLn stdout "good"
+          exitSuccess
         Left s   -> die s
 
 -- predefined funs + body sems

@@ -95,6 +95,9 @@ addDefn d = do
 tsp :: String -> ShortByteString
 tsp = toShort . pack
 
+pst :: ShortByteString -> String
+pst = unpack . fromShort
+
 tollvmTy :: P.Type -> T.Type
 tollvmTy = \case 
   Tnil              -> undefined
