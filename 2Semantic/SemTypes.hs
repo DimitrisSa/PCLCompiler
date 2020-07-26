@@ -9,7 +9,7 @@ import LLVM.AST.Type as T
 import Data.ByteString.Short (ShortByteString,toShort,
                               fromShort)
 import Data.ByteString.Char8 (pack,unpack)
-import Data.Bits.Extras
+import Data.Bits.Extras (w64)
 import qualified Data.Map as M
 
 data Variable =
