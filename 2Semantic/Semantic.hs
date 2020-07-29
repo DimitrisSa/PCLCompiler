@@ -10,27 +10,23 @@ import qualified Data.Map as M
 
 -- same name of fun inside of other fun?
 -- Read, Parse, Process sems
-sems = do
-  s    <- getContents
-  case parser s of
-    Left e -> die e
-    Right ast -> do
-      let processAst = evalState . runEitherT . program
-      case processAst ast emptyCGS of
-        Right _  -> do
-          hPutStrLn stdout "good"
-          exitSuccess
-        Left s   -> die s
+semantics = getContents >>= parserErrorOrAstSemantics . parser 
+
+parserErrorOrAstSemantics = \case 
+  Left e -> die e
+  Right ast -> astSemantics ast
+
+astSemantics ast = case (evalState . runEitherT . programSemantics) ast emptyCGS of
+    Right _  -> hPutStrLn stdout "good" >> exitSuccess
+    Left s   -> die s
 
 -- predefined funs + body sems
-program :: Program -> Semantics ()
-program (P _ body) = do
-  initSymbolTable 
-  bodySems body
+programSemantics :: Program -> Semantics ()
+programSemantics (P _ body) = initSymbolTable >> bodySemantics body
 
 -- locals sems + block sems + unused declared labels
-bodySems :: Body -> Semantics ()
-bodySems (B locals (Bl s)) = do
+bodySemantics :: Body -> Semantics ()
+bodySemantics (B locals (Bl s)) = do
   flocals (reverse locals) 
   fblock (reverse s) 
   checkUnusedGoTos (reverse s)
@@ -110,7 +106,7 @@ insertLabel l = do
     Just _  -> errAtId dupLabDecErr l
     Nothing -> modify $ \s->s {symtab = (vm,M.insert l False lm,fm,nm):sms }
 
--- headerSems + newSymTab + argsInNewSymTab + bodySems + 
+-- headerSems + newSymTab + argsInNewSymTab + bodySemantics + 
 -- existsResult
 headBodF :: Header -> Body -> Semantics ()
 headBodF h bod = do
@@ -118,7 +114,7 @@ headBodF h bod = do
   sms <- gets symtab
   modify $ \s->s {symtab = emptySymbolMap:sms }
   headArgsF h
-  bodySems bod
+  bodySemantics bod
   checkresult h
   modify $ \s->s {symtab = sms }
 
