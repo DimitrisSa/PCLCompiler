@@ -239,7 +239,7 @@ data Program =
 --  show = \(P i b) -> concat ["P\n\n\n",show i,show b]
 
 data Body =
-  B [Local] Block
+  Body [Local] Block
   deriving(Show)
 
 data Id        = Id {

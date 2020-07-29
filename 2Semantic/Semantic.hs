@@ -26,7 +26,7 @@ programSemantics (P _ body) = initSymbolTable >> bodySemantics body
 
 -- locals sems + block sems + unused declared labels
 bodySemantics :: Body -> Semantics ()
-bodySemantics (B locals (Bl s)) = do
+bodySemantics (Body locals (Bl s)) = do
   flocals (reverse locals) 
   fblock (reverse s) 
   checkUnusedGoTos (reverse s)
