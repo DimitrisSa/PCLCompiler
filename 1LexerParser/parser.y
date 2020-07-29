@@ -87,7 +87,7 @@ Program    :: { Program }
            : program id ';' Body '.'            { P (tokenToId $2) $4 }
 
 Body       :: { Body }
-           : Locals Block                       { B $1 $2 }
+           : Locals Block                       { Body $1 $2 }
 
 Locals     :: { [Local] }
            : {-empty-}                          { []    }

@@ -23,7 +23,7 @@ codeGenProgram (P id body) = do
   codeGenBody body
 
 codeGenBody :: Body -> LLVM ()
-codeGenBody (B ls blc) = do
+codeGenBody (Body ls blc) = do
   codeGenLocals ls
   codeGenBlock blc
 
