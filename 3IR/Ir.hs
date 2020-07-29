@@ -77,76 +77,76 @@ codeGenFun i a t b = do
 --      assign a var
 --    cgen body >>= ret
 
-assign :: String -> Operand -> Codegen ()
-assign var x = do
-  (vm,lm,cm,nm):sms <- gets symtab
-  modify $ \s -> s {
-    symtab = ( var x vm,lm,cm,nm):lcls }
-
-insInVmOper :: String -> Operand -> VarMap -> VarMap
-insInVmOper = 
-
-alloca :: T.Type -> Codegen Operand
-alloca ty = instr $ Alloca ty Nothing 0 []
-
-store :: Operand -> Operand -> Codegen Operand
-store ptr val = instr $ Store False ptr val Nothing 0 []
-
-instr :: Instruction -> Codegen (Operand)
-instr ins = do
-  n <- fresh
-  let ref = (UnName n)
-  blk <- current
-  let i = stack blk
-  modifyBlock (blk { stack = (ref := ins) : i } )
-  return $ local ref
-
-fresh :: Codegen Word
-fresh = do
-  i <- gets count
-  modify $ \s -> s { count = 1 + i }
-  return $ i + 1
-
-emptyBlock :: Int -> BlockState
-emptyBlock i = BlockState i [] Nothing
-
-addBlock :: String -> Codegen Name
-addBlock bname = do
-  bls <- gets blocks
-  ix  <- gets blockCount
-  nms <- gets names
-
-  let new = emptyBlock ix
-      (qname, supply) = uniqueName bname nms
-
-  modify $ \s -> s {
-      blocks = Map.insert (Name $ tsp qname) new bls
-    , blockCount = ix + 1
-    , names = supply
-    }
-  return (Name $ tsp qname)
-
-setBlock :: Name -> Codegen Name
-setBlock bname = do
-  modify $ \s -> s { currentBlock = bname }
-  return bname
-
-makeBlock :: (Name, BlockState) -> BasicBlock
-makeBlock (l, (BlockState _ s t)) =
-  BasicBlock l (reverse s) (maketerm t)
-  where
-    maketerm (Just x) = x
-    maketerm Nothing =
-      error $ "Block has no terminator: " ++ (show l)
-
-createBlocks :: CodegenState -> [BasicBlock]
-createBlocks m =
-  Prelude.map makeBlock $ sortBlocks $ Map.toList (blocks m)
-
-sortBlocks :: [(Name, BlockState)] -> [(Name, BlockState)]
-sortBlocks = sortBy (compare `on` (idx . snd))
-
-
+--assign :: Id -> Operand -> Codegen ()
+--assign var x = do
+--  (vm,lm,cm,nm):sms <- gets symtab
+--  modify $ \s -> s {
+--    symtab = (Map.insert var x vm,lm,cm,nm):sms }
+--
+----insInVmOper :: String -> Operand -> VarMap -> VarMap
+----insInVmOper = 
+--
+--alloca :: T.Type -> Codegen Operand
+--alloca ty = instr $ Alloca ty Nothing 0 []
+--
+--store :: Operand -> Operand -> Codegen Operand
+--store ptr val = instr $ Store False ptr val Nothing 0 []
+--
+--instr :: Instruction -> Codegen (Operand)
+--instr ins = do
+--  n <- fresh
+--  let ref = (UnName n)
+--  blk <- current
+--  let i = stack blk
+--  modifyBlock (blk { stack = (ref := ins) : i } )
+--  return $ local ref
+--
+--fresh :: Codegen Word
+--fresh = do
+--  i <- gets count
+--  modify $ \s -> s { count = 1 + i }
+--  return $ i + 1
+--
+--emptyBlock :: Int -> BlockState
+--emptyBlock i = BlockState i [] Nothing
+--
+--addBlock :: String -> Codegen Name
+--addBlock bname = do
+--  bls <- gets blocks
+--  ix  <- gets blockCount
+--  nms <- gets names
+--
+--  let new = emptyBlock ix
+--      (qname, supply) = uniqueName bname nms
+--
+--  modify $ \s -> s {
+--      blocks = Map.insert (Name $ tsp qname) new bls
+--    , blockCount = ix + 1
+--    , names = supply
+--    }
+--  return (Name $ tsp qname)
+--
+--setBlock :: Name -> Codegen Name
+--setBlock bname = do
+--  modify $ \s -> s { currentBlock = bname }
+--  return bname
+--
+--makeBlock :: (Name, BlockState) -> BasicBlock
+--makeBlock (l, (BlockState _ s t)) =
+--  BasicBlock l (reverse s) (maketerm t)
+--  where
+--    maketerm (Just x) = x
+--    maketerm Nothing =
+--      error $ "Block has no terminator: " ++ (show l)
+--
+--createBlocks :: CodegenState -> [BasicBlock]
+--createBlocks m =
+--  Prelude.map makeBlock $ sortBlocks $ Map.toList (blocks m)
+--
+--sortBlocks :: [(Name, BlockState)] -> [(Name, BlockState)]
+--sortBlocks = sortBy (compare `on` (idx . snd))
+--
+--
 newtype Codegen a =
   Codegen { runCodegen :: State CodegenState a }
   deriving (Functor, Applicative, Monad,
