@@ -9,8 +9,7 @@ begin
 end;
   (*forward procedure ok();*)
 begin
-(* * 
- *)
+(***)
 comparedo := true ; 
 if comparedo then
  if comparedo then

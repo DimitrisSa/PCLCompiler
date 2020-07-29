@@ -15,10 +15,9 @@ $sign      = [\- \+]
 @power     = ($e $sign? @int)? 
 @real      = @int \. @int @power  
 
-$inCom     = [$printable $white] # \*
-$comCont   = [$printable $white] # \)
-@comS      = \( \*
-@comment   = @comS ( $inCom | \* $comCont )* \* \)
+$inCommment = [$printable $white] # \*
+$afterStar  = $inCommment # \)
+@comment    = \( \* ( $inCommment | (\*)* $afterStar)* (\*)+ \)
 
 $printChar = $printable # [\\ \' \"]
 @escSeq    = \\ [n t r 0 \\ \' \"]

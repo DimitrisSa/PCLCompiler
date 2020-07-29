@@ -7,7 +7,7 @@ import System.IO
 import System.Exit
 import SemErrors
 import qualified Data.Map as M
- 
+
 -- same name of fun inside of other fun?
 -- Read, Parse, Process sems
 sems = do
@@ -108,8 +108,7 @@ insertLabel l = do
   (vm,lm,fm,nm):sms <- gets symtab
   case M.lookup l lm of
     Just _  -> errAtId dupLabDecErr l
-    Nothing -> modify $ \s->s {symtab =
-                  (vm,M.insert l False lm,fm,nm):sms }
+    Nothing -> modify $ \s->s {symtab = (vm,M.insert l False lm,fm,nm):sms }
 
 -- headerSems + newSymTab + argsInNewSymTab + bodySems + 
 -- existsResult
@@ -138,15 +137,12 @@ checkresultById i = do
 headArgsF :: Header -> Semantics ()
 headArgsF = \case
   Procedure _ a   -> insertArgsInTm a
-  Function  _ a t -> do
-    insertArgsInTm a 
-    insertResult t
+  Function  _ a t -> insertArgsInTm a >> insertResult t
 
 insertResult :: P.Type -> Semantics ()
 insertResult t = do
   (vm,lm,fm,nm):sms <- gets symtab
-  modify $ \s -> s {symtab =
-    (M.insert (dummy "result") (var t) vm,lm,fm,nm):sms }
+  modify $ \s -> s {symtab = (M.insert (dummy "result") (var t) vm,lm,fm,nm):sms }
 
 insertArgsInTm :: Args -> Semantics ()
 insertArgsInTm = mapM_ insertFormalInTm
@@ -170,16 +166,17 @@ insertheader i t expr = do
     (vm,lm,M.insert i (fp t) fm,nm):sms }
   else errAtId parErr i
 
-searchCallSMs :: Id -> [SymbolMap] -> Maybe Callable
-searchCallSMs id = \case
-  sm:sms -> case searchCallSM id sm of
-              Nothing -> searchCallSMs id sms
-              x       -> x
+searchCallSMs1 :: Id -> [SymbolMap] -> Maybe Callable
+searchCallSMs1 id = \case
+  sm:sms -> searchCallSMs2 id sms $ searchCallSM id sm
   []     -> Nothing
 
+searchCallSMs2 id sms = \case
+  Nothing -> searchCallSMs1 id sms
+  x       -> x
+
 searchCallSM :: Id -> SymbolMap -> Maybe Callable
-searchCallSM id sm = 
-  fmap ca $ M.lookup id $ (\(_,_,fm,_) -> fm) sm
+searchCallSM id sm = fmap ca $ M.lookup id $ (\(_,_,fm,_) -> fm) sm
 
 searchVarSMs :: Id -> [SymbolMap] -> Maybe P.Type
 searchVarSMs id = \case
@@ -189,35 +186,29 @@ searchVarSMs id = \case
   []     -> Nothing
 
 searchVarSM :: Id -> SymbolMap -> Maybe P.Type
-searchVarSM id sm =
-  fmap ty $ M.lookup id $ (\(vm,_,_,_) -> vm) sm
+searchVarSM id sm = fmap ty $ M.lookup id $ (\(vm,_,_,_) -> vm) sm
+
+sameTypes a b = (\[a,b] -> a == b) $ map formalsToTypes [a,b]
 
 headProcedureF :: Id -> Args -> [SymbolMap] -> Semantics ()
 headProcedureF i a sms =
   let a' = reverse a in
   case searchCallSM i (head sms) of
-    Just (FProc b) -> let aTypes = formalsToTypes a'
-                          bTypes = formalsToTypes b
-                          sameTypes = aTypes == bTypes
-                          p = Proc a'
-                      in insertheader i p sameTypes
+    Just (FProc b) -> insertheader i (Proc a') $ sameTypes a' b
     Nothing        -> checkArgsAndPut i a' $ Proc a'
     _              -> errAtId dupProcErr i
 
-type SemUnit = Semantics ()
-headFunctionF :: Id -> Args -> P.Type -> [SymbolMap] -> SemUnit
+headFunctionF :: Id -> Args -> P.Type -> [SymbolMap] -> Semantics ()
 headFunctionF i a t sms =
   let a' = reverse a in
   case searchCallSM i (head sms) of
-    Just (FFunc b t2) -> let aTypes = formalsToTypes a'
-                             bTypes = formalsToTypes b
-                             sameTypes = aTypes == bTypes
-                             f = Func a' t
-                      in insertheader i f (t==t2 && sameTypes)
-    Nothing -> case t of
-      ArrayT _ _ -> errAtId funErr i
-      _          -> checkArgsAndPut i a' $ Func a' t
+    Just (FFunc b t2) -> insertheader i (Func a' t) (t==t2 && sameTypes a' b)
+    Nothing -> headFunFNothing t i a'
     _       -> errAtId dupFunErr i
+
+headFunFNothing t i a = case t of
+  ArrayT _ _ -> errAtId funErr i
+  _          -> checkArgsAndPut i a $ Func a t
 
 headF :: Header -> Semantics ()
 headF h = gets symtab >>= \sms -> case h of
@@ -317,7 +308,7 @@ fstatement = \case
   SBlock (Bl ss)           -> fblock $ reverse ss
   SCall (CId id exprs)     -> do
                               sms <- gets symtab
-                              case searchCallSMs id sms of
+                              case searchCallSMs1 id sms of
                                 Just t  -> callSem id t $
                                            reverse exprs
                                 Nothing -> errAtId callErr id
@@ -494,7 +485,7 @@ totyper = \case
   RNil                -> right Tnil
   RCall (CId id exprs) -> do
     sms <- gets symtab
-    case searchCallSMs id sms of
+    case searchCallSMs1 id sms of
       Just t  -> funCallSem id t $ reverse exprs
       Nothing -> errAtId callErr id
   RPapaki  posn lValue     -> totypel lValue >>=
