@@ -1,6 +1,6 @@
 module SemErrors where
  
-unusedGotoErr = "goto label declared but not used: "
+unusedLabelErr = "label declared but not used: "
 forwardErr = "no implementation for forward declaration: "
 errorend l c = " at line " ++ show l ++ ", column " ++ show c
 dupLabDecErr = "Duplicate label declaration: "

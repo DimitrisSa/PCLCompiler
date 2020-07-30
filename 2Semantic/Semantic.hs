@@ -9,88 +9,75 @@ import SemErrors
 import qualified Data.Map as M
 
 -- same name of fun inside of other fun?
--- Read, Parse, Process sems
+
+semantics :: IO ()
 semantics = getContents >>= parserErrorOrAstSemantics . parser 
 
+parserErrorOrAstSemantics :: Either Error Program -> IO ()
 parserErrorOrAstSemantics = \case 
   Left e -> die e
   Right ast -> astSemantics ast
 
+astSemantics :: Program -> IO ()
 astSemantics ast = case (evalState . runEitherT . programSemantics) ast emptyCGS of
-    Right _  -> hPutStrLn stdout "good" >> exitSuccess
-    Left s   -> die s
+  Right _  -> hPutStrLn stdout "good" >> exitSuccess
+  Left s   -> die s
 
--- predefined funs + body sems
 programSemantics :: Program -> Semantics ()
 programSemantics (P _ body) = initSymbolTable >> bodySemantics body
 
--- locals sems + block sems + unused declared labels
 bodySemantics :: Body -> Semantics ()
-bodySemantics (Body locals (Bl s)) = do
-  flocals (reverse locals) 
-  fblock (reverse s) 
-  checkUnusedGoTos (reverse s)
+bodySemantics (Body locals (Block statements)) = do
+  localsSemantics $ reverse locals
+  statementsSemantics $ reverse statements
+  checkUnusedLabels
 
-checkUnusedGoTos :: Stmts -> Semantics ()
-checkUnusedGoTos = mapM_ checkUnusedGoTo
+checkUnusedLabels :: Semantics ()
+checkUnusedLabels = getLabelMap >>= checkFalseLabelValueInList . M.toList
 
-checkUnusedGoTo :: Stmt -> Semantics ()
-checkUnusedGoTo = \case
-  SGoto id       -> checkUnusedGoToById id
-  SBlock (Bl ss) -> checkUnusedGoTos $ reverse ss
-  _              -> return ()
+checkFalseLabelValueInList :: [(Id,Bool)] -> Semantics ()
+checkFalseLabelValueInList = mapM_ checkFalseLabelValue
 
-checkUnusedGoToById :: Id -> Semantics ()
-checkUnusedGoToById id = do
-  lm <- getLabelMap
-  case M.lookup id lm of
-    Just False -> errAtId unusedGotoErr id
-    _          -> return ()
+checkFalseLabelValue :: (Id,Bool) -> Semantics ()
+checkFalseLabelValue = \case
+  (id,False) -> errAtId unusedLabelErr id
+  _          -> return ()
 
 errAtId :: String -> Id -> Semantics a
-errAtId err id =
-  let idv = idValue id
-      (li,co) = idPosn id
-  in left $ err ++ idv ++ errorend li co
+errAtId err (Id string line column) = left $ concat [err,string,errorend line column]
 
-getVarMap :: Semantics VarMap
-getVarMap = do
-  (vm,_,_,_):_ <- gets symtab
-  return vm
+getVariableMap :: Semantics VariableMap
+getVariableMap = gets symtab >>= \((vm,_,_,_):_) -> return vm
 
 getLabelMap :: Semantics LabelMap
-getLabelMap = do
-  (_,lm,_,_):_ <- gets symtab
-  return lm
+getLabelMap = gets symtab >>= \((_,lm,_,_):_) -> return lm
 
 getCallMap :: Semantics CallMap
-getCallMap = do
-  (_,_,cm,_):_ <- gets symtab
-  return cm
+getCallMap = gets symtab >>= \((_,_,cm,_):_) -> return cm
 
 -- process locals + unimplemented forward
-flocals :: [Local] -> Semantics ()
-flocals ls = do
-  mapM_ flocal ls
-  checkDecButNotDef
+localsSemantics :: [Local] -> Semantics ()
+localsSemantics locals = do
+  mapM_ localSemantics locals
+  checkUndefinedDeclaredCallable
 
 -- check functions that are declared but not defined
-checkDecButNotDef :: Semantics ()
-checkDecButNotDef = do
+checkUndefinedDeclaredCallable :: Semantics ()
+checkUndefinedDeclaredCallable = do
   cm <- getCallMap
   let wrapCallablesToFaPs = map (\(x,y)->(x,ca y))
-  checkDecButNotDefCMList $ wrapCallablesToFaPs $ M.toList cm
+  checkUndefinedDeclaredCallableCMList $ wrapCallablesToFaPs $ M.toList cm
 
-checkDecButNotDefCMList :: [(Id,Callable)] -> Semantics ()
-checkDecButNotDefCMList = \case
-  (id,FProc _  ):_ -> errAtId forwardErr id
-  (id,FFunc _ _):_ -> errAtId forwardErr id
-  _:cml            -> checkDecButNotDefCMList cml
+checkUndefinedDeclaredCallableCMList :: [(Id,Callable)] -> Semantics ()
+checkUndefinedDeclaredCallableCMList = \case
+  (id,ProcedureDeclaration _  ):_ -> errAtId forwardErr id
+  (id,FunctionDeclaration _ _):_ -> errAtId forwardErr id
+  _:cml            -> checkUndefinedDeclaredCallableCMList cml
   []               -> return ()
 
 -- Pattern match and call appropriate fun
-flocal :: Local -> Semantics ()
-flocal = \case
+localSemantics :: Local -> Semantics ()
+localSemantics = \case
   LoVar vars     -> toSems vars
   LoLabel labels -> insertLabels labels
   LoHeadBod h b  -> headBodF h b
@@ -120,20 +107,20 @@ headBodF h bod = do
 
 checkresult :: Header -> Semantics ()
 checkresult = \case
-  Function i _ _ -> checkresultById i
+  FunctionHeader i _ _ -> checkresultById i
   _              -> return ()
 
 checkresultById :: Id -> Semantics ()
 checkresultById i = do
-  vm <- getVarMap
+  vm <- getVariableMap
   case M.lookup (dummy "while") vm of
     Nothing -> errAtId noResInFunErr i
     _       -> return ()
 
 headArgsF :: Header -> Semantics ()
 headArgsF = \case
-  Procedure _ a   -> insertArgsInTm a
-  Function  _ a t -> insertArgsInTm a >> insertResult t
+  ProcedureHeader _ a   -> insertArgsInTm a
+  FunctionHeader  _ a t -> insertArgsInTm a >> insertResult t
 
 insertResult :: P.Type -> Semantics ()
 insertResult t = do
@@ -190,26 +177,26 @@ headProcedureF :: Id -> Args -> [SymbolMap] -> Semantics ()
 headProcedureF i a sms =
   let a' = reverse a in
   case searchCallSM i (head sms) of
-    Just (FProc b) -> insertheader i (Proc a') $ sameTypes a' b
-    Nothing        -> checkArgsAndPut i a' $ Proc a'
+    Just (ProcedureDeclaration b) -> insertheader i (Procedure a') $ sameTypes a' b
+    Nothing        -> checkArgsAndPut i a' $ Procedure a'
     _              -> errAtId dupProcErr i
 
 headFunctionF :: Id -> Args -> P.Type -> [SymbolMap] -> Semantics ()
 headFunctionF i a t sms =
   let a' = reverse a in
   case searchCallSM i (head sms) of
-    Just (FFunc b t2) -> insertheader i (Func a' t) (t==t2 && sameTypes a' b)
+    Just (FunctionDeclaration b t2) -> insertheader i (Function a' t) (t==t2 && sameTypes a' b)
     Nothing -> headFunFNothing t i a'
     _       -> errAtId dupFunErr i
 
 headFunFNothing t i a = case t of
   ArrayT _ _ -> errAtId funErr i
-  _          -> checkArgsAndPut i a $ Func a t
+  _          -> checkArgsAndPut i a $ Function a t
 
 headF :: Header -> Semantics ()
 headF h = gets symtab >>= \sms -> case h of
-  Procedure i a   -> headProcedureF i a sms
-  Function  i a t -> headFunctionF i a t sms
+  ProcedureHeader i a   -> headProcedureF i a sms
+  FunctionHeader  i a t -> headFunctionF i a t sms
 
 checkArgsAndPut :: Id -> Args -> Callable -> Semantics ()
 checkArgsAndPut i as t = do
@@ -232,10 +219,10 @@ insertforward i as t = do
 
 forwardF :: Header -> Semantics ()
 forwardF h = case h of
-  Procedure i a   -> insertforward i a (FProc $ reverse a)
-  Function  i a t -> case t of
+  ProcedureHeader i a   -> insertforward i a (ProcedureDeclaration $ reverse a)
+  FunctionHeader  i a t -> case t of
     ArrayT _ _ -> errAtId funErr i
-    _          -> insertforward i a (FFunc (reverse a) t)
+    _          -> insertforward i a (FunctionDeclaration (reverse a) t)
 
 toSems :: Variables -> Semantics ()
 toSems = mapM_ (myinsert . makelist) . reverse
@@ -261,8 +248,8 @@ myinsert ((v,t):xs) = do
                else errAtId arrayOfErr v
 myinsert [] = return ()
 
-fblock :: Stmts -> Semantics ()
-fblock ss = mapM_ fstatement ss
+statementsSemantics :: Stmts -> Semantics ()
+statementsSemantics ss = mapM_ fstatement ss
 
 checkBoolExpr :: Expr -> String -> Semantics ()
 checkBoolExpr expr stmtDesc = do
@@ -301,7 +288,7 @@ fstatement = \case
       et <- totype  expr
       if symbatos lt et then return ()
       else left $ assTypeMisErr ++ errorend li co
-  SBlock (Bl ss)           -> fblock $ reverse ss
+  SBlock (Block ss)           -> statementsSemantics $ reverse ss
   SCall (CId id exprs)     -> do
                               sms <- gets symtab
                               case searchCallSMs1 id sms of
@@ -315,7 +302,7 @@ fstatement = \case
   SWhile (li,co) expr stmt -> checkBoolExpr expr ("while" ++ errorend li co) >>
                               fstatement stmt
   SId id stmt              -> checkId   id >> fstatement stmt
-  SGoto id                 -> checkGoTo id
+  GoToStatement id                 -> checkGoTo id
   SReturn                  -> return ()
   SNew (li,co) new lVal          -> do
     (vm,lm,fm,nm):sms <- gets symtab
@@ -357,8 +344,8 @@ symbatos lt et = (lt == et && checkFullType lt) ||
 
 callSem :: Id -> Callable -> Exprs -> Semantics ()
 callSem id = \case
-  FProc as -> goodArgs id as
-  Proc  as -> goodArgs id as
+  ProcedureDeclaration as -> goodArgs id as
+  Procedure  as -> goodArgs id as
   _        -> \_ -> errAtId callSemErr id
 
 goodArgs :: Id -> Args -> Exprs -> Semantics ()
@@ -511,14 +498,11 @@ totyper = \case
 
 funCallSem :: Id -> Callable -> Exprs -> Semantics P.Type
 funCallSem id = \case
-  FFunc as t -> \exprs -> goodArgs id as exprs >> right t
-  Func  as t -> \exprs -> goodArgs id as exprs >> right t
+  FunctionDeclaration as t -> \exprs -> goodArgs id as exprs >> right t
+  Function  as t -> \exprs -> goodArgs id as exprs >> right t
   _          -> \_ -> errAtId callSemErr id
 
-errAtArg err i id =
-  let idv = idValue id
-      (li,co) = idPosn id
-  in left $ err i idv ++ errorend li co
+errAtArg err i (Id string line column) = left $ err i string ++ errorend line column
 
 type PTs = [(PassBy,Type)]
 argsExprsSems :: Int -> Id -> PTs -> PTs -> Semantics ()
@@ -563,7 +547,7 @@ initSymbolTable = do
   return ()
 
 dummy :: String -> Id
-dummy s = Id s (0,0)
+dummy s = Id s 0 0 
 
 --helper function to insert the predefined procedures
 --  to the symbol table
@@ -572,7 +556,7 @@ helpprocs name myArgs = do
   (vm,lm,fm,nm):sms <- gets symtab
   modify $ \s -> s {
     symtab = (vm,lm,
-       M.insert (dummy name) (fp $ Proc myArgs) fm,nm):sms }
+       M.insert (dummy name) (fp $ Procedure myArgs) fm,nm):sms }
 
 --helper function to insert
 --  the predefined functions to the symbol table
@@ -581,5 +565,5 @@ helpfunc name myArgs myType = do
   (vm,lm,fm,nm):sms <- gets symtab
   modify $ \s -> s {
     symtab = (vm,lm,
-       M.insert (dummy name) (fp $ Func myArgs myType) fm,
+       M.insert (dummy name) (fp $ Function myArgs myType) fm,
          nm):sms }

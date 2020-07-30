@@ -18,7 +18,7 @@ import Data.List
 
 codeGenProgram :: Program -> LLVM ()
 codeGenProgram (P id body) = do
-  modify $ \s -> s { moduleName = tsp $ idValue id}
+  modify $ \s -> s { moduleName = tsp $ idString id}
   define void "main" [] []
   codeGenBody body
 
@@ -55,15 +55,15 @@ codeGenLocal = \case
 
 codeGenHeadBod :: Header -> Body -> LLVM ()
 codeGenHeadBod = \case
-  Procedure id args    -> undefined
-  P.Function  id args ty -> \body -> codeGenFun id args ty body
+  ProcedureHeader id args    -> undefined
+  P.FunctionHeader  id args ty -> \body -> codeGenFun id args ty body
 
 codeGenBlock :: Block -> LLVM ()
 codeGenBlock _ = return ()
 
 codeGenFun :: Id -> Args -> P.Type -> Body -> LLVM ()
 codeGenFun i a t b = do
-  let name = idValue i
+  let name = idString i
   let ty = tollvmTy t
   let args = toSig a
   define ty name args []

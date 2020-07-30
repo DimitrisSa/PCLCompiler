@@ -29,17 +29,17 @@ fp :: Callable -> FaP
 fp t = FP t Nothing
 
 data Callable =
-  Proc Args         |
-  Func Args P.Type  |
-  FProc Args        |
-  FFunc Args P.Type
+  Procedure Args         |
+  Function Args P.Type  |
+  ProcedureDeclaration Args        |
+  FunctionDeclaration Args P.Type
   deriving(Show,Eq)
 
-type VarMap   = M.Map Id Variable
+type VariableMap   = M.Map Id Variable
 type LabelMap = M.Map Id Bool
 type CallMap  = M.Map Id FaP
 type NewMap   = M.Map LValue ()
-type SymbolMap = (VarMap,LabelMap,CallMap,NewMap)
+type SymbolMap = (VariableMap,LabelMap,CallMap,NewMap)
 type Error = String
 type Semantics a = EitherT Error (State CodegenState) a
 
@@ -116,4 +116,4 @@ toSig :: Args -> [(L.Type, L.Name)]
 toSig = concat . map formalToSig
 
 formalToSig (_,ids,ty) =
-  map (\id -> (tollvmTy ty,L.Name $ tsp $ idValue id)) ids
+  map (\id -> (tollvmTy ty,L.Name $ tsp $ idString id)) ids

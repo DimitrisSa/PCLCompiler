@@ -111,8 +111,8 @@ Ids        :: { Ids }
            | Ids ',' id                         { (tokenToId $3) :$1 }
 
 Header     :: { Header }
-           : procedure id '(' Args ')'          { Procedure (tokenToId $2)  $4    }
-           | function  id '(' Args ')' ':' Type { Function  (tokenToId $2)  $4 $7 }
+           : procedure id '(' Args ')'          { ProcedureHeader (tokenToId $2)  $4    }
+           | function  id '(' Args ')' ':' Type { FunctionHeader  (tokenToId $2)  $4 $7 }
 
 Args       :: { Args }
            : {-empty-}                          { [] }
@@ -142,7 +142,7 @@ ArrSize    :: { ArrSize }
            | '[' intconst ']'                   { Size (getInt $2) }
 
 Block      :: { Block }
-           : begin Stmts end                    { Bl $2 }
+           : begin Stmts end                    { Block $2 }
 
 Stmts      :: { Stmts }
            : Stmt                               { [$1]    }
@@ -157,7 +157,7 @@ Stmt       :: { Stmt }
            | if Expr then Stmt else Stmt        { SITE     (posnToIntInt $1) $2 $4 $6       }
            | while Expr do Stmt                 { SWhile   (posnToIntInt $1) $2 $4          }
            | id ':' Stmt                        { SId      (tokenToId $1)  $3          }
-           | goto id                            { SGoto    (tokenToId $2)              }
+           | goto id                            { GoToStatement    (tokenToId $2)   }
            | return                             { SReturn                 }
            | new New LValue                     { SNew     (posnToIntInt $1) $2 $3          }
            | dispose Dispose LValue             { SDispose (posnToIntInt $1) $2 $3          }
@@ -243,16 +243,17 @@ data Body =
   deriving(Show)
 
 data Id        = Id {
-    idValue::String
-  , idPosn::(Int,Int)
+    idString::String
+  , idLine::Int
+  , idColum::Int
   }
   deriving(Show)
 
 instance Eq Id where
-  x == y = idValue x == idValue y
+  x == y = idString x == idString y
 
 instance Ord Id where
-  x <= y = idValue x <= idValue y
+  x <= y = idString x <= idString y
 
 type Ids       = [Id]
 type Variables = [(Ids,Type)]
@@ -265,11 +266,11 @@ data Local =
   deriving(Show)
 
 data Header =
-  Procedure {
+  ProcedureHeader {
     pname :: Id
   , pargs :: Args
   }  |
-  Function  {
+  FunctionHeader  {
     fname :: Id
   , fargs :: Args
   , fty :: Type
@@ -300,7 +301,7 @@ data ArrSize =
   deriving(Show,Eq)
 
 data Block =
-  Bl Stmts
+  Block Stmts
   deriving(Show)
 
 type Stmts = [Stmt]
@@ -314,7 +315,7 @@ data Stmt =
   SITE (Int,Int) Expr Stmt Stmt |
   SWhile (Int,Int) Expr Stmt    |
   SId Id Stmt         |
-  SGoto Id            |
+  GoToStatement Id            |
   SReturn             |
   SNew (Int,Int) New LValue     |
   SDispose (Int,Int) DispType LValue
@@ -384,10 +385,16 @@ lexwrap = (alexMonadScan >>=)
 
 tokenToId :: Token -> Id
 tokenToId = \case
-  TId id (AlexPn _ l c) -> Id id (l,c)
+  TId string (AlexPn _ line column) -> Id string line column
   _   -> error "Shouldn't happen, not id token"
 
 posnToIntInt :: AlexPosn -> (Int,Int)
 posnToIntInt (AlexPn _ l c) = (l,c)
+
+alexPosnToLine :: AlexPosn -> Int
+alexPosnToLine (AlexPn _ line _) = line
+
+alexPosnToColumn :: AlexPosn -> Int
+alexPosnToColumn (AlexPn _ _ column) = column
 
 }

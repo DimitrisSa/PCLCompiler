@@ -22,7 +22,10 @@ process modo prog = do
   return $ Just ast
 
 main :: IO ()
-main = do
+main = semantics
+
+main2 :: IO ()
+main2 = do
   s    <- getContents
   case parser s of
     Left e -> die e
