@@ -1,4 +1,4 @@
-module Semantics where
+module Main where
 import SemTypes
 import Parser as P
 import Control.Monad.State
@@ -9,6 +9,8 @@ import SemErrors
 import qualified Data.Map as M
 
 -- same name of fun inside of other fun?
+main :: IO ()
+main = semantics
 
 semantics :: IO ()
 semantics = getContents >>= parserErrorOrAstSemantics . parser 
@@ -19,7 +21,9 @@ parserErrorOrAstSemantics = \case
   Right ast -> astSemantics ast
 
 astSemantics :: Program -> IO ()
-astSemantics ast = case (evalState . runEitherT . programSemantics) ast emptyCGS of
+astSemantics ast =
+  let runProgramSemantics = evalState . runEitherT . programSemantics
+  in case runProgramSemantics ast [emptySymbolTable]  of
   Right _  -> hPutStrLn stdout "good" >> exitSuccess
   Left s   -> die s
 
@@ -36,10 +40,7 @@ checkUnusedLabels :: Semantics ()
 checkUnusedLabels = getLabelMap >>= checkFalseLabelValueInList . M.toList
 
 checkFalseLabelValueInList :: [(Id,Bool)] -> Semantics ()
-checkFalseLabelValueInList = mapM_ checkFalseLabelValue
-
-checkFalseLabelValue :: (Id,Bool) -> Semantics ()
-checkFalseLabelValue = \case
+checkFalseLabelValueInList = mapM_ $ \case
   (id,False) -> errAtId unusedLabelErr id
   _          -> return ()
 
@@ -47,13 +48,13 @@ errAtId :: String -> Id -> Semantics a
 errAtId err (Id string line column) = left $ concat [err,string,errorend line column]
 
 getVariableMap :: Semantics VariableMap
-getVariableMap = gets symtab >>= \((vm,_,_,_):_) -> return vm
+getVariableMap = get >>= \((vm,_,_,_):_) -> return vm
 
 getLabelMap :: Semantics LabelMap
-getLabelMap = gets symtab >>= \((_,lm,_,_):_) -> return lm
+getLabelMap = get >>= \((_,lm,_,_):_) -> return lm
 
-getCallMap :: Semantics CallMap
-getCallMap = gets symtab >>= \((_,_,cm,_):_) -> return cm
+getCallableMap :: Semantics CallableMap
+getCallableMap = get >>= \((_,_,cm,_):_) -> return cm
 
 -- process locals + unimplemented forward
 localsSemantics :: [Local] -> Semantics ()
@@ -63,10 +64,8 @@ localsSemantics locals = do
 
 -- check functions that are declared but not defined
 checkUndefinedDeclaredCallable :: Semantics ()
-checkUndefinedDeclaredCallable = do
-  cm <- getCallMap
-  let wrapCallablesToFaPs = map (\(x,y)->(x,ca y))
-  checkUndefinedDeclaredCallableCMList $ wrapCallablesToFaPs $ M.toList cm
+checkUndefinedDeclaredCallable =
+  getCallableMap >>= checkUndefinedDeclaredCallableCMList . M.toList 
 
 checkUndefinedDeclaredCallableCMList :: [(Id,Callable)] -> Semantics ()
 checkUndefinedDeclaredCallableCMList = \case
@@ -88,22 +87,22 @@ insertLabels = mapM_ insertLabel
 
 insertLabel :: Id -> Semantics ()
 insertLabel l = do
-  (vm,lm,fm,nm):sms <- gets symtab
+  (vm,lm,fm,nm):sms <- get
   case M.lookup l lm of
     Just _  -> errAtId dupLabDecErr l
-    Nothing -> modify $ \s->s {symtab = (vm,M.insert l False lm,fm,nm):sms }
+    Nothing -> put $ (vm,M.insert l False lm,fm,nm):sms
 
 -- headerSems + newSymTab + argsInNewSymTab + bodySemantics + 
 -- existsResult
 headBodF :: Header -> Body -> Semantics ()
 headBodF h bod = do
   headF h
-  sms <- gets symtab
-  modify $ \s->s {symtab = emptySymbolMap:sms }
+  sms <- get
+  put $ emptySymbolTable:sms
   headArgsF h
   bodySemantics bod
   checkresult h
-  modify $ \s->s {symtab = sms }
+  put sms
 
 checkresult :: Header -> Semantics ()
 checkresult = \case
@@ -124,8 +123,8 @@ headArgsF = \case
 
 insertResult :: P.Type -> Semantics ()
 insertResult t = do
-  (vm,lm,fm,nm):sms <- gets symtab
-  modify $ \s -> s {symtab = (M.insert (dummy "result") (var t) vm,lm,fm,nm):sms }
+  (vm,lm,fm,nm):sms <- get
+  put $ (M.insert (dummy "result") t vm,lm,fm,nm):sms
 
 insertArgsInTm :: Args -> Semantics ()
 insertArgsInTm = mapM_ insertFormalInTm
@@ -135,21 +134,19 @@ insertFormalInTm (_,ids,t) = mapM_ (insertIdInTm t) ids
 
 insertIdInTm :: P.Type -> Id -> Semantics ()
 insertIdInTm t id = do
-  (vm,lm,fm,nm):sms <- gets symtab
+  (vm,lm,fm,nm):sms <- get
   case M.lookup id vm of
-    Nothing -> modify $ \s->s {symtab =
-                  (M.insert id (var t) vm,lm,fm,nm):sms }
+    Nothing -> put $ (M.insert id t vm,lm,fm,nm):sms
     _       -> errAtId dupArgErr id
 
 -- to check if func/proc with forward is defined
 insertheader :: Id -> Callable -> Bool -> Semantics ()
 insertheader i t expr = do
-  (vm,lm,fm,nm):sms <- gets symtab
-  if expr then modify $ \s->s {symtab =
-    (vm,lm,M.insert i (fp t) fm,nm):sms }
+  (vm,lm,fm,nm):sms <- get
+  if expr then put $ (vm,lm,M.insert i t fm,nm):sms
   else errAtId parErr i
 
-searchCallSMs1 :: Id -> [SymbolMap] -> Maybe Callable
+searchCallSMs1 :: Id -> [SymbolTable] -> Maybe Callable
 searchCallSMs1 id = \case
   sm:sms -> searchCallSMs2 id sms $ searchCallSM id sm
   []     -> Nothing
@@ -158,22 +155,22 @@ searchCallSMs2 id sms = \case
   Nothing -> searchCallSMs1 id sms
   x       -> x
 
-searchCallSM :: Id -> SymbolMap -> Maybe Callable
-searchCallSM id sm = fmap ca $ M.lookup id $ (\(_,_,fm,_) -> fm) sm
+searchCallSM :: Id -> SymbolTable -> Maybe Callable
+searchCallSM id sm = M.lookup id $ (\(_,_,fm,_) -> fm) sm
 
-searchVarSMs :: Id -> [SymbolMap] -> Maybe P.Type
+searchVarSMs :: Id -> [SymbolTable] -> Maybe P.Type
 searchVarSMs id = \case
   sm:sms -> case searchVarSM id sm of
     Nothing -> searchVarSMs id sms
     x       -> x
   []     -> Nothing
 
-searchVarSM :: Id -> SymbolMap -> Maybe P.Type
-searchVarSM id sm = fmap ty $ M.lookup id $ (\(vm,_,_,_) -> vm) sm
+searchVarSM :: Id -> SymbolTable -> Maybe P.Type
+searchVarSM id sm = M.lookup id $ (\(vm,_,_,_) -> vm) sm
 
 sameTypes a b = (\[a,b] -> a == b) $ map formalsToTypes [a,b]
 
-headProcedureF :: Id -> Args -> [SymbolMap] -> Semantics ()
+headProcedureF :: Id -> Args -> [SymbolTable] -> Semantics ()
 headProcedureF i a sms =
   let a' = reverse a in
   case searchCallSM i (head sms) of
@@ -181,7 +178,7 @@ headProcedureF i a sms =
     Nothing        -> checkArgsAndPut i a' $ Procedure a'
     _              -> errAtId dupProcErr i
 
-headFunctionF :: Id -> Args -> P.Type -> [SymbolMap] -> Semantics ()
+headFunctionF :: Id -> Args -> P.Type -> [SymbolTable] -> Semantics ()
 headFunctionF i a t sms =
   let a' = reverse a in
   case searchCallSM i (head sms) of
@@ -194,15 +191,14 @@ headFunFNothing t i a = case t of
   _          -> checkArgsAndPut i a $ Function a t
 
 headF :: Header -> Semantics ()
-headF h = gets symtab >>= \sms -> case h of
+headF h = get >>= \sms -> case h of
   ProcedureHeader i a   -> headProcedureF i a sms
   FunctionHeader  i a t -> headFunctionF i a t sms
 
 checkArgsAndPut :: Id -> Args -> Callable -> Semantics ()
 checkArgsAndPut i as t = do
-  (vm,lm,fm,nm):sms <- gets symtab
-  if all argOk as then modify $ \s->s {symtab =
-    (vm,lm,M.insert i (fp t) fm,nm):sms }
+  (vm,lm,fm,nm):sms <- get
+  if all argOk as then put $ (vm,lm,M.insert i t fm,nm):sms 
   else errAtId arrByValErr i
 
 argOk :: Formal -> Bool
@@ -212,7 +208,7 @@ argOk = \case
 
 insertforward :: Id -> Args -> Callable -> Semantics ()
 insertforward i as t = do
-  sms <- gets symtab
+  sms <- get
   case searchCallSM i (head sms) of
     Just _ -> errAtId dupErr i
     Nothing -> checkArgsAndPut i as t
@@ -238,12 +234,11 @@ makelisthelp (pb,in1,myt) = Prelude.map (\_ -> (pb,myt)) in1
 
 myinsert :: [(Id,Type)] -> Semantics ()
 myinsert ((v,t):xs) = do
-  (vm,lm,fm,nm):sms <- gets symtab
+  (vm,lm,fm,nm):sms <- get
   case M.lookup v vm of
     Just _  -> errAtId dupErr v
     Nothing -> if checkFullType t then
-                 modify ( \s->s {symtab =
-                   (M.insert v (var t) vm,lm,fm,nm):sms })>> 
+                 put ((M.insert v t vm,lm,fm,nm):sms) >> 
                  myinsert xs
                else errAtId arrayOfErr v
 myinsert [] = return ()
@@ -266,10 +261,9 @@ checkGoTo id = do
 
 checkId :: Id -> Semantics ()
 checkId id = do
-  (vm,lm,fm,nm):sms <- gets symtab
+  (vm,lm,fm,nm):sms <- get
   case M.lookup id lm of
-    Just False -> modify $ \s->s {symtab =
-      (vm,M.insert id True lm,fm,nm):sms }
+    Just False -> put $ (vm,M.insert id True lm,fm,nm):sms
     Just True  -> errAtId dupLabErr id
     Nothing    -> errAtId undefLabErr id
 
@@ -290,7 +284,7 @@ fstatement = \case
       else left $ assTypeMisErr ++ errorend li co
   SBlock (Block ss)           -> statementsSemantics $ reverse ss
   SCall (CId id exprs)     -> do
-                              sms <- gets symtab
+                              sms <- get
                               case searchCallSMs1 id sms of
                                 Just t  -> callSem id t $
                                            reverse exprs
@@ -305,9 +299,8 @@ fstatement = \case
   GoToStatement id                 -> checkGoTo id
   SReturn                  -> return ()
   SNew (li,co) new lVal          -> do
-    (vm,lm,fm,nm):sms <- gets symtab
-    modify $ \s->s {symtab =
-      (vm,lm,fm,M.insert lVal () nm):sms }
+    (vm,lm,fm,nm):sms <- get
+    put $ (vm,lm,fm,M.insert lVal () nm):sms
     t <- checkpointer lVal $ nonPointNewErr ++ errorend li co
     case (new,checkFullType t) of
       (NewEmpty,True)   -> return ()
@@ -316,10 +309,9 @@ fstatement = \case
         _    -> left $ nonIntNewErr ++ errorend li co
       _ -> left $ badPointNewErr ++ errorend li co
   SDispose (li,co) disptype lVal -> do
-    (vm,lm,fm,nm):sms <- gets symtab
-    newnm <- deleteNewMap lVal nm $
-              dispNullPointErr ++ errorend li co
-    modify $ \s->s {symtab = (vm,lm,fm,newnm):sms }
+    (vm,lm,fm,nm):sms <- get
+    newnm <- deleteNewMap lVal nm $ dispNullPointErr ++ errorend li co
+    put $ (vm,lm,fm,newnm):sms
     t <- checkpointer lVal $ dispNonPointErr ++ errorend li co
     case (disptype,checkFullType t) of
       (With,False)   -> return ()
@@ -366,16 +358,15 @@ totype = \case
 totypel :: LValue -> Semantics P.Type
 totypel = \case
   LId id                 -> do
-    sms <- gets symtab
+    sms <- get
     case searchVarSMs id sms of
       Just t  -> return t
       Nothing -> errAtId varErr id
   LResult (li,co)        -> do
-    (vm,lm,fm,nm):sms <- gets symtab
+    (vm,lm,fm,nm):sms <- get
     case M.lookup (dummy "result") vm of
-      Just v  -> modify ( \s->s {symtab =
-        (M.insert (dummy "while") v vm, lm,fm,nm):sms } )
-                       >> return (ty v)
+      Just v  -> put ( (M.insert (dummy "while") v vm, lm,fm,nm):sms )
+                       >> return v
       Nothing -> left $ resultNoFunErr ++ errorend li co
   LString string         -> right $ ArrayT NoSize Tchar
   LValueExpr (li,co) lValue expr -> totype expr >>= \case
@@ -467,7 +458,7 @@ totyper = \case
   RParen rValue       -> totyper rValue
   RNil                -> right Tnil
   RCall (CId id exprs) -> do
-    sms <- gets symtab
+    sms <- get
     case searchCallSMs1 id sms of
       Just t  -> funCallSem id t $ reverse exprs
       Nothing -> errAtId callErr id
@@ -553,17 +544,12 @@ dummy s = Id s 0 0
 --  to the symbol table
 helpprocs :: String->Args->Semantics ()
 helpprocs name myArgs = do
-  (vm,lm,fm,nm):sms <- gets symtab
-  modify $ \s -> s {
-    symtab = (vm,lm,
-       M.insert (dummy name) (fp $ Procedure myArgs) fm,nm):sms }
+  (vm,lm,fm,nm):sms <- get
+  put $ (vm,lm,M.insert (dummy name) (Procedure myArgs) fm,nm):sms
 
 --helper function to insert
 --  the predefined functions to the symbol table
 helpfunc :: String->Args->Type->Semantics ()
 helpfunc name myArgs myType = do
-  (vm,lm,fm,nm):sms <- gets symtab
-  modify $ \s -> s {
-    symtab = (vm,lm,
-       M.insert (dummy name) (fp $ Function myArgs myType) fm,
-         nm):sms }
+  (vm,lm,fm,nm):sms <- get
+  put $(vm,lm, M.insert (dummy name) (Function myArgs myType) fm,nm):sms
