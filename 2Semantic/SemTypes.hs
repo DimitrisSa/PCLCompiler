@@ -1,10 +1,8 @@
-{-# LANGUAGE DeriveFunctor,GeneralizedNewtypeDeriving #-}
-
 module SemTypes where
-import Parser 
-import Control.Monad.State
-import Control.Monad.Trans.Either
-import qualified Data.Map as M
+import Parser (Type,Id,LValue,Args)
+import Control.Monad.State (State)
+import Control.Monad.Trans.Either (EitherT)
+import Data.Map (Map,empty)
 
 data Callable =
   Procedure Args                  |
@@ -13,12 +11,18 @@ data Callable =
   FunctionDeclaration Args Type
   deriving(Show,Eq)
 
-type VariableMap = M.Map Id Type
-type LabelMap    = M.Map Id Bool
-type CallableMap = M.Map Id Callable
-type NewMap      = M.Map LValue ()
-type SymbolTable = (VariableMap,LabelMap,CallableMap,NewMap)
+data SymbolTable = SymbolTable {
+   variableMap :: VariableMap
+  ,labelMap    :: LabelMap
+  ,callableMap :: CallableMap
+  ,newMap      :: NewMap
+  }
+
+type VariableMap = Map Id Type
+type LabelMap    = Map Id Bool
+type CallableMap = Map Id Callable
+type NewMap      = Map LValue ()
 type Error       = String
 type Semantics a = EitherT Error (State [SymbolTable]) a
 
-emptySymbolTable = (M.empty,M.empty,M.empty,M.empty)
+emptySymbolTable = SymbolTable empty empty empty empty 

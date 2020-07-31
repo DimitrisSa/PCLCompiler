@@ -48,13 +48,13 @@ errAtId :: String -> Id -> Semantics a
 errAtId err (Id string line column) = left $ concat [err,string,errorend line column]
 
 getVariableMap :: Semantics VariableMap
-getVariableMap = get >>= \((vm,_,_,_):_) -> return vm
+getVariableMap = get >>= return . variableMap . head
 
 getLabelMap :: Semantics LabelMap
-getLabelMap = get >>= \((_,lm,_,_):_) -> return lm
+getLabelMap = get >>= return . labelMap . head
 
 getCallableMap :: Semantics CallableMap
-getCallableMap = get >>= \((_,_,cm,_):_) -> return cm
+getCallableMap = get >>= return . callableMap . head
 
 -- process locals + unimplemented forward
 localsSemantics :: [Local] -> Semantics ()
@@ -87,10 +87,10 @@ insertLabels = mapM_ insertLabel
 
 insertLabel :: Id -> Semantics ()
 insertLabel l = do
-  (vm,lm,fm,nm):sms <- get
-  case M.lookup l lm of
+  st:sts <- get
+  case M.lookup l $ labelMap st of
     Just _  -> errAtId dupLabDecErr l
-    Nothing -> put $ (vm,M.insert l False lm,fm,nm):sms
+    Nothing -> put $ st { labelMap = M.insert l False $ labelMap st }:sts
 
 -- headerSems + newSymTab + argsInNewSymTab + bodySemantics + 
 -- existsResult
@@ -123,8 +123,8 @@ headArgsF = \case
 
 insertResult :: P.Type -> Semantics ()
 insertResult t = do
-  (vm,lm,fm,nm):sms <- get
-  put $ (M.insert (dummy "result") t vm,lm,fm,nm):sms
+  modify (\(st:sts) ->
+    st { variableMap = M.insert (dummy "result") t $ variableMap st }:sts) 
 
 insertArgsInTm :: Args -> Semantics ()
 insertArgsInTm = mapM_ insertFormalInTm
@@ -134,16 +134,16 @@ insertFormalInTm (_,ids,t) = mapM_ (insertIdInTm t) ids
 
 insertIdInTm :: P.Type -> Id -> Semantics ()
 insertIdInTm t id = do
-  (vm,lm,fm,nm):sms <- get
-  case M.lookup id vm of
-    Nothing -> put $ (M.insert id t vm,lm,fm,nm):sms
+  st:sts <- get
+  case M.lookup id $ variableMap st of
+    Nothing -> put $ st { variableMap = M.insert id t $ variableMap st }:sts
     _       -> errAtId dupArgErr id
 
 -- to check if func/proc with forward is defined
 insertheader :: Id -> Callable -> Bool -> Semantics ()
 insertheader i t expr = do
-  (vm,lm,fm,nm):sms <- get
-  if expr then put $ (vm,lm,M.insert i t fm,nm):sms
+  st:sts <- get
+  if expr then put $ st { callableMap = M.insert i t $ callableMap st }:sts
   else errAtId parErr i
 
 searchCallSMs1 :: Id -> [SymbolTable] -> Maybe Callable
@@ -156,7 +156,7 @@ searchCallSMs2 id sms = \case
   x       -> x
 
 searchCallSM :: Id -> SymbolTable -> Maybe Callable
-searchCallSM id sm = M.lookup id $ (\(_,_,fm,_) -> fm) sm
+searchCallSM id st = M.lookup id $ callableMap st
 
 searchVarSMs :: Id -> [SymbolTable] -> Maybe P.Type
 searchVarSMs id = \case
@@ -166,7 +166,7 @@ searchVarSMs id = \case
   []     -> Nothing
 
 searchVarSM :: Id -> SymbolTable -> Maybe P.Type
-searchVarSM id sm = M.lookup id $ (\(vm,_,_,_) -> vm) sm
+searchVarSM id st = M.lookup id $ variableMap st
 
 sameTypes a b = (\[a,b] -> a == b) $ map formalsToTypes [a,b]
 
@@ -197,8 +197,8 @@ headF h = get >>= \sms -> case h of
 
 checkArgsAndPut :: Id -> Args -> Callable -> Semantics ()
 checkArgsAndPut i as t = do
-  (vm,lm,fm,nm):sms <- get
-  if all argOk as then put $ (vm,lm,M.insert i t fm,nm):sms 
+  st:sts <- get
+  if all argOk as then put $ st { callableMap = M.insert i t $ callableMap st }:sts 
   else errAtId arrByValErr i
 
 argOk :: Formal -> Bool
@@ -234,11 +234,11 @@ makelisthelp (pb,in1,myt) = Prelude.map (\_ -> (pb,myt)) in1
 
 myinsert :: [(Id,Type)] -> Semantics ()
 myinsert ((v,t):xs) = do
-  (vm,lm,fm,nm):sms <- get
-  case M.lookup v vm of
+  st:sts <- get
+  case M.lookup v $ variableMap st of
     Just _  -> errAtId dupErr v
     Nothing -> if checkFullType t then
-                 put ((M.insert v t vm,lm,fm,nm):sms) >> 
+                 put (st { variableMap = M.insert v t $ variableMap st }:sts) >> 
                  myinsert xs
                else errAtId arrayOfErr v
 myinsert [] = return ()
@@ -261,9 +261,9 @@ checkGoTo id = do
 
 checkId :: Id -> Semantics ()
 checkId id = do
-  (vm,lm,fm,nm):sms <- get
-  case M.lookup id lm of
-    Just False -> put $ (vm,M.insert id True lm,fm,nm):sms
+  st:sts <- get
+  case M.lookup id $ labelMap st of
+    Just False -> put $ st { labelMap = M.insert id True $ labelMap st }:sts
     Just True  -> errAtId dupLabErr id
     Nothing    -> errAtId undefLabErr id
 
@@ -299,8 +299,7 @@ fstatement = \case
   GoToStatement id                 -> checkGoTo id
   SReturn                  -> return ()
   SNew (li,co) new lVal          -> do
-    (vm,lm,fm,nm):sms <- get
-    put $ (vm,lm,fm,M.insert lVal () nm):sms
+    modify ( \(st:sts) -> st { newMap = M.insert lVal () $ newMap st } : sts )
     t <- checkpointer lVal $ nonPointNewErr ++ errorend li co
     case (new,checkFullType t) of
       (NewEmpty,True)   -> return ()
@@ -309,9 +308,9 @@ fstatement = \case
         _    -> left $ nonIntNewErr ++ errorend li co
       _ -> left $ badPointNewErr ++ errorend li co
   SDispose (li,co) disptype lVal -> do
-    (vm,lm,fm,nm):sms <- get
-    newnm <- deleteNewMap lVal nm $ dispNullPointErr ++ errorend li co
-    put $ (vm,lm,fm,newnm):sms
+    sts <- get
+    newnm <- deleteNewMap lVal (newMap $ head sts) $ dispNullPointErr ++ errorend li co
+    put sts
     t <- checkpointer lVal $ dispNonPointErr ++ errorend li co
     case (disptype,checkFullType t) of
       (With,False)   -> return ()
@@ -363,10 +362,11 @@ totypel = \case
       Just t  -> return t
       Nothing -> errAtId varErr id
   LResult (li,co)        -> do
-    (vm,lm,fm,nm):sms <- get
-    case M.lookup (dummy "result") vm of
-      Just v  -> put ( (M.insert (dummy "while") v vm, lm,fm,nm):sms )
-                       >> return v
+    st:sts <- get
+    case M.lookup (dummy "result") (variableMap st) of
+      Just v  ->
+        put ( st { variableMap = M.insert (dummy "while") v $ variableMap st }:sts )
+        >> return v
       Nothing -> left $ resultNoFunErr ++ errorend li co
   LString string         -> right $ ArrayT NoSize Tchar
   LValueExpr (li,co) lValue expr -> totype expr >>= \case
@@ -544,12 +544,14 @@ dummy s = Id s 0 0
 --  to the symbol table
 helpprocs :: String->Args->Semantics ()
 helpprocs name myArgs = do
-  (vm,lm,fm,nm):sms <- get
-  put $ (vm,lm,M.insert (dummy name) (Procedure myArgs) fm,nm):sms
+  modify (\(st:sts) ->
+    st {
+    callableMap = M.insert (dummy name) (Procedure myArgs) $ callableMap st }:sts) 
 
 --helper function to insert
 --  the predefined functions to the symbol table
 helpfunc :: String->Args->Type->Semantics ()
 helpfunc name myArgs myType = do
-  (vm,lm,fm,nm):sms <- get
-  put $(vm,lm, M.insert (dummy name) (Function myArgs myType) fm,nm):sms
+  modify (\(st:sts) ->
+    st {
+    callableMap = M.insert (dummy name) (Function myArgs myType) $ callableMap st }:sts) 
