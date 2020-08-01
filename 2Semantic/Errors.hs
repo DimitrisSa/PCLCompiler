@@ -1,8 +1,8 @@
-module SemErrors where
+module SemErrs where
  
 unusedLabelErr = "label declared but not used: "
 forwardErr = "no implementation for forward declaration: "
-errorend l c = " at line " ++ show l ++ ", column " ++ show c
+errorPosition l c = " at line " ++ show l ++ ", column " ++ show c
 dupLabDecErr = "Duplicate label declaration: "
 parErr = "Parameter missmatch between " ++
          "forward and declaration for: "
