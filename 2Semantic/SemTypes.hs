@@ -5,10 +5,10 @@ import Control.Monad.Trans.Either (EitherT)
 import Data.Map (Map,empty)
 
 data Callable =
-  Procedure Args                  |
-  Function Args Type              |
-  ProcedureDeclaration Args       |
-  FunctionDeclaration Args Type
+  Proc Args                  |
+  Func Args Type             |
+  ProcDeclaration Args       |
+  FuncDeclaration Args Type
   deriving(Show,Eq)
 
 data SymbolTable = SymbolTable {

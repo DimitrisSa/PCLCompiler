@@ -94,25 +94,25 @@ Locals     :: { [Local] }
            | Locals Local                       { $2:$1 }
 
 Local      :: { Local }
-           : var Variables                      { LoVar     $2    }
-           | label Ids ';'                      { LoLabel   $2    }
-           | Header ';' Body ';'                { LoHeadBod $1 $3 }
-           | forward Header ';'                 { LoForward $2    }
+           : var Variables                      { VarsWithTypeList    $2    }
+           | label Ids ';'                      { Labels   $2    }
+           | Header ';' Body ';'                { HeaderBody $1 $3 }
+           | forward Header ';'                 { Forward $2    }
 
-Variables  :: { Variables }
+Variables  :: { [([Id],Type)] }
            : IdsAndType                         { [$1]  }
            | Variables IdsAndType               { $2:$1 }
 
-IdsAndType :: { (Ids,Type) }
+IdsAndType :: { ([Id],Type) }
            : Ids ':' Type ';'                   { ($1,$3) }
 
-Ids        :: { Ids }
+Ids        :: { [Id] }
            : id                                 { [(tokenToId $1) ]  }
            | Ids ',' id                         { (tokenToId $3) :$1 }
 
 Header     :: { Header }
-           : procedure id '(' Args ')'          { ProcedureHeader (tokenToId $2)  $4    }
-           | function  id '(' Args ')' ':' Type { FunctionHeader  (tokenToId $2)  $4 $7 }
+           : procedure id '(' Args ')'          { ProcHeader (tokenToId $2)  $4    }
+           | function  id '(' Args ')' ':' Type { FuncHeader  (tokenToId $2)  $4 $7 }
 
 Args       :: { Args }
            : {-empty-}                          { [] }
@@ -223,13 +223,10 @@ Exprs      :: { Exprs }
 {
 
 parseError :: Token -> Alex a
-parseError t =
-  let AlexPn _ l c = posn t
-      ls = show l
-      cs = show c
-      errormsg = "Parse error at line " ++ ls ++
-                 ", column " ++ cs
-  in alexError errormsg
+parseError = posnParseError . posn
+
+posnParseError (AlexPn _ li co) =
+  alexError $ concat ["Parse error at line ",show li,", column ",show co]
 
 data Program =
   P Id Body
@@ -255,22 +252,19 @@ instance Eq Id where
 instance Ord Id where
   x <= y = idString x <= idString y
 
-type Ids       = [Id]
-type Variables = [(Ids,Type)]
-
 data Local =
-  LoVar Variables       |
-  LoLabel Ids           |
-  LoHeadBod Header Body |
-  LoForward Header
+  VarsWithTypeList [([Id],Type)]    |
+  Labels [Id]             |
+  HeaderBody Header Body |
+  Forward Header
   deriving(Show)
 
 data Header =
-  ProcedureHeader {
+  ProcHeader {
     pname :: Id
   , pargs :: Args
   }  |
-  FunctionHeader  {
+  FuncHeader  {
     fname :: Id
   , fargs :: Args
   , fty :: Type
@@ -282,7 +276,7 @@ data PassBy =
   Reference
   deriving(Show,Eq)
 
-type Formal = (PassBy,Ids,Type)
+type Formal = (PassBy,[Id],Type)
 type Args   = [Formal]
 
 data Type =

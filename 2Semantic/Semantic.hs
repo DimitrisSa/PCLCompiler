@@ -29,7 +29,9 @@ astSems ast =
   Left s   -> die s
 
 programSems :: Program -> Semantics ()
-programSems (P _ body) = initSymTab >> bodySems body
+programSems (P _ body) = do
+  initSymTab
+  bodySems body
 
 bodySems :: Body -> Semantics ()
 bodySems (Body locals (Block statements)) = do
@@ -61,38 +63,54 @@ getCallableMap = get >>= return . callableMap . head
 localsSems :: [Local] -> Semantics ()
 localsSems locals = do
   mapM_ localSems locals
-  checkUndefinedDeclaredCallable
+  checkUndefinedDeclaration
 
-checkUndefinedDeclaredCallable :: Semantics ()
-checkUndefinedDeclaredCallable =
-  getCallableMap >>= checkUndefinedDeclaredCallableInList . toList 
+checkUndefinedDeclaration :: Semantics ()
+checkUndefinedDeclaration = getCallableMap >>= checkUndefinedDeclarationInList . toList 
 
-checkUndefinedDeclaredCallableInList :: [(Id,Callable)] -> Semantics ()
-checkUndefinedDeclaredCallableInList = \case
-  (id,ProcedureDeclaration _  ):_ -> errAtId forwardErr id
-  (id,FunctionDeclaration _ _):_  -> errAtId forwardErr id
-  _:cml                           -> checkUndefinedDeclaredCallableInList cml
-  []                              -> return ()
+checkUndefinedDeclarationInList :: [(Id,Callable)] -> Semantics ()
+checkUndefinedDeclarationInList = \case
+  (id,ProcDeclaration _  ):_ -> errAtId undefinedDeclarationErr id
+  (id,FuncDeclaration _ _):_ -> errAtId undefinedDeclarationErr id
+  _:cml                      -> checkUndefinedDeclarationInList cml
+  []                         -> return ()
 
 localSems :: Local -> Semantics ()
 localSems = \case
-  LoVar vars     -> toSems vars
-  LoLabel labels -> insertLabels labels
-  LoHeadBod h b  -> headBodF h b
-  LoForward h    -> forwardF h
+  VarsWithTypeList vwtl -> varsWithTypeListSems $ reverse vwtl
+  Labels ls             -> insertLabelsToSymTab $ reverse ls
+  HeaderBody h b        -> headerBodySems h b
+  Forward h             -> forwardSems h
 
-insertLabels :: Ids -> Semantics ()
-insertLabels = mapM_ insertLabel
+varsWithTypeListSems :: [([Id],Type)] -> Semantics ()
+varsWithTypeListSems = mapM_ insertVarsWithTypeToSymTab 
 
-insertLabel :: Id -> Semantics ()
-insertLabel l = do
+insertVarsWithTypeToSymTab :: ([Id],Type) -> Semantics ()
+insertVarsWithTypeToSymTab (vars,ty) = mapM_ (insertVarWithTypeToSymTab ty) vars
+  
+insertVarWithTypeToSymTab :: Type -> Id -> Semantics ()
+insertVarWithTypeToSymTab ty var = do
   st:sts <- get
-  case lookup l $ labelMap st of
-    Just _  -> errAtId dupLabDecErr l
-    Nothing -> put $ st { labelMap = insert l False $ labelMap st }:sts
+  let variableMap' = variableMap st
+  case lookup var variableMap' of
+    Just _  -> errAtId duplicateVariableErr var
+    Nothing -> if checkFullType ty
+               then put $ st { variableMap = insert var ty variableMap' }:sts
+               else errAtId arrayOfErr var
 
-headBodF :: Header -> Body -> Semantics ()
-headBodF h bod = do
+insertLabelsToSymTab :: [Id] -> Semantics ()
+insertLabelsToSymTab = mapM_ insertLabelToSymTab
+
+insertLabelToSymTab :: Id -> Semantics ()
+insertLabelToSymTab label = do
+  symTab:sts <- get
+  let labelMap' = labelMap symTab
+  case lookup label labelMap' of
+    Just _  -> errAtId duplicateLabelDeclarationErr label
+    Nothing -> put $ symTab { labelMap = insert label False labelMap' }:sts
+
+headerBodySems :: Header -> Body -> Semantics ()
+headerBodySems h bod = do
   headF h
   sms <- get
   put $ emptySymbolTable:sms
@@ -103,7 +121,7 @@ headBodF h bod = do
 
 checkresult :: Header -> Semantics ()
 checkresult = \case
-  FunctionHeader i _ _ -> checkresultById i
+  FuncHeader i _ _ -> checkresultById i
   _              -> return ()
 
 checkresultById :: Id -> Semantics ()
@@ -115,8 +133,8 @@ checkresultById i = do
 
 headArgsF :: Header -> Semantics ()
 headArgsF = \case
-  ProcedureHeader _ a   -> insertArgsInTm a
-  FunctionHeader  _ a t -> insertArgsInTm a >> insertResult t
+  ProcHeader _ a   -> insertArgsInTm a
+  FuncHeader  _ a t -> insertArgsInTm a >> insertResult t
 
 insertResult :: Type -> Semantics ()
 insertResult t = do
@@ -171,27 +189,27 @@ headProcedureF :: Id -> Args -> [SymbolTable] -> Semantics ()
 headProcedureF i a sms =
   let a' = reverse a in
   case searchCallSM i (head sms) of
-    Just (ProcedureDeclaration b) -> insertheader i (Procedure a') $ sameTypes a' b
-    Nothing        -> checkArgsAndPut i a' $ Procedure a'
+    Just (ProcDeclaration b) -> insertheader i (Proc a') $ sameTypes a' b
+    Nothing        -> checkArgsAndPut i a' $ Proc a'
     _              -> errAtId dupProcErr i
 
 headFunctionF :: Id -> Args -> Type -> [SymbolTable] -> Semantics ()
 headFunctionF i a t sms =
   let a' = reverse a in
   case searchCallSM i (head sms) of
-    Just (FunctionDeclaration b t2) ->
-      insertheader i (Function a' t) (t==t2 && sameTypes a' b)
+    Just (FuncDeclaration b t2) ->
+      insertheader i (Func a' t) (t==t2 && sameTypes a' b)
     Nothing -> headFunFNothing t i a'
     _       -> errAtId dupFunErr i
 
 headFunFNothing t i a = case t of
   ArrayT _ _ -> errAtId funErr i
-  _          -> checkArgsAndPut i a $ Function a t
+  _          -> checkArgsAndPut i a $ Func a t
 
 headF :: Header -> Semantics ()
 headF h = get >>= \sms -> case h of
-  ProcedureHeader i a   -> headProcedureF i a sms
-  FunctionHeader  i a t -> headFunctionF i a t sms
+  ProcHeader i a   -> headProcedureF i a sms
+  FuncHeader  i a t -> headFunctionF i a t sms
 
 checkArgsAndPut :: Id -> Args -> Callable -> Semantics ()
 checkArgsAndPut i as t = do
@@ -208,38 +226,21 @@ insertforward :: Id -> Args -> Callable -> Semantics ()
 insertforward i as t = do
   sms <- get
   case searchCallSM i (head sms) of
-    Just _ -> errAtId dupErr i
+    Just _ -> errAtId duplicateVariableErr i
     Nothing -> checkArgsAndPut i as t
 
-forwardF :: Header -> Semantics ()
-forwardF h = case h of
-  ProcedureHeader i a   -> insertforward i a (ProcedureDeclaration $ reverse a)
-  FunctionHeader  i a t -> case t of
+forwardSems :: Header -> Semantics ()
+forwardSems h = case h of
+  ProcHeader i a   -> insertforward i a (ProcDeclaration $ reverse a)
+  FuncHeader i a t -> case t of
     ArrayT _ _ -> errAtId funErr i
-    _          -> insertforward i a (FunctionDeclaration (reverse a) t)
-
-toSems :: Variables -> Semantics ()
-toSems = mapM_ (myinsert . makelist) . reverse
-
-makelist :: (Ids,Type) -> [(Id,Type)]
-makelist (in1,myt) = Prelude.map (\x -> (x,myt)) $ reverse in1
+    _          -> insertforward i a (FuncDeclaration (reverse a) t)
 
 formalsToTypes :: [Formal] -> [(PassBy,Type)]
 formalsToTypes = concat . map makelisthelp
 
 makelisthelp :: Formal -> [(PassBy,Type)]
 makelisthelp (pb,in1,myt) = Prelude.map (\_ -> (pb,myt)) in1
-
-myinsert :: [(Id,Type)] -> Semantics ()
-myinsert ((v,t):xs) = do
-  st:sts <- get
-  case lookup v $ variableMap st of
-    Just _  -> errAtId dupErr v
-    Nothing -> if checkFullType t then
-                 put (st { variableMap = insert v t $ variableMap st }:sts) >> 
-                 myinsert xs
-               else errAtId arrayOfErr v
-myinsert [] = return ()
 
 stmtsSems :: Stmts -> Semantics ()
 stmtsSems ss = mapM_ stmtSems ss
@@ -355,8 +356,8 @@ symbatos lt et = (lt == et && checkFullType lt) || (lt == Treal && et == Tint)
 
 callSem :: Id -> Callable -> Exprs -> Semantics ()
 callSem id = \case
-  ProcedureDeclaration as -> goodArgs id as
-  Procedure  as -> goodArgs id as
+  ProcDeclaration as -> goodArgs id as
+  Proc  as -> goodArgs id as
   _        -> \_ -> errAtId callSemErr id
 
 goodArgs :: Id -> Args -> Exprs -> Semantics ()
@@ -523,8 +524,8 @@ realDivRValueType li co exp1 exp2 =
 
 funCallSem :: Id -> Callable -> Exprs -> Semantics Type
 funCallSem id = \case
-  FunctionDeclaration as t -> \exprs -> goodArgs id as exprs >> right t
-  Function  as t -> \exprs -> goodArgs id as exprs >> right t
+  FuncDeclaration as t -> \exprs -> goodArgs id as exprs >> right t
+  Func  as t -> \exprs -> goodArgs id as exprs >> right t
   _          -> \_ -> errAtId callSemErr id
 
 errorAtArg error i (Id string line column) =
@@ -574,8 +575,8 @@ dummy s = Id s 0 0
 
 insertProcToSymTab :: String -> Args -> Semantics ()
 insertProcToSymTab name myArgs = modify (\(st:sts) ->
-  st { callableMap = insert (dummy name) (Procedure myArgs) $ callableMap st }:sts) 
+  st { callableMap = insert (dummy name) (Proc myArgs) $ callableMap st }:sts) 
 
 insertFuncToSymTab :: String -> Args -> Type -> Semantics ()
 insertFuncToSymTab name myArgs myType = modify (\(st:sts) ->
-  st { callableMap = insert (dummy name) (Function myArgs myType) $ callableMap st }:sts) 
+  st { callableMap = insert (dummy name) (Func myArgs myType) $ callableMap st }:sts) 

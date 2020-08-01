@@ -1,12 +1,12 @@
 module SemErrs where
  
 unusedLabelErr = "label declared but not used: "
-forwardErr = "no implementation for forward declaration: "
+undefinedDeclarationErr = "no definition for declaration: "
 errorPosition l c = " at line " ++ show l ++ ", column " ++ show c
-dupLabDecErr = "Duplicate label declaration: "
+duplicateLabelDeclarationErr = "Duplicate label declaration: "
 parErr = "Parameter missmatch between " ++
          "forward and declaration for: "
-dupErr = "Duplicate Variable: "
+duplicateVariableErr = "Duplicate Variable: "
 dupProcErr = "Duplicate Procedure: "
 dupFunErr = "Duplicate Function: "
 dupArgErr = "duplicate argument: " 
