@@ -1,4 +1,12 @@
 program danglingif;
 label john;
+var mitsos:integer;
+procedure ok();
 begin
+end;
+function ok():real;
+begin
+end;
+begin
+john:
 end.
