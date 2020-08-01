@@ -4,8 +4,8 @@ unusedLabelErr = "label declared but not used: "
 undefinedDeclarationErr = "no definition for declaration: "
 errorPosition l c = " at line " ++ show l ++ ", column " ++ show c
 duplicateLabelDeclarationErr = "Duplicate label declaration: "
-parErr = "Parameter missmatch between " ++
-         "forward and declaration for: "
+typeMismatchErr =
+  "Parameter/Result type missmatch between declaration and definition for: "
 duplicateVariableErr = "Duplicate Variable: "
 dupplicateCallableErr = "Duplicate Function/Procedure name: "
 dupArgErr = "duplicate argument: " 
@@ -42,8 +42,6 @@ nonBoolBefErr = "non-boolean expression before "
 mismTypesErr = "mismatched types at "
 argsExprsErr = "Wrong number of args for: "
 typeExprsErr = "Type mismatch of args for: "
-badArgErr i id = concat ["Type mismatch at argument ",show i,
-                         " in call of: ", id]
+badArgErr i id = concat ["Type mismatch at argument ",show i, " in call of: ", id]
 refErr i id = concat
-  ["Argument ",show i, " in call of \"",
-   id,"\" cannot be passed by reference"]
+  ["Argument ",show i, " in call of \"",id,"\" cannot be passed by reference"]

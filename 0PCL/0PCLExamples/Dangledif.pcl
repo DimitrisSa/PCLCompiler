@@ -1,10 +1,8 @@
 program danglingif;
 label john;
 var mitsos:integer;
+forward procedure ok(a:integer);
 procedure ok();
-begin
-end;
-function ok():real;
 begin
 end;
 begin

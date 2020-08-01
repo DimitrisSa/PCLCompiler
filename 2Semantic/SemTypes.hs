@@ -1,14 +1,14 @@
 module SemTypes where
-import Parser (Type,Id,LValue,Args)
+import Parser (Type,Id,LValue,Formal)
 import Control.Monad.State (State)
 import Control.Monad.Trans.Either (EitherT)
 import Data.Map (Map,empty)
 
 data Callable =
-  Proc Args                  |
-  Func Args Type             |
-  ProcDeclaration Args       |
-  FuncDeclaration Args Type
+  Proc [Formal]                  |
+  Func [Formal] Type             |
+  ProcDeclaration [Formal]       |
+  FuncDeclaration [Formal] Type
   deriving(Show,Eq)
 
 data SymbolTable = SymbolTable {

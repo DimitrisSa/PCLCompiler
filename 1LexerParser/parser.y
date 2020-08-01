@@ -114,7 +114,7 @@ Header     :: { Header }
            : procedure id '(' Args ')'          { ProcHeader (tokenToId $2)  $4    }
            | function  id '(' Args ')' ':' Type { FuncHeader  (tokenToId $2)  $4 $7 }
 
-Args       :: { Args }
+Args       :: { [Formal] }
            : {-empty-}                          { [] }
            | Formals                            { $1 }
 
@@ -262,11 +262,11 @@ data Local =
 data Header =
   ProcHeader {
     pname :: Id
-  , pargs :: Args
+  , pargs :: [Formal]
   }  |
   FuncHeader  {
     fname :: Id
-  , fargs :: Args
+  , fargs :: [Formal]
   , fty :: Type
   }
   deriving(Show)
@@ -277,7 +277,6 @@ data PassBy =
   deriving(Show,Eq)
 
 type Formal = (PassBy,[Id],Type)
-type Args   = [Formal]
 
 data Type =
   Tnil                |

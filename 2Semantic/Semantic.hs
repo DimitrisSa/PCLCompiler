@@ -130,22 +130,41 @@ headerSems = \case
   ProcHeader id args    -> headerProcSems id (reverse args)
   FuncHeader id args ty -> headerFuncSems id (reverse args) ty
 
-headerProcSems :: Id -> Args -> Semantics ()
+headerProcSems :: Id -> [Formal] -> Semantics ()
 headerProcSems id args = afterProcIdLookup id args . lookup id =<< getCallableMap
 
 afterProcIdLookup id args = \case
-  Just (ProcDeclaration args') -> insertheader id (Proc args) $ sameTypes args args'
+  Just (ProcDeclaration args') -> insertToSymTabIfGoodArgs id args args'
   Nothing                      -> checkArgsAndPut id args $ Proc args
   _                            -> errAtId dupplicateCallableErr id
 
-headerFuncSems :: Id -> Args -> Type -> Semantics ()
+insertToSymTabIfGoodArgs id args args' =
+  insertToSymTabIfGood id (Proc args) $ sameTypes args args'
+
+headerFuncSems :: Id -> [Formal] -> Type -> Semantics ()
 headerFuncSems id args ty = afterFuncIdLookup id args ty . lookup id =<< getCallableMap
 
 afterFuncIdLookup id args ty = \case
-  Just (FuncDeclaration args' ty') ->
-    insertheader id (Func args ty) (ty==ty' && sameTypes args args')
-  Nothing -> headFunFNothing ty id args
-  _       -> errAtId dupplicateCallableErr id
+  Just (FuncDeclaration args' ty') -> insertToSymTabIfGoodArgsAndTy id args args' ty ty'
+  Nothing                          -> headFunFNothing ty id args
+  _                                -> errAtId dupplicateCallableErr id
+
+insertToSymTabIfGoodArgsAndTy id args args' ty ty' = 
+  insertToSymTabIfGood id (Func args ty) $ ty==ty' && sameTypes args args'
+
+insertToSymTabIfGood :: Id -> Callable -> Bool -> Semantics ()
+insertToSymTabIfGood id cal = \case
+  True -> modify $ \(st:sts) -> st { callableMap = insert id cal $ callableMap st }:sts
+  _    -> errAtId typeMismatchErr id
+
+sameTypes :: [Formal] -> [Formal] -> Bool
+sameTypes a b = (\[a,b] -> a == b) $ map formalsToTypes [a,b]
+
+formalsToTypes :: [Formal] -> [(PassBy,Type)]
+formalsToTypes = concat . map makelisthelp
+
+makelisthelp :: Formal -> [(PassBy,Type)]
+makelisthelp (pb,in1,myt) = map (\_ -> (pb,myt)) in1
 
 checkresult :: Header -> Semantics ()
 checkresult = \case
@@ -169,7 +188,7 @@ insertResult t = do
   modify (\(st:sts) ->
     st { variableMap = insert (dummy "result") t $ variableMap st }:sts) 
 
-insertArgsInTm :: Args -> Semantics ()
+insertArgsInTm :: [Formal] -> Semantics ()
 insertArgsInTm = mapM_ insertFormalInTm
 
 insertFormalInTm :: Formal -> Semantics ()
@@ -183,12 +202,6 @@ insertIdInTm t id = do
     _       -> errAtId dupArgErr id
 
 -- to check if func/proc with forward is defined
-insertheader :: Id -> Callable -> Bool -> Semantics ()
-insertheader i t expr = do
-  st:sts <- get
-  if expr then put $ st { callableMap = insert i t $ callableMap st }:sts
-  else errAtId parErr i
-
 searchCallSM :: Id -> SymbolTable -> Maybe Callable
 searchCallSM id st = lookup id $ callableMap st
 
@@ -211,13 +224,11 @@ searchVarSMs id = \case
 searchVarSM :: Id -> SymbolTable -> Maybe Type
 searchVarSM id st = lookup id $ variableMap st
 
-sameTypes a b = (\[a,b] -> a == b) $ map formalsToTypes [a,b]
-
 headFunFNothing t i a = case t of
   ArrayT _ _ -> errAtId funErr i
   _          -> checkArgsAndPut i a $ Func a t
 
-checkArgsAndPut :: Id -> Args -> Callable -> Semantics ()
+checkArgsAndPut :: Id -> [Formal] -> Callable -> Semantics ()
 checkArgsAndPut i as t = do
   st:sts <- get
   if all argOk as then put $ st { callableMap = insert i t $ callableMap st }:sts 
@@ -228,7 +239,7 @@ argOk = \case
   (Value,_,ArrayT _ _) -> False
   _                    -> True
 
-insertforward :: Id -> Args -> Callable -> Semantics ()
+insertforward :: Id -> [Formal] -> Callable -> Semantics ()
 insertforward i as t = do
   sms <- get
   case searchCallSM i (head sms) of
@@ -241,12 +252,6 @@ forwardSems h = case h of
   FuncHeader i a t -> case t of
     ArrayT _ _ -> errAtId funErr i
     _          -> insertforward i a (FuncDeclaration (reverse a) t)
-
-formalsToTypes :: [Formal] -> [(PassBy,Type)]
-formalsToTypes = concat . map makelisthelp
-
-makelisthelp :: Formal -> [(PassBy,Type)]
-makelisthelp (pb,in1,myt) = Prelude.map (\_ -> (pb,myt)) in1
 
 stmtsSems :: Stmts -> Semantics ()
 stmtsSems ss = mapM_ stmtSems ss
@@ -366,7 +371,7 @@ callSem id = \case
   Proc  as -> goodArgs id as
   _        -> \_ -> errAtId callSemErr id
 
-goodArgs :: Id -> Args -> Exprs -> Semantics ()
+goodArgs :: Id -> [Formal] -> Exprs -> Semantics ()
 goodArgs id as exprs =
   mapM forcalltype exprs >>=
   argsExprsSems 1 id (formalsToTypes as)
@@ -579,10 +584,10 @@ initSymTab = do
 dummy :: String -> Id
 dummy s = Id s 0 0 
 
-insertProcToSymTab :: String -> Args -> Semantics ()
+insertProcToSymTab :: String -> [Formal] -> Semantics ()
 insertProcToSymTab name myArgs = modify (\(st:sts) ->
   st { callableMap = insert (dummy name) (Proc myArgs) $ callableMap st }:sts) 
 
-insertFuncToSymTab :: String -> Args -> Type -> Semantics ()
+insertFuncToSymTab :: String -> [Formal] -> Type -> Semantics ()
 insertFuncToSymTab name myArgs myType = modify (\(st:sts) ->
   st { callableMap = insert (dummy name) (Func myArgs myType) $ callableMap st }:sts) 
