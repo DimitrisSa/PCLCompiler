@@ -18,5 +18,5 @@ afterVarLookup ty var = \case
 
 afterVarLookupOk :: Type -> Id -> Sems ()
 afterVarLookupOk ty var = case checkFullType ty of
-  True -> modify $ \(st:sts) -> st { variableMap = insert var ty $ variableMap st }:sts
+  True -> insToVariableMap var ty 
   _    -> errAtId arrayOfDeclarationErr var

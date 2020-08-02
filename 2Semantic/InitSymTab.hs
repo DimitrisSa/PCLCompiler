@@ -32,9 +32,7 @@ initSymTab = do
   insertFuncToSymTab "chr" [(Value,[dummy "r"],Tint)] Tchar
 
 insertProcToSymTab :: String -> [Formal] -> Sems ()
-insertProcToSymTab name myArgs = modify (\(st:sts) ->
-  st { callableMap = insert (dummy name) (Proc myArgs) $ callableMap st }:sts) 
+insertProcToSymTab name myArgs = insToCallableMap (dummy name) (Proc myArgs)
 
 insertFuncToSymTab :: String -> [Formal] -> Type -> Sems ()
-insertFuncToSymTab name myArgs myType = modify (\(st:sts) ->
-  st { callableMap = insert (dummy name) (Func myArgs myType) $ callableMap st }:sts) 
+insertFuncToSymTab name myArgs myType = insToCallableMap (dummy name) (Func myArgs myType)

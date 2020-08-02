@@ -10,5 +10,5 @@ insToSymTabLabel label = afterlabelLookup label . lookup label =<< getLabelMap
 
 afterlabelLookup :: Id -> Maybe Bool -> Sems ()
 afterlabelLookup label = \case 
-  Nothing -> modify $ \(st:sts) -> st { labelMap = insert label False $ labelMap st }:sts
+  Nothing -> insToLabelMap label False
   _       -> errAtId duplicateLabelDeclarationErr label

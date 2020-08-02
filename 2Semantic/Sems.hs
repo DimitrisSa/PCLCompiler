@@ -5,7 +5,7 @@ import System.IO
 import System.Exit
 import Common hiding (map)
 import InitSymTab (initSymTab)
-import VarsWithTypeListSems
+import VarsWithTypeListSems (varsWithTypeListSems)
 import InsToSymTabLabels (insToSymTabLabels)
 import ForwardSems (forwardSems)
 import CheckUndefDeclarationSems (checkUndefDeclarationSems)
@@ -64,6 +64,14 @@ headerBodySems h b = do
   checkresult h
   put sms
 
+headArgsF :: Header -> Sems ()
+headArgsF = \case
+  ProcHeader _ formals    -> insertArgsInTm formals
+  FuncHeader _ formals ty -> insertArgsInTm formals >> insertResult ty
+
+insertResult :: Type -> Sems ()
+insertResult t = insToVariableMap (dummy "result") t
+
 formalsToTypes :: [Formal] -> [(PassBy,Type)]
 formalsToTypes = concat . map formalToType
 
@@ -82,21 +90,18 @@ checkresultById i = do
     Nothing -> errAtId noResInFunErr i
     _       -> return ()
 
-headArgsF :: Header -> Sems ()
-headArgsF = \case
-  ProcHeader _ a   -> insertArgsInTm a
-  FuncHeader  _ a t -> insertArgsInTm a >> insertResult t
-
-insertResult :: Type -> Sems ()
-insertResult t = do
-  modify (\(st:sts) ->
-    st { variableMap = insert (dummy "result") t $ variableMap st }:sts) 
-
 insertArgsInTm :: [Formal] -> Sems ()
 insertArgsInTm = mapM_ insertFormalInTm
 
 insertFormalInTm :: Formal -> Sems ()
-insertFormalInTm (_,ids,t) = mapM_ (insertIdInTm t) ids
+insertFormalInTm (_,ids,t) = mapM_ (insertIdInTm' t) ids
+
+insertIdInTm' :: Type -> Id -> Sems ()
+insertIdInTm' ty id = afterIdLookup ty id . lookup id =<< getVariableMap 
+
+afterIdLookup ty id = \case
+  Nothing -> insToVariableMap id ty 
+  _       -> errAtId dupArgErr id
 
 insertIdInTm :: Type -> Id -> Sems ()
 insertIdInTm t id = do

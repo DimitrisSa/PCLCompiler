@@ -1,6 +1,7 @@
 module ForwardSems where
 import Prelude hiding (lookup)
 import Common
+import InsToSymTabIfFormalsOk (insToSymTabIfFormalsOk)
 
 forwardSems :: Header -> Sems ()
 forwardSems h = case h of
