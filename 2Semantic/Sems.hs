@@ -1,16 +1,14 @@
 module Main where
 import Prelude hiding (lookup)
-import SemsTypes
-import Parser 
-import Control.Monad.State
 import Control.Monad.Trans.Either
 import System.IO
 import System.Exit
-import SemsErrs
-import Data.Map hiding (map)
-import Helpers
+import Common hiding (map)
 import InitSymTab
 import VarsWithTypeListSems
+import InsToSymTabLabels
+import ForwardSems
+import CheckUndefDeclarationSems
 
 -- same name of fun inside of other fun?
 main :: IO ()
