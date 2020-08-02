@@ -242,7 +242,7 @@ data Body =
 data Id        = Id {
     idString::String
   , idLine::Int
-  , idColum::Int
+  , idColumn::Int
   }
   deriving(Show)
 

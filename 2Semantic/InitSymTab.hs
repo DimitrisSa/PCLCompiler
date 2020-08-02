@@ -1,0 +1,46 @@
+module InitSymTab where
+import SemsTypes
+import Parser
+import Control.Monad.State
+import Data.Map
+
+initSymTab :: Sems ()
+initSymTab = do
+  insertProcToSymTab "writeInteger" [(Value,[dummy "n"],Tint)]
+  insertProcToSymTab "writeBoolean" [(Value,[dummy "b"],Tbool)]
+  insertProcToSymTab "writeChar" [(Value,[dummy "c"],Tchar)]
+  insertProcToSymTab "writeReal" [(Value,[dummy "r"],Treal)]
+  insertProcToSymTab "writeString" [(Reference, [dummy "s"],ArrayT NoSize Tchar)]
+  insertFuncToSymTab "readInteger" [] Tint
+  insertFuncToSymTab "readBoolean" [] Tbool
+  insertFuncToSymTab "readChar" [] Tchar
+  insertFuncToSymTab "readReal" [] Treal
+  insertProcToSymTab "readString" [(Value,[dummy "size"],Tint)
+                                  ,(Reference,[dummy "s"]
+                                  ,ArrayT NoSize Tchar)
+                                  ]
+  insertFuncToSymTab "abs" [(Value,[dummy "n"],Tint)] Tint
+  insertFuncToSymTab "fabs" [(Value,[dummy "r"],Treal)] Treal
+  insertFuncToSymTab "sqrt" [(Value,[dummy "r"],Treal)] Treal
+  insertFuncToSymTab "sin" [(Value,[dummy "r"],Treal)] Treal
+  insertFuncToSymTab "cos" [(Value,[dummy "r"],Treal)] Treal
+  insertFuncToSymTab "tan" [(Value,[dummy "r"],Treal)] Treal
+  insertFuncToSymTab "arctan" [(Value,[dummy "r"],Treal)] Treal
+  insertFuncToSymTab "exp" [(Value,[dummy "r"],Treal)] Treal
+  insertFuncToSymTab "ln" [(Value,[dummy "r"],Treal)] Treal
+  insertFuncToSymTab "pi" [] Treal
+  insertFuncToSymTab "trunc" [(Value,[dummy "r"],Treal)] Tint
+  insertFuncToSymTab "round" [(Value,[dummy "r"],Treal)] Tint
+  insertFuncToSymTab "ord" [(Value,[dummy "r"],Tchar)] Tint
+  insertFuncToSymTab "chr" [(Value,[dummy "r"],Tint)] Tchar
+
+dummy :: String -> Id
+dummy s = Id s 0 0 
+
+insertProcToSymTab :: String -> [Formal] -> Sems ()
+insertProcToSymTab name myArgs = modify (\(st:sts) ->
+  st { callableMap = insert (dummy name) (Proc myArgs) $ callableMap st }:sts) 
+
+insertFuncToSymTab :: String -> [Formal] -> Type -> Sems ()
+insertFuncToSymTab name myArgs myType = modify (\(st:sts) ->
+  st { callableMap = insert (dummy name) (Func myArgs myType) $ callableMap st }:sts) 
