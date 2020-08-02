@@ -1,9 +1,8 @@
 program danglingif;
 label john;
 var mitsos:integer;
-forward procedure ok(a,b:integer;c:integer);
-forward procedure ok(a,b:integer;c:integer);
-procedure ok(b,c,e:integer);
+forward procedure ok(a,b,c:integer);
+procedure ok(b,c,e,d:integer);
 begin
 end;
 begin

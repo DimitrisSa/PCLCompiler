@@ -10,7 +10,7 @@ import InsToSymTabLabels (insToSymTabLabels)
 import ForwardSems (forwardSems)
 import CheckUndefDeclarationSems (checkUndefDeclarationSems)
 import CheckUnusedLabels (checkUnusedLabels)
-import HeaderSems (headerSems)
+import HeaderParentSems (headerParentSems)
 
 -- same name of fun inside of other fun?
 main :: IO ()
@@ -56,7 +56,7 @@ localSems = \case
 
 headerBodySems :: Header -> Body -> Sems ()
 headerBodySems h b = do
-  headerSems h
+  headerParentSems h
   sms <- get
   put $ emptySymbolTable:sms
   headArgsF h
@@ -68,6 +68,19 @@ headArgsF :: Header -> Sems ()
 headArgsF = \case
   ProcHeader _ formals    -> insertArgsInTm formals
   FuncHeader _ formals ty -> insertArgsInTm formals >> insertResult ty
+
+insertArgsInTm :: [Formal] -> Sems ()
+insertArgsInTm = mapM_ insertFormalInTm
+
+insertFormalInTm :: Formal -> Sems ()
+insertFormalInTm (_,ids,t) = mapM_ (insertIdInTm' t) ids
+
+insertIdInTm' :: Type -> Id -> Sems ()
+insertIdInTm' ty id = afterIdLookup ty id . lookup id =<< getVariableMap 
+
+afterIdLookup ty id = \case
+  Nothing -> insToVariableMap id ty 
+  _       -> errAtId dupArgErr id
 
 insertResult :: Type -> Sems ()
 insertResult t = insToVariableMap (dummy "result") t
@@ -89,26 +102,6 @@ checkresultById i = do
   case lookup (dummy "while") vm of
     Nothing -> errAtId noResInFunErr i
     _       -> return ()
-
-insertArgsInTm :: [Formal] -> Sems ()
-insertArgsInTm = mapM_ insertFormalInTm
-
-insertFormalInTm :: Formal -> Sems ()
-insertFormalInTm (_,ids,t) = mapM_ (insertIdInTm' t) ids
-
-insertIdInTm' :: Type -> Id -> Sems ()
-insertIdInTm' ty id = afterIdLookup ty id . lookup id =<< getVariableMap 
-
-afterIdLookup ty id = \case
-  Nothing -> insToVariableMap id ty 
-  _       -> errAtId dupArgErr id
-
-insertIdInTm :: Type -> Id -> Sems ()
-insertIdInTm t id = do
-  st:sts <- get
-  case lookup id $ variableMap st of
-    Nothing -> put $ st { variableMap = insert id t $ variableMap st }:sts
-    _       -> errAtId dupArgErr id
 
 -- to check if func/proc with forward is defined
 searchCallSM :: Id -> SymbolTable -> Maybe Callable

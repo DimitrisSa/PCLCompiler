@@ -1,10 +1,11 @@
-module HeaderSems where
+module HeaderParentSems where
 import Prelude hiding (lookup)
 import Common hiding (map)
+import Data.Function
 import InsToSymTabIfFormalsOk (insToSymTabIfFormalsOk)
 
-headerSems :: Header -> Sems ()
-headerSems = \case
+headerParentSems :: Header -> Sems ()
+headerParentSems = \case
   ProcHeader id formals    -> headerProcSems id (reverse formals)
   FuncHeader id formals ty -> headerFuncSems id (reverse formals) ty
 
@@ -27,11 +28,16 @@ afterFuncIdLookup id fs ty = \case
   _                              -> errAtId duplicateCallableErr id
 
 insToSymTabIfFormalsMatch :: Id -> [Formal] -> [Formal] -> Sems ()
-insToSymTabIfFormalsMatch id fs fs' = insToSymTabIfGood id (Proc fs) $ sameTypes fs fs'
+insToSymTabIfFormalsMatch id fs fs' = do
+  sameTypes id fs fs'
+  insToCallableMap id (Proc fs)
 
 insToSymTabIfFormalsAndTypeMatch :: Id -> [Formal] -> [Formal] -> Type -> Type -> Sems ()
-insToSymTabIfFormalsAndTypeMatch id fs fs' ty ty' = 
-  insToSymTabIfGood id (Func fs ty) $ ty==ty' && sameTypes fs fs'
+insToSymTabIfFormalsAndTypeMatch id fs fs' ty ty' = do
+  sameTypes id fs fs'
+  case ty == ty' of
+    True -> insToCallableMap id (Func fs ty)
+    _    -> errAtId typeMismatchErr id
 
 insToSymTabIfFormalsAndTypeOk id fs = \case 
   ArrayT _ _ -> errAtId funcResTypeErr id
@@ -42,12 +48,12 @@ insToSymTabIfGood id cal = \case
   True -> insToCallableMap id cal 
   _    -> errAtId typeMismatchErr id
 
-sameTypes :: [Formal] -> [Formal] -> Bool
-sameTypes (f:fs) (f':fs') = case formalToType f == formalToType f' of
-  True -> sameTypes fs fs'
-  _    -> False  
-sameTypes [] [] = True
-sameTypes _  _ = True
+sameTypes :: Id -> [Formal] -> [Formal] -> Sems ()
+sameTypes id (f:fs) (f':fs') = case ((==) `on` formalToType) f f' of
+  True -> sameTypes id fs fs'
+  _    -> errAtId typeMismatchErr id
+sameTypes _ [] [] = return ()
+sameTypes id _  _  = errAtId typeMismatchErr id
 
 formalToType :: Formal -> (PassBy,Type,Int)
 formalToType (pb,ids,ty) = (pb,ty,length ids)
