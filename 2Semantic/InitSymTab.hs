@@ -1,8 +1,5 @@
 module InitSymTab where
-import SemsTypes
-import Parser
-import Control.Monad.State
-import Data.Map
+import Common
 
 initSymTab :: Sems ()
 initSymTab = do
@@ -33,9 +30,6 @@ initSymTab = do
   insertFuncToSymTab "round" [(Value,[dummy "r"],Treal)] Tint
   insertFuncToSymTab "ord" [(Value,[dummy "r"],Tchar)] Tint
   insertFuncToSymTab "chr" [(Value,[dummy "r"],Tint)] Tchar
-
-dummy :: String -> Id
-dummy s = Id s 0 0 
 
 insertProcToSymTab :: String -> [Formal] -> Sems ()
 insertProcToSymTab name myArgs = modify (\(st:sts) ->

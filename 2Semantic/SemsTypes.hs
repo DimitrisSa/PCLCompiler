@@ -1,6 +1,6 @@
 module SemsTypes where
 import Parser (Type,Id,LValue,Formal)
-import Control.Monad.State (State)
+import Control.Monad.State (State,get)
 import Control.Monad.Trans.Either (EitherT)
 import Data.Map (Map,empty)
 
@@ -26,3 +26,12 @@ type Error       = String
 type Sems a = EitherT Error (State [SymbolTable]) a
 
 emptySymbolTable = SymbolTable empty empty empty empty 
+
+getVariableMap :: Sems VariableMap
+getVariableMap = return . variableMap . head =<< get
+
+getLabelMap :: Sems LabelMap
+getLabelMap = return . labelMap . head =<< get
+
+getCallableMap :: Sems CallableMap
+getCallableMap = return . callableMap . head =<< get

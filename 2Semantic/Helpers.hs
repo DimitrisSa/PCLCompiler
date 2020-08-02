@@ -7,23 +7,6 @@ import Parser
 import Data.Map
 import Control.Monad.Trans.Either
 
-getVariableMap :: Sems VariableMap
-getVariableMap = return . variableMap . head =<< get
-
-getLabelMap :: Sems LabelMap
-getLabelMap = return . labelMap . head =<< get
-
-getCallableMap :: Sems CallableMap
-getCallableMap = return . callableMap . head =<< get
-
-checkUnusedLabels :: Sems ()
-checkUnusedLabels = checkFalseLabelValueInList . toList =<< getLabelMap
-
-checkFalseLabelValueInList :: [(Id,Bool)] -> Sems ()
-checkFalseLabelValueInList = mapM_ $ \case
-  (id,False) -> errAtId unusedLabelErr id
-  _          -> return ()
-
 checkFullType :: Type -> Bool
 checkFullType = \case
   ArrayT NoSize _ -> False
@@ -40,3 +23,6 @@ insToSymTabIfFormalsOk id fs cal = case all formalOk fs of
 
 formalOk :: Formal -> Bool
 formalOk = \case (Value,_,ArrayT _ _) -> False; _ -> True
+
+dummy :: String -> Id
+dummy s = Id s 0 0 

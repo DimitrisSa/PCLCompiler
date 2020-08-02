@@ -4,11 +4,13 @@ import Control.Monad.Trans.Either
 import System.IO
 import System.Exit
 import Common hiding (map)
-import InitSymTab
+import InitSymTab (initSymTab)
 import VarsWithTypeListSems
-import InsToSymTabLabels
-import ForwardSems
-import CheckUndefDeclarationSems
+import InsToSymTabLabels (insToSymTabLabels)
+import ForwardSems (forwardSems)
+import CheckUndefDeclarationSems (checkUndefDeclarationSems)
+import CheckUnusedLabels (checkUnusedLabels)
+import HeaderSems (headerSems)
 
 -- same name of fun inside of other fun?
 main :: IO ()
@@ -61,53 +63,6 @@ headerBodySems h b = do
   bodySems b
   checkresult h
   put sms
-
-headerSems :: Header -> Sems ()
-headerSems = \case
-  ProcHeader id formals    -> headerProcSems id (reverse formals)
-  FuncHeader id formals ty -> headerFuncSems id (reverse formals) ty
-
-headerProcSems :: Id -> [Formal] -> Sems ()
-headerProcSems id fs = afterProcIdLookup id fs . lookup id =<< getCallableMap
-
-afterProcIdLookup :: Id -> [Formal] -> Maybe Callable -> Sems ()
-afterProcIdLookup id fs = \case
-  Just (ProcDeclaration fs') -> insToSymTabIfFormalsMatch id fs fs'
-  Nothing                    -> insToSymTabIfFormalsOk id fs $ Proc fs
-  _                          -> errAtId duplicateCallableErr id
-
-insToSymTabIfFormalsMatch :: Id -> [Formal] -> [Formal] -> Sems ()
-insToSymTabIfFormalsMatch id fs fs' = insToSymTabIfGood id (Proc fs) $ sameTypes' fs fs'
-
-headerFuncSems :: Id -> [Formal] -> Type -> Sems ()
-headerFuncSems id fs ty = afterFuncIdLookup id fs ty . lookup id =<< getCallableMap
-
-afterFuncIdLookup :: Id -> [Formal] -> Type -> Maybe Callable -> Sems ()
-afterFuncIdLookup id fs ty = \case
-  Just (FuncDeclaration fs' ty') -> insToSymTabIfFormalsAndTypeMatch id fs fs' ty ty'
-  Nothing                        -> headFunFNothing ty id fs
-  _                              -> errAtId duplicateCallableErr id
-
-insToSymTabIfFormalsAndTypeMatch :: Id -> [Formal] -> [Formal] -> Type -> Type -> Sems ()
-insToSymTabIfFormalsAndTypeMatch id fs fs' ty ty' = 
-  insToSymTabIfGood id (Func fs ty) $ ty==ty' && sameTypes' fs fs'
-
-insToSymTabIfGood :: Id -> Callable -> Bool -> Sems ()
-insToSymTabIfGood id cal = \case
-  True -> modify $ \(st:sts) -> st { callableMap = insert id cal $ callableMap st }:sts
-  _    -> errAtId typeMismatchErr id
-
-sameTypes' :: [Formal] -> [Formal] -> Bool
-sameTypes' fs fs' = formalsToTypes' fs == formalsToTypes' fs'
-
-formalsToTypes' :: [Formal] -> [(PassBy,Type,Int)]
-formalsToTypes' = map formalToType'
-
-formalToType' :: Formal -> (PassBy,Type,Int)
-formalToType' (pb,ids,ty) = (pb,ty,length ids)
-
-sameTypes :: [Formal] -> [Formal] -> Bool
-sameTypes a b = (\[a,b] -> a == b) $ map formalsToTypes [a,b]
 
 formalsToTypes :: [Formal] -> [(PassBy,Type)]
 formalsToTypes = concat . map formalToType
@@ -172,10 +127,6 @@ searchVarSMs id = \case
 
 searchVarSM :: Id -> SymbolTable -> Maybe Type
 searchVarSM id st = lookup id $ variableMap st
-
-headFunFNothing t i a = case t of
-  ArrayT _ _ -> errAtId funcResTypeErr i
-  _          -> insToSymTabIfFormalsOk i a $ Func a t
 
 stmtsSems :: Stmts -> Sems ()
 stmtsSems ss = mapM_ stmtSems ss
