@@ -40,7 +40,7 @@ insToSymTabIfFormalsAndTypeMatch id fs fs' ty ty' = do
     _    -> errAtId resultTypeMismatchErr id
 
 insToSymTabIfFormalsAndTypeOk id fs = \case 
-  ArrayT _ _ -> errAtId funcResTypeErr id
+  Array _ _ -> errAtId funcResTypeErr id
   t          -> insToSymTabIfFormalsOk id fs $ Func fs t
 
 sameTypes :: Id -> [Formal] -> [Formal] -> Sems ()

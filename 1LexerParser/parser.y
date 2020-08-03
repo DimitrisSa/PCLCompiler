@@ -130,19 +130,19 @@ Optvar     : {-empty-}                          { Value     }
            | var                                { Reference }
 
 Type :: { Type }
-     : integer                            { Tint           }
-     | real                               { Treal          }
-     | boolean                            { Tbool          }
-     | char                               { Tchar          }
-     | array ArrSize of Type              { ArrayT   $2 $4 }
-     | '^' Type                           { PointerT $2    }
+     : integer                            { Int'           }
+     | real                               { Real'          }
+     | boolean                            { Bool'          }
+     | char                               { Char'          }
+     | array ArrSize of Type              { Array   $2 $4 }
+     | '^' Type                           { Pointer $2    }
 
 ArrSize :: { ArrSize }
         : {-empty-}                          { NoSize  }
         | '[' intconst ']'                   { Size (getInt $2) }
 
-Block :: { Block }
-      : begin Stmts end                    { Stmts $2 }
+Block :: { [Stmt] }
+      : begin Stmts end                    { $2 }
 
 Stmts :: { [Stmt] }
       : Stmt                               { [$1]    }
@@ -150,17 +150,17 @@ Stmts :: { [Stmt] }
 
 Stmt :: { Stmt }
      : {-empty-}                   { Empty }
-     | LVal equal Expr           { Equal (posnToLi $2) (posnToLi $2) $1 $3}
+     | LVal equal Expr             { Equal (posnToLi $2) (posnToLi $2) $1 $3}
      | Block                       { Block $1 }
-     | Call                        { CallStmt $1 }
-     | if Expr then Stmt           { IfThenStmt (posnToLi $1) (posnToCo $1) $2 $4 }
-     | if Expr then Stmt else Stmt { IfThenElseStmt (posnToLi $1) (posnToCo $1) $2 $4 $6 }
-     | while Expr do Stmt          { WhileStmt (posnToLi $1) (posnToCo $1) $2 $4 }
-     | id ':' Stmt                 { LabelStmt (tokenToId $1) $3 }
-     | goto id                     { GoToStmt (tokenToId $2) }
-     | return                      { ReturnStmt }
-     | new New LVal              { NewStmt (posnToLi $1) (posnToCo $1) $2 $3 }
-     | dispose Dispose LVal      { DisposeStmt (posnToLi $1) (posnToCo $1) $2 $3 }
+     | Call                        { Call $1 }
+     | if Expr then Stmt           { IfThen (posnToLi $1) (posnToCo $1) $2 $4 }
+     | if Expr then Stmt else Stmt { IfThenElse (posnToLi $1) (posnToCo $1) $2 $4 $6 }
+     | while Expr do Stmt          { While (posnToLi $1) (posnToCo $1) $2 $4 }
+     | id ':' Stmt                 { Label (tokenToId $1) $3 }
+     | goto id                     { GoTo (tokenToId $2) }
+     | return                      { Return }
+     | new New LVal              { New (posnToLi $1) (posnToCo $1) $2 $3 }
+     | dispose Dispose LVal      { Dispose (posnToLi $1) (posnToCo $1) $2 $3 }
 
 New        :: { New }
            :  {-empty-}                         { NewEmpty   }
@@ -236,7 +236,7 @@ data Program =
 --  show = \(P i b) -> concat ["P\n\n\n",show i,show b]
 
 data Body =
-  Body [Local] Block
+  Body [Local] [Stmt]
   deriving(Show)
 
 data Id        = Id {
@@ -279,13 +279,13 @@ data PassBy =
 type Formal = (PassBy,[Id],Type)
 
 data Type =
-  Tnil                |
-  Tint                |
-  Treal               |
-  Tbool               |
-  Tchar               |
-  ArrayT ArrSize Type |
-  PointerT Type
+  Nil                |
+  Int'                |
+  Real'               |
+  Bool'               |
+  Char'               |
+  Array ArrSize Type |
+  Pointer Type
   deriving(Show,Eq)
 
 data ArrSize =
@@ -293,23 +293,19 @@ data ArrSize =
   NoSize
   deriving(Show,Eq)
 
-data Block =
-  Stmts [Stmt]
-  deriving(Show)
-
 data Stmt =
   Empty                             |
   Equal Int Int LVal Expr           |
-  Block Block                       |
-  CallStmt Call                         |
-  IfThenStmt Int Int Expr Stmt          |
-  IfThenElseStmt Int Int Expr Stmt Stmt |
-  WhileStmt Int Int Expr Stmt           |
-  LabelStmt Id Stmt                     |
-  GoToStmt Id                           |
-  ReturnStmt                            |
-  NewStmt Int Int New LVal              |
-  DisposeStmt Int Int DispType LVal
+  Block [Stmt]                      |
+  Call Call                         |
+  IfThen Int Int Expr Stmt          |
+  IfThenElse Int Int Expr Stmt Stmt |
+  While Int Int Expr Stmt           |
+  Label Id Stmt                     |
+  GoTo Id                           |
+  Return                            |
+  New Int Int New LVal              |
+  Dispose Int Int DispType LVal
   deriving(Show)
 
 data DispType =

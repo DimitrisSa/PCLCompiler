@@ -38,7 +38,7 @@ programSems (P _ body) = do
   bodySems body
 
 bodySems :: Body -> Sems ()
-bodySems (Body locals (Stmts stmts)) = do
+bodySems (Body locals stmts) = do
   localsSems $ reverse locals
   stmtsSems $ reverse stmts
   checkUnusedLabels
@@ -71,34 +71,30 @@ stmtsSems ss = mapM_ stmtSems ss
 stmtSems :: Stmt -> Sems ()
 stmtSems = \case
   Empty                             -> return ()
-  Equal li co lVal expr             -> equalStmtSems li co expr lVal
-  Block (Stmts ss)                  -> stmtsSems $ reverse ss
-  CallStmt (CId id exprs)               -> callStmtSems id $ reverse exprs
-  IfThenStmt  li co  expr stmt          -> ifThenStmtSems li co expr stmt
-  IfThenElseStmt li co expr stmt1 stmt2 -> ifThenElseStmtSems li co expr stmt1 stmt2
-  WhileStmt li co expr stmt             -> whileStmtSems li co expr stmt
-  LabelStmt id stmt                     -> checkId id >> stmtSems stmt
-  GoToStmt id                           -> checkGoTo id
-  ReturnStmt                            -> return ()
-  NewStmt li co new lVal                -> newStmtSems li co new lVal
-  DisposeStmt li co disptype lVal       -> disposeStmtSems li co disptype lVal
+  Equal li co lVal expr             -> equalSems li co expr lVal
+  Block stmts                       -> stmtsSems $ reverse stmts
+  Call (CId id exprs)               -> callSems id $ reverse exprs
+  IfThen  li co  expr stmt          -> ifThenSems li co expr stmt
+  IfThenElse li co expr stmt1 stmt2 -> ifThenElseSems li co expr stmt1 stmt2
+  While li co expr stmt             -> whileSems li co expr stmt
+  Label id stmt                     -> checkId id >> stmtSems stmt
+  GoTo id                           -> checkGoTo id
+  Return                            -> return ()
+  New li co new lVal                -> newSems li co new lVal
+  Dispose li co disptype lVal       -> disposeSems li co disptype lVal
 
-equalStmtSems :: Int -> Int -> Expr -> LVal -> Sems ()
-equalStmtSems li co expr = \case
+equalSems :: Int -> Int -> Expr -> LVal -> Sems ()
+equalSems li co expr = \case
   StrLiteral str -> left $ errPos li co ++ strAssignmentErr ++ str
-  lVal           -> do
-    lt <- lValType lVal
-    et <- exprType expr
-    if symbatos lt et then return ()
-    else left $ errPos li co ++ assTypeMisErr
+  lVal           -> notStrLiteralEqualSems li co expr lVal
 
---symbatos' :: Type -> Type -> Error -> Sems ()
---symbatos' (PointerT (ArrayT NoSize t1)) (PointerT (ArrayT (Size _) t2)) = case t1 == t2 of
---  True -> return ()
---  _    -> left $ 
---symbatos' lt et = case (lt == et && checkFullType lt) || (lt == Treal && et == Tint) of
---  True -> return ()
---  _    ->
+notStrLiteralEqualSems li co expr lVal = do
+  lt <- lValType lVal
+  et <- exprType expr
+  symbatos' lt et $ errPos li co ++ assTypeMisErr
+
+symbatos' :: Type -> Type -> Error -> Sems ()
+symbatos' t1 t2 err = case symbatos t1 t2 of True -> return (); _ -> left err
 
 formalsToTypes :: [Formal] -> [(PassBy,Type)]
 formalsToTypes = concat . map formalToType
@@ -145,7 +141,7 @@ searchVarSM id st = lookup id $ variableMap st
 checkBoolExpr :: Expr -> String -> Sems ()
 checkBoolExpr expr stmtDesc = do
   et <- exprType expr
-  if et == Tbool then return ()
+  if et == Bool' then return ()
   else left $ nonBoolErr ++ stmtDesc
 
 checkGoTo :: Id -> Sems ()
@@ -165,45 +161,45 @@ checkId id = do
 
 checkpointer :: LVal -> Error -> Sems Type
 checkpointer lVal err = lValType lVal >>= \case
-  PointerT t -> return t
+  Pointer t -> return t
   _          -> left err
 
-callStmtSems :: Id -> Exprs -> Sems ()
-callStmtSems id exprs = do
+callSems :: Id -> Exprs -> Sems ()
+callSems id exprs = do
   sms <- get
   case searchCallSMs1 id sms of
     Just t  -> callSem id t exprs
     Nothing -> errAtId callErr id
 
-ifThenStmtSems :: Int -> Int -> Expr -> Stmt -> Sems ()
-ifThenStmtSems li co expr stmt = do
+ifThenSems :: Int -> Int -> Expr -> Stmt -> Sems ()
+ifThenSems li co expr stmt = do
   checkBoolExpr expr (errPos li co ++ "if-then")
   stmtSems stmt
 
-ifThenElseStmtSems :: Int -> Int -> Expr -> Stmt -> Stmt -> Sems ()
-ifThenElseStmtSems li co expr s1 s2 = do
+ifThenElseSems :: Int -> Int -> Expr -> Stmt -> Stmt -> Sems ()
+ifThenElseSems li co expr s1 s2 = do
   checkBoolExpr expr (errPos li co ++ "if-then-else")
   stmtSems s1
   stmtSems s2
 
-whileStmtSems :: Int -> Int -> Expr -> Stmt -> Sems ()
-whileStmtSems li co expr stmt = do
+whileSems :: Int -> Int -> Expr -> Stmt -> Sems ()
+whileSems li co expr stmt = do
   checkBoolExpr expr (errPos li co ++ "while")
   stmtSems stmt
 
-newStmtSems :: Int -> Int -> New -> LVal -> Sems ()
-newStmtSems li co new lVal = do
+newSems :: Int -> Int -> New -> LVal -> Sems ()
+newSems li co new lVal = do
   modify ( \(st:sts) -> st { newMap = insert lVal () $ newMap st } : sts )
   t <- checkpointer lVal $ errPos li co ++ nonPointNewErr
   case (new,checkFullType t) of
     (NewEmpty,True)   -> return ()
     (NewExpr e,False) -> exprType e >>= \case
-      Tint -> return ()
+      Int' -> return ()
       _    -> left $ errPos li co ++ nonIntNewErr
     _ -> left $ errPos li co ++ badPointNewErr
 
-disposeStmtSems :: Int -> Int -> DispType -> LVal -> Sems ()
-disposeStmtSems li co disptype lVal = do
+disposeSems :: Int -> Int -> DispType -> LVal -> Sems ()
+disposeSems li co disptype lVal = do
   st:sts <- get
   newnm <- deleteNewMap lVal (newMap st) $ errPos li co ++ dispNullPointErr
   put $ st:sts
@@ -237,7 +233,7 @@ lValType :: LVal -> Sems Type
 lValType = \case
   LId id                         -> idLValType id
   LResult (li,co)                -> resultLValType li co
-  StrLiteral str              -> right $ ArrayT (Size $ length str + 1) Tchar
+  StrLiteral str              -> right $ Array (Size $ length str + 1) Char'
   LValExpr (li,co) lVal expr -> lValExprLValType li co lVal expr
   LExpr (li,co) expr             -> exprLValType li co expr
   LParen lVal                  -> lValType lVal
@@ -260,90 +256,90 @@ resultLValType li co = do
 
 lValExprLValType :: Int -> Int -> LVal -> Expr -> Sems Type
 lValExprLValType li co lVal expr = exprType expr >>= \case
-  Tint -> lValType lVal >>= \case
-    ArrayT _ t -> right t
+  Int' -> lValType lVal >>= \case
+    Array _ t -> right t
     _          -> left $ errPos li co ++ arrErr
   _    -> left $ errPos li co ++ indErr
 
 exprLValType :: Int -> Int -> Expr -> Sems Type 
 exprLValType li co expr =  exprType expr >>= \case
-  PointerT t -> right t
+  Pointer t -> right t
   _          -> left $ errPos li co ++ pointErr
 
 checkposneg :: (Int,Int) -> Expr -> String -> Sems Type
 checkposneg (li,co) expr a = exprType expr >>= \case
-    Tint  -> right Tint
-    Treal -> right Treal
+    Int'  -> right Int'
+    Real' -> right Real'
     _     -> left $ errPos li co ++ nonNumAfErr ++ a
 
 checkarithmetic :: (Int,Int) -> Expr -> Expr -> String -> Sems Type
 checkarithmetic (li,co) exp1 exp2 a = exprType exp1 >>= \case
-  Tint  -> exprType exp2 >>= \case
-    Tint  -> right Tint
-    Treal -> right Treal
+  Int'  -> exprType exp2 >>= \case
+    Int'  -> right Int'
+    Real' -> right Real'
     _     -> left $ errPos li co ++ nonNumAfErr ++ a
-  Treal -> exprType exp2 >>= \case
-    Treal -> right Treal
-    Tint  -> right Treal
+  Real' -> exprType exp2 >>= \case
+    Real' -> right Real'
+    Int'  -> right Real'
     _     -> left $ errPos li co ++ nonNumAfErr ++ a
   _     -> left $ errPos li co ++ nonNumBefErr ++ a
 
 checkinthmetic :: (Int,Int) -> Expr -> Expr -> String -> Sems Type
 checkinthmetic (li,co) exp1 exp2 a = exprType exp1 >>= \case
-  Tint  -> exprType exp2 >>= \case
-    Tint  -> right Tint
+  Int'  -> exprType exp2 >>= \case
+    Int'  -> right Int'
     _     -> left $ errPos li co ++ nonIntAfErr ++ a
   _     -> left $ errPos li co ++ nonIntBefErr ++ a
 
 checklogic :: (Int,Int) -> Expr -> Expr -> String -> Sems Type
 checklogic (li,co) exp1 exp2 a = exprType exp1 >>= \case
-    Tbool  -> exprType exp2 >>= \case
-      Tbool  -> right Tbool
+    Bool'  -> exprType exp2 >>= \case
+      Bool'  -> right Bool'
       _     -> left $ errPos li co ++ nonBoolAfErr ++ a
     _     -> left $ errPos li co ++ nonBoolBefErr ++ a
 
 checkcompare :: (Int,Int) -> Expr -> Expr -> String -> Sems Type
 checkcompare (li,co) exp1 exp2 a = exprType exp1 >>= \case
-  Tint  -> arithmeticbool exp2 (errPos li co ++ mismTypesErr ++ a) (right Tbool)
-  Treal -> arithmeticbool exp2 (errPos li co ++ mismTypesErr ++ a) (right Tbool)
-  Tbool -> exprType exp2 >>= \case
-    Tbool  -> right Tbool
+  Int'  -> arithmeticbool exp2 (errPos li co ++ mismTypesErr ++ a) (right Bool')
+  Real' -> arithmeticbool exp2 (errPos li co ++ mismTypesErr ++ a) (right Bool')
+  Bool' -> exprType exp2 >>= \case
+    Bool'  -> right Bool'
     _      -> left $ errPos li co ++ mismTypesErr ++ a
-  Tchar -> exprType exp2 >>= \case
-    Tchar  -> right Tbool
+  Char' -> exprType exp2 >>= \case
+    Char'  -> right Bool'
     _      -> left $ errPos li co ++ mismTypesErr ++ a
-  PointerT _ -> pointersbool exp2 (errPos li co ++ mismTypesErr ++ a)
-  Tnil       -> pointersbool exp2 (errPos li co ++ mismTypesErr ++ a)
+  Pointer _ -> pointersbool exp2 (errPos li co ++ mismTypesErr ++ a)
+  Nil       -> pointersbool exp2 (errPos li co ++ mismTypesErr ++ a)
   _     -> left $ errPos li co ++ mismTypesErr ++ a
 
 checknumcomp :: (Int,Int) -> Expr -> Expr -> String -> Sems Type
 checknumcomp (li,co) exp1 exp2 a =
   arithmeticbool exp1 (nonNumBefErr ++ a)
-  (arithmeticbool exp2 (nonNumAfErr ++ a) (right Tbool))
+  (arithmeticbool exp2 (nonNumAfErr ++ a) (right Bool'))
 
 arithmeticbool :: Expr -> String -> Sems Type -> Sems Type
 arithmeticbool expr errmsg f = exprType expr >>= \case
-  Tint   -> f
-  Treal  -> f
+  Int'   -> f
+  Real'  -> f
   _     -> left errmsg
 
 pointersbool :: Expr -> String -> Sems Type
 pointersbool expr a = exprType expr >>= \case
-  PointerT _  -> right Tbool
-  Tnil        -> right Tbool
+  Pointer _  -> right Bool'
+  Nil        -> right Bool'
   _           -> left a
 
 rValType :: RVal -> Sems Type
 rValType = \case
-  RInt _                     -> right Tint
-  RTrue                      -> right Tbool
-  RFalse                     -> right Tbool
-  RReal _                    -> right Treal
-  RChar _                    -> right Tchar
+  RInt _                     -> right Int'
+  RTrue                      -> right Bool'
+  RFalse                     -> right Bool'
+  RReal _                    -> right Real'
+  RChar _                    -> right Char'
   RParen rVal                -> rValType rVal
-  RNil                       -> right Tnil
+  RNil                       -> right Nil
   RCall (CId id exprs)       -> callRValType id exprs
-  RPapaki  posn lVal         -> lValType lVal >>= right . PointerT
+  RPapaki  posn lVal         -> lValType lVal >>= right . Pointer
   RNot     (li,co) expr      -> notRValType li co expr
   RPos     posn expr         -> checkposneg posn expr "'+'"
   RNeg     posn expr         -> checkposneg posn expr "'-'"
@@ -371,14 +367,14 @@ callRValType id exprs = do
 
 notRValType :: Int -> Int -> Expr -> Sems Type
 notRValType li co expr = exprType expr >>= \case
-  Tbool -> right Tbool
+  Bool' -> right Bool'
   _     -> left $ errPos li co ++ nonBoolAfErr ++ "not"
 
 realDivRValType :: Int -> Int -> Expr -> Expr -> Sems Type
 realDivRValType li co exp1 exp2 =
   arithmeticbool exp1 (errPos li co ++ nonNumBefErr ++ "'/'")
   (arithmeticbool exp2 (errPos li co ++ nonNumAfErr ++ "'/'")
-                   (right Treal))
+                   (right Real'))
 
 funCallSem :: Id -> Callable -> Exprs -> Sems Type
 funCallSem id = \case
@@ -386,15 +382,14 @@ funCallSem id = \case
   Func  as t -> \exprs -> goodArgs id as exprs >> right t
   _          -> \_ -> errAtId callSemErr id
 
-errorAtArg error i (Id str li co) =
-  left $ errPos li co ++ error i str
+errorAtArg err i (Id str li co) = errPos li co ++ err i str
 
 argsExprsSems :: Int -> Id -> [(PassBy,Type)] -> [Type] -> Sems ()
-argsExprsSems i id ((Value,t1):t1s) (t2:t2s)
-  | symbatos t1 t2 = argsExprsSems (i+1) id t1s t2s
-  | otherwise = errorAtArg badArgErr i id 
-argsExprsSems i id ((Reference,t1):t1s) (t2:t2s)
-  | symbatos (PointerT t1) (PointerT t2) = argsExprsSems (i+1) id t1s t2s
-  | otherwise = errorAtArg badArgErr i id 
+argsExprsSems i id ((Value,t1):t1s) (t2:t2s) = do
+  symbatos' t1 t2 $ errorAtArg badArgErr i id 
+  argsExprsSems (i+1) id t1s t2s
+argsExprsSems i id ((Reference,t1):t1s) (t2:t2s) = do
+  symbatos' (Pointer t1) (Pointer t2) $ errorAtArg badArgErr i id 
+  argsExprsSems (i+1) id t1s t2s
 argsExprsSems _ _ [] [] = return ()
 argsExprsSems _ id _ _ = errAtId argsExprsErr id

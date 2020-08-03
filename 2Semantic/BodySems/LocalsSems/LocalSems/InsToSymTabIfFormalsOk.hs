@@ -8,4 +8,4 @@ insToSymTabIfFormalsOk id fs cal = case all formalOk fs of
   _    -> errAtId arrByValErr id
 
 formalOk :: Formal -> Bool
-formalOk = \case (Value,_,ArrayT _ _) -> False; _ -> True
+formalOk = \case (Value,_,Array _ _) -> False; _ -> True
