@@ -4,8 +4,8 @@ import Common
 
 headerChildSems :: Header -> Sems ()
 headerChildSems = \case
-  ProcHeader _ formals    -> insToSymTabFormals formals
-  FuncHeader _ formals ty -> insToSymTabFormals formals >> insToSymTabResult ty
+  ProcHeader _ formals     -> insToSymTabFormals formals
+  FuncHeader id formals ty -> insToSymTabFormals formals >> setEnv (InFunc id ty False)
 
 insToSymTabFormals :: [Formal] -> Sems ()
 insToSymTabFormals = mapM_ insToSymTabFormal
@@ -19,6 +19,3 @@ insToSymTabVar ty var = lookupInVariableMapThenFun afterVarLookup ty var
 afterVarLookup ty var = \case
   Nothing -> insToVariableMap var ty 
   _       -> errAtId duplicateArgumentErr var
-
-insToSymTabResult :: Type -> Sems ()
-insToSymTabResult = insToVariableMap (dummy "result")

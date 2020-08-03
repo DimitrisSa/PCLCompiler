@@ -8,7 +8,7 @@ checkFullType = \case Array NoSize _ -> False; _ -> True
 
 symbatos :: Type -> Type -> Bool
 symbatos (Pointer (Array NoSize t1)) (Pointer (Array (Size _) t2)) = t1 == t2
-symbatos lt et = (lt == et && checkFullType lt) || (lt == Real' && et == Int')
+symbatos lt et = (lt == et && checkFullType lt) || (lt == RealT && et == IntT)
 
 symbatos' :: Type -> Type -> Error -> Sems ()
 symbatos' t1 t2 err = case symbatos t1 t2 of True -> return (); _ -> left err

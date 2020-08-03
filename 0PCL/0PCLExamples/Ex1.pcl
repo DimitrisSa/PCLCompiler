@@ -1,4 +1,5 @@
 program hello;
+var o:integer;
 function ok():integer;
 begin
 end;

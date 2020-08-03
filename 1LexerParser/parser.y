@@ -130,10 +130,10 @@ Optvar     : {-empty-}                          { Value     }
            | var                                { Reference }
 
 Type :: { Type }
-     : integer                            { Int'           }
-     | real                               { Real'          }
-     | boolean                            { Bool'          }
-     | char                               { Char'          }
+     : integer                            { IntT           }
+     | real                               { RealT          }
+     | boolean                            { BoolT          }
+     | char                               { CharT          }
      | array ArrSize of Type              { Array   $2 $4 }
      | '^' Type                           { Pointer $2    }
 
@@ -179,35 +179,35 @@ LVal     :: { LVal }
            | stringconst       { StrLiteral    (getString $1)    }
            | LVal '[' Expr ']' { Indexing (posnToLi $2) (posnToCo $2) $1 $3 }
            | Expr '^'          { Dereference      (posnToLi $2) (posnToCo $2) $1    }
-           | '(' LVal ')'      { LParen     $2    }
+           | '(' LVal ')'      { ParenL     $2    }
 
 RVal     :: { RVal }
-           : intconst                           { RInt     (getInt $1) }
-           | true                               { RTrue       }
-           | false                              { RFalse      }
-           | realconst                          { RReal    (getReal $1) }
-           | charconst                          { RChar    (getChar $1) }
-           | '(' RVal ')'                     { RParen   $2 }
-           | nil                                { RNil        }
-           | Call                               { RCall    $1 }
-           | '@' LVal                         { RPapaki  (posnToIntInt $1) $2 }
-           | not  Expr                          { RNot     (posnToIntInt $1) $2 }
-           | '+'  Expr %prec POS                { RPos     (posnToIntInt $1) $2 }
-           | '-'  Expr %prec NEG                { RNeg     (posnToIntInt $1) $2 }
-           | Expr '+'  Expr                     { RPlus    (posnToIntInt $2) $1 $3 }
-           | Expr '*'  Expr                     { RMul     (posnToIntInt $2) $1 $3 }
-           | Expr '-'  Expr                     { RMinus   (posnToIntInt $2) $1 $3 }
-           | Expr '/'  Expr                     { RRealDiv (posnToIntInt $2) $1 $3 }
-           | Expr div  Expr                     { RDiv     (posnToIntInt $2) $1 $3 }
-           | Expr mod  Expr                     { RMod     (posnToIntInt $2) $1 $3 }
-           | Expr or   Expr                     { ROr      (posnToIntInt $2) $1 $3 }
-           | Expr and  Expr                     { RAnd     (posnToIntInt $2) $1 $3 }
-           | Expr '='  Expr                     { REq      (posnToIntInt $2) $1 $3 }
-           | Expr diff Expr                     { RDiff    (posnToIntInt $2) $1 $3 }
-           | Expr '<'  Expr                     { RLess    (posnToIntInt $2) $1 $3 }
-           | Expr '>'  Expr                     { RGreater (posnToIntInt $2) $1 $3 }
-           | Expr greq Expr                     { RGreq    (posnToIntInt $2) $1 $3 }
-           | Expr smeq Expr                     { RSmeq    (posnToIntInt $2) $1 $3 }
+           : intconst                           { IntR     (getInt $1) }
+           | true                               { TrueR       }
+           | false                              { FalseR      }
+           | realconst                          { RealR    (getReal $1) }
+           | charconst                          { CharR    (getChar $1) }
+           | '(' RVal ')'                       { ParenR   $2 }
+           | nil                                { NilR        }
+           | Call                               { CallR    $1 }
+           | '@' LVal                           { Papaki  (posnToIntInt $1) $2 }
+           | not  Expr                          { Not     (posnToIntInt $1) $2 }
+           | '+'  Expr %prec POS                { Pos     (posnToIntInt $1) $2 }
+           | '-'  Expr %prec NEG                { Neg     (posnToIntInt $1) $2 }
+           | Expr '+'  Expr                     { Plus    (posnToIntInt $2) $1 $3 }
+           | Expr '*'  Expr                     { Mul     (posnToIntInt $2) $1 $3 }
+           | Expr '-'  Expr                     { Minus   (posnToIntInt $2) $1 $3 }
+           | Expr '/'  Expr                     { RealDiv (posnToIntInt $2) $1 $3 }
+           | Expr div  Expr                     { Div     (posnToIntInt $2) $1 $3 }
+           | Expr mod  Expr                     { Mod     (posnToIntInt $2) $1 $3 }
+           | Expr or   Expr                     { Or      (posnToIntInt $2) $1 $3 }
+           | Expr and  Expr                     { And     (posnToIntInt $2) $1 $3 }
+           | Expr '='  Expr                     { Eq      (posnToIntInt $2) $1 $3 }
+           | Expr diff Expr                     { Diff    (posnToIntInt $2) $1 $3 }
+           | Expr '<'  Expr                     { Less    (posnToIntInt $2) $1 $3 }
+           | Expr '>'  Expr                     { Greater (posnToIntInt $2) $1 $3 }
+           | Expr greq Expr                     { Greq    (posnToIntInt $2) $1 $3 }
+           | Expr smeq Expr                     { Smeq    (posnToIntInt $2) $1 $3 }
 
 Call       :: { Call }
            : id '(' ArgExprs ')'                { CId (tokenToId $1)  $3 }
@@ -280,10 +280,10 @@ type Formal = (PassBy,[Id],Type)
 
 data Type =
   Nil                |
-  Int'                |
-  Real'               |
-  Bool'               |
-  Char'               |
+  IntT               |
+  RealT              |
+  BoolT              |
+  CharT              |
   Array ArrSize Type |
   Pointer Type
   deriving(Show,Eq)
@@ -331,36 +331,36 @@ data LVal =
   StrLiteral String         |
   Indexing Int Int LVal Expr |
   Dereference Int Int Expr             |
-  LParen LVal
+  ParenL LVal
   deriving(Show,Ord,Eq)
 
 data RVal =
-  RInt Int           |
-  RTrue              |
-  RFalse             |
-  RReal Double       |
-  RChar Char         |
-  RParen RVal      |
-  RNil               |
-  RCall    Call      |
-  RPapaki  (Int,Int) LVal    |
-  RNot     (Int,Int) Expr      |
-  RPos     (Int,Int) Expr      |
-  RNeg     (Int,Int) Expr      |
-  RPlus    (Int,Int) Expr Expr |
-  RMul     (Int,Int) Expr Expr |
-  RMinus   (Int,Int) Expr Expr |
-  RRealDiv (Int,Int) Expr Expr |
-  RDiv     (Int,Int) Expr Expr |
-  RMod     (Int,Int) Expr Expr |
-  ROr      (Int,Int) Expr Expr |
-  RAnd     (Int,Int) Expr Expr |
-  REq      (Int,Int) Expr Expr |
-  RDiff    (Int,Int) Expr Expr |
-  RLess    (Int,Int) Expr Expr |
-  RGreater (Int,Int) Expr Expr |
-  RGreq    (Int,Int) Expr Expr |
-  RSmeq    (Int,Int) Expr Expr
+  IntR Int           |
+  TrueR              |
+  FalseR             |
+  RealR Double       |
+  CharR Char         |
+  ParenR RVal        |
+  NilR               |
+  CallR    Call      |
+  Papaki  (Int,Int) LVal    |
+  Not     (Int,Int) Expr      |
+  Pos     (Int,Int) Expr      |
+  Neg     (Int,Int) Expr      |
+  Plus    (Int,Int) Expr Expr |
+  Mul     (Int,Int) Expr Expr |
+  Minus   (Int,Int) Expr Expr |
+  RealDiv (Int,Int) Expr Expr |
+  Div     (Int,Int) Expr Expr |
+  Mod     (Int,Int) Expr Expr |
+  Or      (Int,Int) Expr Expr |
+  And     (Int,Int) Expr Expr |
+  Eq      (Int,Int) Expr Expr |
+  Diff    (Int,Int) Expr Expr |
+  Less    (Int,Int) Expr Expr |
+  Greater (Int,Int) Expr Expr |
+  Greq    (Int,Int) Expr Expr |
+  Smeq    (Int,Int) Expr Expr
   deriving(Show,Eq,Ord)
 
 data Call =

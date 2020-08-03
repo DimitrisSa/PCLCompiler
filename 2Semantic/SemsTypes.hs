@@ -19,20 +19,29 @@ data SymbolTable = SymbolTable {
   ,newMap      :: NewMap
   }
 
+data Env = InProc | InFunc Id Type Bool
+
 type VariableMap = Map Id Type
 type LabelMap    = Map Id Bool
 type CallableMap = Map Id Callable
 type NewMap      = Map LVal ()
 type Error       = String
-type Sems a      = EitherT Error (State [SymbolTable]) a
+type Sems a      = EitherT Error (State (Env,[SymbolTable])) a
 
-emptySymbolTable = SymbolTable empty empty empty empty 
+emptySymbolTable = SymbolTable empty empty empty empty
+initState = (InProc,[emptySymbolTable])
 
 infixl 9 >>>
 (>>>) = (flip (.))
 
+getEnv :: Sems Env
+getEnv = get >>= fst >>> return
+
+setEnv :: Env -> Sems ()
+setEnv env = modify $ \(_,sts) -> (env,sts)
+
 getMap :: (SymbolTable -> a) -> Sems a
-getMap map = get >>= head >>> map >>> return
+getMap map = get >>= snd >>> head >>> map >>> return
 
 getVariableMap :: Sems VariableMap
 getVariableMap = getMap variableMap
@@ -45,15 +54,19 @@ getCallableMap = getMap callableMap
 
 insToVariableMap :: Id -> Type -> Sems ()
 insToVariableMap var ty =
-  modify $ \(st:sts) -> st { variableMap = insert var ty $ variableMap st }:sts
+  modify $ \(e,st:sts) -> (e,st { variableMap = insert var ty $ variableMap st }:sts)
 
 insToLabelMap :: Id -> Bool -> Sems ()
 insToLabelMap label b =
-  modify $ \(st:sts) -> st { labelMap = insert label b $ labelMap st }:sts
+  modify $ \(e,st:sts) -> (e,st { labelMap = insert label b $ labelMap st }:sts)
 
 insToCallableMap :: Id -> Callable -> Sems ()
 insToCallableMap id cal =
-  modify $ \(st:sts) -> st { callableMap = insert id cal $ callableMap st }:sts
+  modify $ \(e,st:sts) -> (e,st { callableMap = insert id cal $ callableMap st }:sts)
+
+insToNewMap :: LVal -> () -> Sems ()
+insToNewMap id cal =
+  modify $ \(e,st:sts) -> (e,st { newMap = insert id cal $ newMap st }:sts)
 
 lookupInVariableMapThenFun :: (Type -> Id -> Maybe Type -> Sems ()) -> Type -> Id -> Sems()
 lookupInVariableMapThenFun f ty id = getVariableMap >>= lookup id >>> f ty id 
