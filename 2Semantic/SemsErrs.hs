@@ -6,11 +6,12 @@ import Control.Monad.Trans.Either
 unusedLabelErr = "label declared but not used: "
 undefinedDeclarationErr = "no definition for declaration: "
 duplicateLabelDeclarationErr = "Duplicate label declaration: "
-typeMismatchErr = "Parameter/Result type missmatch between"++
-                  " declaration and definition for: "
+paramenterTypeMismatchErr = "Parameter type missmatch between"++
+                            " declaration and definition for: "
+resultTypeMismatchErr = "Result type missmatch between declaration and definition for: "
 duplicateVariableErr = "Duplicate Variable: "
 duplicateCallableErr = "Duplicate Function/Procedure name: "
-dupArgErr = "duplicate argument: " 
+duplicateArgumentErr = "Duplicate Argument: " 
 noResInFunErr = "Result not set for function: " 
 funcResTypeErr = "Function can't have a return type of array "
 arrByValErr = "Can't pass array by value in: " 
@@ -20,7 +21,7 @@ callErr = "Undeclared function or procedure in call: "
 nonBoolErr = "Non-boolean expression in " 
 undefLabErr = "undefined label: " 
 dupLabErr = "duplicate label: " 
-strAssErr = "assignment to string" 
+strAssignmentErr = "assignment to string literal: " 
 assTypeMisErr = "type mismatch in assignment" 
 nonPointNewErr = "non-pointer in new statement" 
 nonIntNewErr = "non-integer expression in new statement"
@@ -50,10 +51,7 @@ refErr i id = concat ["Argument ",show i, " in call of \""
                      ,id,"\" cannot be passed by reference"]
 
 errAtId :: String -> Id -> Sems a
-errAtId err (Id str li co) = errAtPos err str li co
-
-errAtPos :: Error -> String -> Int -> Int -> Sems a
-errAtPos err str li co = left $ concat [err,str,errPos li co]
+errAtId err (Id str li co) = left $ concat [errPos li co,err,str]
 
 errPos :: Int -> Int -> String
-errPos li co = " at line " ++ show li ++ ", column " ++ show co
+errPos li co = show li ++ ":" ++ show co ++ ": "

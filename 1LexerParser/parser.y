@@ -12,64 +12,64 @@ import Data.Either
 %lexer { lexwrap } { Eof }
 
 %token
-    and                 { TAnd          $$       }
-    array               { TArray        $$       }
-    begin               { TBegin        $$       }
-    boolean             { TBoolean      $$       }
-    char                { TChar         $$       }
-    dispose             { TDispose      $$       }
-    div                 { TDivInt       $$       }
-    do                  { TDo           $$       }
-    else                { TElse         $$       }
-    end                 { TEnd          $$       }
-    false               { TFalse        $$       }
-    forward             { TForward      $$       }
-    function            { TFunction     $$       }
-    goto                { TGoto         $$       }
-    if                  { TIf           $$       }
-    integer             { TInteger      $$       }
-    label               { TLabel        $$       }
-    mod                 { TMod          $$       }
-    new                 { TNew          $$       }
-    nil                 { TNil          $$       }
-    not                 { TNot          $$       }
-    of                  { TOf           $$       }
-    or                  { TOr           $$       }
-    procedure           { TProcedure    $$       }
-    program             { TProgram      $$       }
-    real                { TReal         $$       }
-    result              { TResult       $$       }
-    return              { TReturn       $$       }
-    then                { TThen         $$       }
-    true                { TTrue         $$       }
-    var                 { TVar          $$       }
-    while               { TWhile        $$       }
-    id                  { TId           value posn }
-    intconst            { TIntconst     value posn }
-    realconst           { TRealconst    value posn }
-    charconst           { TCharconst    value posn }
-    stringconst         { TStringconst  value posn }
-    '='                 { TLogiceq      $$       }
-    '>'                 { TGreater      $$       }
-    '<'                 { TSmaller      $$       }
-    diff                { TDifferent    $$       }
-    greq                { TGreaterequal $$       }
-    smeq                { TSmallerequal $$       }
-    '+'                 { TAdd          $$       }
-    '-'                 { TMinus        $$       }
-    '*'                 { TMul          $$       }
-    '/'                 { TDivReal      $$       }
-    '^'                 { TPointer      $$       }
-    '@'                 { TAdress       $$       }
-    equal               { TEq           $$       }
-    ';'                 { TSeperator    $$       }
-    '.'                 { TDot          $$       }
-    '('                 { TLeftparen    $$       }
-    ')'                 { TRightparen   $$       }
-    ':'                 { TUpdown       $$       }
-    ','                 { TComma        $$       }
-    '['                 { TLeftbracket  $$       }
-    ']'                 { TRightbracket $$       }
+    and         { TAnd          $$ }
+    array       { TArray        $$ }
+    begin       { TBegin        $$ }
+    boolean     { TBoolean      $$ }
+    char        { TChar         $$ }
+    dispose     { TDispose      $$ }
+    div         { TDivInt       $$ }
+    do          { TDo           $$ }
+    else        { TElse         $$ }
+    end         { TEnd          $$ }
+    false       { TFalse        $$ }
+    forward     { TForward      $$ }
+    function    { TFunction     $$ }
+    goto        { TGoto         $$ }
+    if          { TIf           $$ }
+    integer     { TInteger      $$ }
+    label       { TLabel        $$ }
+    mod         { TMod          $$ }
+    new         { TNew          $$ }
+    nil         { TNil          $$ }
+    not         { TNot          $$ }
+    of          { TOf           $$ }
+    or          { TOr           $$ }
+    procedure   { TProcedure    $$ }
+    program     { TProgram      $$ }
+    real        { TReal         $$ }
+    result      { TResult       $$ }
+    return      { TReturn       $$ }
+    then        { TThen         $$ }
+    true        { TTrue         $$ }
+    var         { TVar          $$ }
+    while       { TWhile        $$ }
+    id          { TId           value posn }
+    intconst    { TIntconst     value posn }
+    realconst   { TRealconst    value posn }
+    charconst   { TCharconst    value posn }
+    stringconst { TStringconst  value posn }
+    '='         { TLogiceq      $$ }
+    '>'         { TGreater      $$ }
+    '<'         { TSmaller      $$ }
+    diff        { TDifferent    $$ }
+    greq        { TGreaterequal $$ }
+    smeq        { TSmallerequal $$ }
+    '+'         { TAdd          $$ }
+    '-'         { TMinus        $$ }
+    '*'         { TMul          $$ }
+    '/'         { TDivReal      $$ }
+    '^'         { TPointer      $$ }
+    '@'         { TAdress       $$ }
+    equal       { TEq           $$ }
+    ';'         { TSeperator    $$ }
+    '.'         { TDot          $$ }
+    '('         { TLeftparen    $$ }
+    ')'         { TRightparen   $$ }
+    ':'         { TUpdown       $$ }
+    ','         { TComma        $$ }
+    '['         { TLeftbracket  $$ }
+    ']'         { TRightbracket $$ }
 
 %left RExpr
 %left LExpr
@@ -129,38 +129,38 @@ Optvar     :: { PassBy }
 Optvar     : {-empty-}                          { Value     }
            | var                                { Reference }
 
-Type       :: { Type }
-           : integer                            { Tint           }
-           | real                               { Treal          }
-           | boolean                            { Tbool          }
-           | char                               { Tchar          }
-           | array ArrSize of Type              { ArrayT   $2 $4 }
-           | '^' Type                           { PointerT $2    }
+Type :: { Type }
+     : integer                            { Tint           }
+     | real                               { Treal          }
+     | boolean                            { Tbool          }
+     | char                               { Tchar          }
+     | array ArrSize of Type              { ArrayT   $2 $4 }
+     | '^' Type                           { PointerT $2    }
 
-ArrSize    :: { ArrSize }
-           : {-empty-}                          { NoSize  }
-           | '[' intconst ']'                   { Size (getInt $2) }
+ArrSize :: { ArrSize }
+        : {-empty-}                          { NoSize  }
+        | '[' intconst ']'                   { Size (getInt $2) }
 
-Block      :: { Block }
-           : begin Stmts end                    { Block $2 }
+Block :: { Block }
+      : begin Stmts end                    { Stmts $2 }
 
-Stmts      :: { Stmts }
-           : Stmt                               { [$1]    }
-           | Stmts ';' Stmt                     { $3 : $1 }
+Stmts :: { [Stmt] }
+      : Stmt                               { [$1]    }
+      | Stmts ';' Stmt                     { $3 : $1 }
 
-Stmt       :: { Stmt }
-           : {-empty-}                          { SEmpty                  }
-           | LValue equal Expr                  { SEqual   (posnToIntInt $2) $1 $3          }
-           | Block                              { SBlock   $1             }
-           | Call                               { SCall    $1             }
-           | if Expr then Stmt                  { SIT      (posnToIntInt $1) $2 $4          }
-           | if Expr then Stmt else Stmt        { SITE     (posnToIntInt $1) $2 $4 $6       }
-           | while Expr do Stmt                 { SWhile   (posnToIntInt $1) $2 $4          }
-           | id ':' Stmt                        { SId      (tokenToId $1)  $3          }
-           | goto id                            { GoToStatement    (tokenToId $2)   }
-           | return                             { SReturn                 }
-           | new New LValue                     { SNew     (posnToIntInt $1) $2 $3          }
-           | dispose Dispose LValue             { SDispose (posnToIntInt $1) $2 $3          }
+Stmt :: { Stmt }
+     : {-empty-}                   { Empty }
+     | LVal equal Expr           { Equal (posnToLi $2) (posnToLi $2) $1 $3}
+     | Block                       { Block $1 }
+     | Call                        { CallStmt $1 }
+     | if Expr then Stmt           { IfThenStmt (posnToLi $1) (posnToCo $1) $2 $4 }
+     | if Expr then Stmt else Stmt { IfThenElseStmt (posnToLi $1) (posnToCo $1) $2 $4 $6 }
+     | while Expr do Stmt          { WhileStmt (posnToLi $1) (posnToCo $1) $2 $4 }
+     | id ':' Stmt                 { LabelStmt (tokenToId $1) $3 }
+     | goto id                     { GoToStmt (tokenToId $2) }
+     | return                      { ReturnStmt }
+     | new New LVal              { NewStmt (posnToLi $1) (posnToCo $1) $2 $3 }
+     | dispose Dispose LVal      { DisposeStmt (posnToLi $1) (posnToCo $1) $2 $3 }
 
 New        :: { New }
            :  {-empty-}                         { NewEmpty   }
@@ -170,27 +170,27 @@ Dispose    : {-empty-}                          { Without }
            | '[' ']'                            { With    }
 
 Expr       :: { Expr }
-           : LValue %prec LExpr                 { L $1 }
-           | RValue %prec RExpr                 { R $1 }
+           : LVal %prec LExpr                 { L $1 }
+           | RVal %prec RExpr                 { R $1 }
 
-LValue     :: { LValue }
+LVal     :: { LVal }
            : id                                 { LId        (tokenToId $1)    }
            | result                             { LResult    (posnToIntInt $1) }
-           | stringconst                        { LString    (getString $1)    }
-           | LValue '[' Expr ']'                { LValueExpr (posnToIntInt $2) $1 $3 }
+           | stringconst                        { StrLiteral    (getString $1)    }
+           | LVal '[' Expr ']'                { LValExpr (posnToIntInt $2) $1 $3 }
            | Expr '^'                           { LExpr      (posnToIntInt $2) $1    }
-           | '(' LValue ')'                     { LParen     $2    }
+           | '(' LVal ')'                     { LParen     $2    }
 
-RValue     :: { RValue }
+RVal     :: { RVal }
            : intconst                           { RInt     (getInt $1) }
            | true                               { RTrue       }
            | false                              { RFalse      }
            | realconst                          { RReal    (getReal $1) }
            | charconst                          { RChar    (getChar $1) }
-           | '(' RValue ')'                     { RParen   $2 }
+           | '(' RVal ')'                     { RParen   $2 }
            | nil                                { RNil        }
            | Call                               { RCall    $1 }
-           | '@' LValue                         { RPapaki  (posnToIntInt $1) $2 }
+           | '@' LVal                         { RPapaki  (posnToIntInt $1) $2 }
            | not  Expr                          { RNot     (posnToIntInt $1) $2 }
            | '+'  Expr %prec POS                { RPos     (posnToIntInt $1) $2 }
            | '-'  Expr %prec NEG                { RNeg     (posnToIntInt $1) $2 }
@@ -294,24 +294,22 @@ data ArrSize =
   deriving(Show,Eq)
 
 data Block =
-  Block Stmts
+  Stmts [Stmt]
   deriving(Show)
 
-type Stmts = [Stmt]
-
 data Stmt =
-  SEmpty              |
-  SEqual (Int,Int) LValue Expr  |
-  SBlock Block        |
-  SCall Call          |
-  SIT  (Int,Int) Expr Stmt      |
-  SITE (Int,Int) Expr Stmt Stmt |
-  SWhile (Int,Int) Expr Stmt    |
-  SId Id Stmt         |
-  GoToStatement Id            |
-  SReturn             |
-  SNew (Int,Int) New LValue     |
-  SDispose (Int,Int) DispType LValue
+  Empty                             |
+  Equal Int Int LVal Expr           |
+  Block Block                       |
+  CallStmt Call                         |
+  IfThenStmt Int Int Expr Stmt          |
+  IfThenElseStmt Int Int Expr Stmt Stmt |
+  WhileStmt Int Int Expr Stmt           |
+  LabelStmt Id Stmt                     |
+  GoToStmt Id                           |
+  ReturnStmt                            |
+  NewStmt Int Int New LVal              |
+  DisposeStmt Int Int DispType LVal
   deriving(Show)
 
 data DispType =
@@ -327,29 +325,29 @@ data New =
   deriving(Show)
 
 data Expr =
- L LValue |
- R RValue
+ L LVal |
+ R RVal
  deriving(Show,Ord,Eq)
 
-data LValue =
+data LVal =
   LId Id                 |
   LResult (Int,Int)      |
-  LString String         |
-  LValueExpr (Int,Int) LValue Expr |
+  StrLiteral String         |
+  LValExpr (Int,Int) LVal Expr |
   LExpr (Int,Int) Expr             |
-  LParen LValue
+  LParen LVal
   deriving(Show,Ord,Eq)
 
-data RValue =
+data RVal =
   RInt Int           |
   RTrue              |
   RFalse             |
   RReal Double       |
   RChar Char         |
-  RParen RValue      |
+  RParen RVal      |
   RNil               |
   RCall    Call      |
-  RPapaki  (Int,Int) LValue    |
+  RPapaki  (Int,Int) LVal    |
   RNot     (Int,Int) Expr      |
   RPos     (Int,Int) Expr      |
   RNeg     (Int,Int) Expr      |
@@ -379,15 +377,15 @@ lexwrap = (alexMonadScan >>=)
 tokenToId :: Token -> Id
 tokenToId = \case
   TId string (AlexPn _ line column) -> Id string line column
-  _   -> error "Shouldn't happen, not id token"
+  _                                 -> error "Shouldn't happen, not id token"
 
 posnToIntInt :: AlexPosn -> (Int,Int)
 posnToIntInt (AlexPn _ l c) = (l,c)
 
-alexPosnToLine :: AlexPosn -> Int
-alexPosnToLine (AlexPn _ line _) = line
-
-alexPosnToColumn :: AlexPosn -> Int
-alexPosnToColumn (AlexPn _ _ column) = column
+posnToLi :: AlexPosn -> Int
+posnToLi (AlexPn _ line _) = line
+ 
+posnToCo :: AlexPosn -> Int
+posnToCo (AlexPn _ _ column) = column
 
 }

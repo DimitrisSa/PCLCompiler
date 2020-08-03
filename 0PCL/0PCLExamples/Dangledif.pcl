@@ -1,10 +1,7 @@
 program danglingif;
 label john;
 var mitsos:integer;
-forward procedure ok(a,b,c:integer);
-procedure ok(b,c,e,d:integer);
-begin
-end;
 begin
 john:
+"ok" := mitsos
 end.

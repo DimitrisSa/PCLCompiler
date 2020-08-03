@@ -1,8 +1,9 @@
 module SemsTypes where
-import Parser (Type,Id,LValue,Formal)
+import Prelude hiding (lookup)
+import Parser (Type,Id,LVal,Formal)
 import Control.Monad.State (State,get,modify)
 import Control.Monad.Trans.Either (EitherT)
-import Data.Map (Map,empty,insert)
+import Data.Map (Map,empty,insert,lookup)
 
 data Callable =
   Proc [Formal]                  |
@@ -21,7 +22,7 @@ data SymbolTable = SymbolTable {
 type VariableMap = Map Id Type
 type LabelMap    = Map Id Bool
 type CallableMap = Map Id Callable
-type NewMap      = Map LValue ()
+type NewMap      = Map LVal ()
 type Error       = String
 type Sems a      = EitherT Error (State [SymbolTable]) a
 
@@ -47,3 +48,6 @@ insToLabelMap label b =
 insToCallableMap :: Id -> Callable -> Sems ()
 insToCallableMap id cal =
   modify $ \(st:sts) -> st { callableMap = insert id cal $ callableMap st }:sts
+
+lookupInVariableMapThenFun :: (Type -> Id -> Maybe Type -> Sems ()) -> Type -> Id -> Sems()
+lookupInVariableMapThenFun f ty id = f ty id . lookup id =<< getVariableMap 
