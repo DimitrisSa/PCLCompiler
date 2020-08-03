@@ -3,7 +3,7 @@ import Prelude hiding (lookup)
 import Common
 
 checkUndefDeclarationSems :: Sems ()
-checkUndefDeclarationSems = checkUndefDeclarationInList . toList =<< getCallableMap
+checkUndefDeclarationSems = getCallableMap >>= toList >>> checkUndefDeclarationInList
 
 checkUndefDeclarationInList :: [(Id,Callable)] -> Sems ()
 checkUndefDeclarationInList = mapM_ checkUndefDeclaration

@@ -3,6 +3,7 @@ import Prelude hiding (lookup)
 import Control.Monad.Trans.Either
 import System.IO
 import System.Exit
+import Data.Function
 import Common hiding (map)
 import InitSymTab (initSymTab)
 import VarsWithTypeListSems (varsWithTypeListSems)
@@ -14,11 +15,12 @@ import HeaderParentSems (headerParentSems)
 import HeaderChildSems (headerChildSems)
 
 -- same name of fun inside of other fun?
+
 main :: IO ()
 main = sems
 
 sems :: IO ()
-sems = parserErrOrAstSems . parser =<< getContents
+sems = getContents >>= parser >>> parserErrOrAstSems
 
 parserErrOrAstSems :: Either Error Program -> IO ()
 parserErrOrAstSems = \case 
@@ -27,15 +29,13 @@ parserErrOrAstSems = \case
 
 astSems :: Program -> IO ()
 astSems ast =
-  let runProgramSems = evalState . runEitherT . programSems
+  let runProgramSems = programSems >>> runEitherT >>> evalState
   in case runProgramSems ast [emptySymbolTable] of
     Right _  -> hPutStrLn stdout "good" >> exitSuccess
     Left s   -> die s
 
 programSems :: Program -> Sems ()
-programSems (P _ body) = do
-  initSymTab
-  bodySems body
+programSems (P _ body) = initSymTab >> bodySems body
 
 bodySems :: Body -> Sems ()
 bodySems (Body locals stmts) = do
@@ -44,9 +44,7 @@ bodySems (Body locals stmts) = do
   checkUnusedLabels
 
 localsSems :: [Local] -> Sems ()
-localsSems locals = do
-  mapM_ localSems locals
-  checkUndefDeclarationSems
+localsSems locals = mapM_ localSems locals >> checkUndefDeclarationSems
 
 localSems :: Local -> Sems ()
 localSems = \case
@@ -116,16 +114,13 @@ idType id = do
 
 searchVarSMs :: Id -> [SymbolTable] -> Maybe Type
 searchVarSMs id = \case
-  sm:sms -> case searchVarSM id sm of
-    Nothing -> searchVarSMs id sms
+  st:sts -> case lookup id $ variableMap st of
+    Nothing -> searchVarSMs id sts
     x       -> x
   []     -> Nothing
 
-searchVarSM :: Id -> SymbolTable -> Maybe Type
-searchVarSM id st = lookup id $ variableMap st
-
 formalsToTypes :: [Formal] -> [(PassBy,Type)]
-formalsToTypes = concat . map formalToType
+formalsToTypes = map formalToType >>> concat
 
 formalToType :: Formal -> [(PassBy,Type)]
 formalToType (pb,in1,myt) = map (\_ -> (pb,myt)) in1
@@ -136,10 +131,7 @@ checkresult = \case
   _                -> return ()
 
 checkresultById :: Id -> Sems ()
-checkresultById i = checkresultById' i . lookup (dummy "while") =<< getVariableMap
-
-checkresultById' :: Id -> Maybe Type -> Sems ()
-checkresultById' i = \case
+checkresultById i = getVariableMap >>= lookup (dummy "while") >>> \case
   Nothing -> errAtId noResInFunErr i
   _       -> return ()
 
@@ -336,7 +328,7 @@ rValType = \case
   RParen rVal                -> rValType rVal
   RNil                       -> right Nil
   RCall (CId id exprs)       -> callRValType id exprs
-  RPapaki  posn lVal         -> lValType lVal >>= right . Pointer
+  RPapaki  posn lVal         -> lValType lVal >>= Pointer >>> right
   RNot     (li,co) expr      -> notRValType li co expr
   RPos     posn expr         -> checkposneg posn expr "'+'"
   RNeg     posn expr         -> checkposneg posn expr "'-'"

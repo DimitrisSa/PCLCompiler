@@ -10,19 +10,13 @@ headerParentSems = \case
   FuncHeader id formals ty -> headerFuncSems id (reverse formals) ty
 
 headerProcSems :: Id -> [Formal] -> Sems ()
-headerProcSems id fs = afterProcIdLookup id fs . lookup id =<< getCallableMap
-
-headerFuncSems :: Id -> [Formal] -> Type -> Sems ()
-headerFuncSems id fs ty = afterFuncIdLookup id fs ty . lookup id =<< getCallableMap
-
-afterProcIdLookup :: Id -> [Formal] -> Maybe Callable -> Sems ()
-afterProcIdLookup id fs = \case
+headerProcSems id fs = getCallableMap >>= lookup id >>> \case
   Just (ProcDeclaration fs') -> insToSymTabIfFormalsMatch id fs fs'
   Nothing                    -> insToSymTabIfFormalsOk id fs $ Proc fs
   _                          -> errAtId duplicateCallableErr id
 
-afterFuncIdLookup :: Id -> [Formal] -> Type -> Maybe Callable -> Sems ()
-afterFuncIdLookup id fs ty = \case
+headerFuncSems :: Id -> [Formal] -> Type -> Sems ()
+headerFuncSems id fs ty = getCallableMap >>= lookup id >>> \case
   Just (FuncDeclaration fs' ty') -> insToSymTabIfFormalsAndTypeMatch id fs fs' ty ty'
   Nothing                        -> insToSymTabIfFormalsAndTypeOk id fs ty
   _                              -> errAtId duplicateCallableErr id

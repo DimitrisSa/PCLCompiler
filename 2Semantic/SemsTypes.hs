@@ -28,14 +28,20 @@ type Sems a      = EitherT Error (State [SymbolTable]) a
 
 emptySymbolTable = SymbolTable empty empty empty empty 
 
+infixl 9 >>>
+(>>>) = (flip (.))
+
+getMap :: (SymbolTable -> a) -> Sems a
+getMap map = get >>= head >>> map >>> return
+
 getVariableMap :: Sems VariableMap
-getVariableMap = return . variableMap . head =<< get
+getVariableMap = getMap variableMap
 
 getLabelMap :: Sems LabelMap
-getLabelMap = return . labelMap . head =<< get
+getLabelMap = getMap labelMap
 
 getCallableMap :: Sems CallableMap
-getCallableMap = return . callableMap . head =<< get
+getCallableMap = getMap callableMap
 
 insToVariableMap :: Id -> Type -> Sems ()
 insToVariableMap var ty =
@@ -50,4 +56,4 @@ insToCallableMap id cal =
   modify $ \(st:sts) -> st { callableMap = insert id cal $ callableMap st }:sts
 
 lookupInVariableMapThenFun :: (Type -> Id -> Maybe Type -> Sems ()) -> Type -> Id -> Sems()
-lookupInVariableMapThenFun f ty id = f ty id . lookup id =<< getVariableMap 
+lookupInVariableMapThenFun f ty id = getVariableMap >>= lookup id >>> f ty id 
