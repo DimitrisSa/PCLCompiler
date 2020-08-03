@@ -177,8 +177,8 @@ LVal     :: { LVal }
            : id                { IdL        (tokenToId $1)    }
            | result            { Result    (posnToLi $1) (posnToCo $1) }
            | stringconst       { StrLiteral    (getString $1)    }
-           | LVal '[' Expr ']' { LValExpr (posnToLi $2) (posnToCo $2) $1 $3 }
-           | Expr '^'          { LExpr      (posnToLi $2) (posnToCo $2) $1    }
+           | LVal '[' Expr ']' { Indexing (posnToLi $2) (posnToCo $2) $1 $3 }
+           | Expr '^'          { Dereference      (posnToLi $2) (posnToCo $2) $1    }
            | '(' LVal ')'      { LParen     $2    }
 
 RVal     :: { RVal }
@@ -329,8 +329,8 @@ data LVal =
   IdL Id                 |
   Result Int Int      |
   StrLiteral String         |
-  LValExpr Int Int LVal Expr |
-  LExpr Int Int Expr             |
+  Indexing Int Int LVal Expr |
+  Dereference Int Int Expr             |
   LParen LVal
   deriving(Show,Ord,Eq)
 

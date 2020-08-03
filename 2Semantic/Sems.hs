@@ -100,12 +100,12 @@ exprType = \case
 
 lValType :: LVal -> Sems Type
 lValType = \case
-  IdL id                     -> idType id
-  Result li co            -> resultLValType li co
-  StrLiteral str             -> right $ Array (Size $ length str + 1) Char'
-  LValExpr li co lVal expr -> lValExprLValType li co lVal expr
-  LExpr li co expr         -> exprLValType li co expr
-  LParen lVal                -> lValType lVal
+  IdL id                   -> idType id
+  Result li co             -> resultType li co
+  StrLiteral str           -> right $ Array (Size $ length str + 1) Char'
+  Indexing li co lVal expr -> indexingType li co lVal expr
+  Dereference li co expr   -> dereferenceType li co expr
+  LParen lVal              -> lValType lVal
 
 idType :: Id -> Sems Type
 idType id = do
@@ -113,6 +113,16 @@ idType id = do
   case searchVarSMs id sms of
     Just t  -> return t
     Nothing -> errAtId varErr id
+
+searchVarSMs :: Id -> [SymbolTable] -> Maybe Type
+searchVarSMs id = \case
+  sm:sms -> case searchVarSM id sm of
+    Nothing -> searchVarSMs id sms
+    x       -> x
+  []     -> Nothing
+
+searchVarSM :: Id -> SymbolTable -> Maybe Type
+searchVarSM id st = lookup id $ variableMap st
 
 formalsToTypes :: [Formal] -> [(PassBy,Type)]
 formalsToTypes = concat . map formalToType
@@ -145,16 +155,6 @@ searchCallSMs1 id = \case
 searchCallSMs2 id sms = \case
   Nothing -> searchCallSMs1 id sms
   x       -> x
-
-searchVarSMs :: Id -> [SymbolTable] -> Maybe Type
-searchVarSMs id = \case
-  sm:sms -> case searchVarSM id sm of
-    Nothing -> searchVarSMs id sms
-    x       -> x
-  []     -> Nothing
-
-searchVarSM :: Id -> SymbolTable -> Maybe Type
-searchVarSM id st = lookup id $ variableMap st
 
 checkBoolExpr :: Expr -> String -> Sems ()
 checkBoolExpr expr stmtDesc = do
@@ -242,8 +242,8 @@ goodArgs :: Id -> [Formal] -> Exprs -> Sems ()
 goodArgs id as exprs =
   argsExprsSems 1 id (formalsToTypes as) =<< mapM exprType exprs
 
-resultLValType :: Int -> Int -> Sems Type
-resultLValType li co = do
+resultType :: Int -> Int -> Sems Type
+resultType li co = do
   st:sts <- get
   case lookup (dummy "result") (variableMap st) of
     Just v  ->
@@ -251,15 +251,15 @@ resultLValType li co = do
       >> return v
     Nothing -> left $ errPos li co ++ resultNoFunErr
 
-lValExprLValType :: Int -> Int -> LVal -> Expr -> Sems Type
-lValExprLValType li co lVal expr = exprType expr >>= \case
+indexingType :: Int -> Int -> LVal -> Expr -> Sems Type
+indexingType li co lVal expr = exprType expr >>= \case
   Int' -> lValType lVal >>= \case
     Array _ t -> right t
     _          -> left $ errPos li co ++ arrErr
   _    -> left $ errPos li co ++ indErr
 
-exprLValType :: Int -> Int -> Expr -> Sems Type 
-exprLValType li co expr =  exprType expr >>= \case
+dereferenceType :: Int -> Int -> Expr -> Sems Type 
+dereferenceType li co expr =  exprType expr >>= \case
   Pointer t -> right t
   _          -> left $ errPos li co ++ pointErr
 
