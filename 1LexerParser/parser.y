@@ -170,16 +170,16 @@ Dispose    : {-empty-}                          { Without }
            | '[' ']'                            { With    }
 
 Expr       :: { Expr }
-           : LVal %prec LExpr                 { L $1 }
-           | RVal %prec RExpr                 { R $1 }
+           : LVal %prec LExpr                 { LVal $1 }
+           | RVal %prec RExpr                 { RVal $1 }
 
 LVal     :: { LVal }
-           : id                                 { LId        (tokenToId $1)    }
-           | result                             { LResult    (posnToIntInt $1) }
-           | stringconst                        { StrLiteral    (getString $1)    }
-           | LVal '[' Expr ']'                { LValExpr (posnToIntInt $2) $1 $3 }
-           | Expr '^'                           { LExpr      (posnToIntInt $2) $1    }
-           | '(' LVal ')'                     { LParen     $2    }
+           : id                { IdL        (tokenToId $1)    }
+           | result            { Result    (posnToLi $1) (posnToCo $1) }
+           | stringconst       { StrLiteral    (getString $1)    }
+           | LVal '[' Expr ']' { LValExpr (posnToLi $2) (posnToCo $2) $1 $3 }
+           | Expr '^'          { LExpr      (posnToLi $2) (posnToCo $2) $1    }
+           | '(' LVal ')'      { LParen     $2    }
 
 RVal     :: { RVal }
            : intconst                           { RInt     (getInt $1) }
@@ -321,16 +321,16 @@ data New =
   deriving(Show)
 
 data Expr =
- L LVal |
- R RVal
+ LVal LVal |
+ RVal RVal
  deriving(Show,Ord,Eq)
 
 data LVal =
-  LId Id                 |
-  LResult (Int,Int)      |
+  IdL Id                 |
+  Result Int Int      |
   StrLiteral String         |
-  LValExpr (Int,Int) LVal Expr |
-  LExpr (Int,Int) Expr             |
+  LValExpr Int Int LVal Expr |
+  LExpr Int Int Expr             |
   LParen LVal
   deriving(Show,Ord,Eq)
 

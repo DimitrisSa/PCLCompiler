@@ -86,15 +86,33 @@ stmtSems = \case
 equalSems :: Int -> Int -> Expr -> LVal -> Sems ()
 equalSems li co expr = \case
   StrLiteral str -> left $ errPos li co ++ strAssignmentErr ++ str
-  lVal           -> notStrLiteralEqualSems li co expr lVal
+  lVal           -> notStrLiteralEqualSems li co lVal expr
 
-notStrLiteralEqualSems li co expr lVal = do
+notStrLiteralEqualSems li co lVal expr = do
   lt <- lValType lVal
   et <- exprType expr
   symbatos' lt et $ errPos li co ++ assTypeMisErr
 
-symbatos' :: Type -> Type -> Error -> Sems ()
-symbatos' t1 t2 err = case symbatos t1 t2 of True -> return (); _ -> left err
+exprType :: Expr -> Sems Type
+exprType = \case
+  LVal lval -> lValType lval
+  RVal rval -> rValType rval
+
+lValType :: LVal -> Sems Type
+lValType = \case
+  IdL id                     -> idType id
+  Result li co            -> resultLValType li co
+  StrLiteral str             -> right $ Array (Size $ length str + 1) Char'
+  LValExpr li co lVal expr -> lValExprLValType li co lVal expr
+  LExpr li co expr         -> exprLValType li co expr
+  LParen lVal                -> lValType lVal
+
+idType :: Id -> Sems Type
+idType id = do
+  sms <- get
+  case searchVarSMs id sms of
+    Just t  -> return t
+    Nothing -> errAtId varErr id
 
 formalsToTypes :: [Formal] -> [(PassBy,Type)]
 formalsToTypes = concat . map formalToType
@@ -223,27 +241,6 @@ callSem id = \case
 goodArgs :: Id -> [Formal] -> Exprs -> Sems ()
 goodArgs id as exprs =
   argsExprsSems 1 id (formalsToTypes as) =<< mapM exprType exprs
-
-exprType :: Expr -> Sems Type
-exprType = \case
-  L lval -> lValType lval
-  R rval -> rValType rval
-
-lValType :: LVal -> Sems Type
-lValType = \case
-  LId id                         -> idLValType id
-  LResult (li,co)                -> resultLValType li co
-  StrLiteral str              -> right $ Array (Size $ length str + 1) Char'
-  LValExpr (li,co) lVal expr -> lValExprLValType li co lVal expr
-  LExpr (li,co) expr             -> exprLValType li co expr
-  LParen lVal                  -> lValType lVal
-
-idLValType :: Id -> Sems Type
-idLValType id = do
-  sms <- get
-  case searchVarSMs id sms of
-    Just t  -> return t
-    Nothing -> errAtId varErr id
 
 resultLValType :: Int -> Int -> Sems Type
 resultLValType li co = do
