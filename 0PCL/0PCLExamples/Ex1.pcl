@@ -1,7 +1,8 @@
 program hello;
-var o:integer;
-function ok():integer;
+procedure ok();
+var a:boolean;
 begin
+a := 1 < 'b'
 end;
 begin
 end.

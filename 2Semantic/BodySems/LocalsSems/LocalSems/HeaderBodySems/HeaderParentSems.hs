@@ -1,6 +1,6 @@
 module HeaderParentSems where
 import Prelude hiding (lookup)
-import Common hiding (map)
+import Common hiding (map,formalToType)
 import Data.Function
 import InsToSymTabIfFormalsOk (insToSymTabIfFormalsOk)
 

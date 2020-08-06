@@ -14,6 +14,7 @@ import CheckUnusedLabels (checkUnusedLabels)
 import HeaderParentSems (headerParentSems)
 import HeaderChildSems (headerChildSems)
 import LValTypes (idType,resultType)
+import CheckResult (checkResult)
 
 -- same name of fun inside of other fun?
 
@@ -97,7 +98,7 @@ exprType = \case
   LVal lval -> lValType lval
   RVal rval -> rValType rval
 
------
+--lstart
 lValType :: LVal -> Sems Type
 lValType = \case
   IdL id                   -> idType id
@@ -115,9 +116,11 @@ indexingType li co lVal expr = exprType expr >>= \case
 dereferenceType :: Int -> Int -> Expr -> Sems Type 
 dereferenceType li co expr = exprType expr >>= \case
   Pointer t -> right t
+  Nil       -> left $ errPos li co ++ "dereferencing Nil pointer"
   _         -> left $ errPos li co ++ pointErr
------
+--lend
 
+--rstart
 rValType :: RVal -> Sems Type
 rValType = \case
   IntR _                  -> right IntT
@@ -127,61 +130,94 @@ rValType = \case
   CharR _                 -> right CharT
   ParenR  rVal            -> rValType rVal
   NilR                    -> right Nil
-  CallR   (id,exprs)      -> callRValType id $ reverse exprs
+  CallR   (id,exprs)      -> callType id $ reverse exprs
   Papaki  _ _ lVal        -> lValType lVal >>= Pointer >>> right
-  Not     li co expr      -> notRValType li co expr
-  Pos     li co expr      -> checkposneg li co expr "'+'"
-  Neg     li co expr      -> checkposneg li co expr "'-'"
-  Plus    li co exp1 exp2 -> checkarithmetic li co exp1 exp2 "'+'"
-  Mul     li co exp1 exp2 -> checkarithmetic li co exp1 exp2 "'*'"
-  Minus   li co exp1 exp2 -> checkarithmetic li co exp1 exp2 "'-'"
-  RealDiv li co exp1 exp2 -> realDivRValType li co exp1 exp2
-  Div     li co exp1 exp2 -> checkinthmetic li co exp1 exp2 "'div'"
-  Mod     li co exp1 exp2 -> checkinthmetic li co exp1 exp2 "'mod'"
-  Or      li co exp1 exp2 -> checklogic   li co exp1 exp2 "'or'"
-  And     li co exp1 exp2 -> checklogic   li co exp1 exp2 "'and'"
-  Eq      li co exp1 exp2 -> checkcompare li co exp1 exp2 "'='"
-  Diff    li co exp1 exp2 -> checkcompare li co exp1 exp2 "'<>'"
-  Less    li co exp1 exp2 -> checknumcomp li co exp1 exp2 "'<'"
-  Greater li co exp1 exp2 -> checknumcomp li co exp1 exp2 "'>'"
-  Greq    li co exp1 exp2 -> checknumcomp li co exp1 exp2 "'>='"
-  Smeq    li co exp1 exp2 -> checknumcomp li co exp1 exp2 "'<='"
+  Not     li co expr      -> notType li co expr
+  Pos     li co expr      -> unaryOpNumType li co expr "'+'"
+  Neg     li co expr      -> unaryOpNumType li co expr "'-'"
+  Plus    li co exp1 exp2 -> binaryOpNumType li co exp1 exp2 IntT RealT "'+'"
+  Mul     li co exp1 exp2 -> binaryOpNumType li co exp1 exp2 IntT RealT "'*'"
+  Minus   li co exp1 exp2 -> binaryOpNumType li co exp1 exp2 IntT RealT "'-'"
+  RealDiv li co exp1 exp2 -> binaryOpNumType li co exp1 exp2 RealT RealT "'/'"
+  Div     li co exp1 exp2 -> binaryOpIntType li co exp1 exp2 "'div'"
+  Mod     li co exp1 exp2 -> binaryOpIntType li co exp1 exp2 "'mod'"
+  Or      li co exp1 exp2 -> binaryOpBoolType li co exp1 exp2 "'or'"
+  And     li co exp1 exp2 -> binaryOpBoolType li co exp1 exp2 "'and'"
+  Eq      li co exp1 exp2 -> comparisonType li co exp1 exp2 "'='"
+  Diff    li co exp1 exp2 -> comparisonType li co exp1 exp2 "'<>'"
+  Less    li co exp1 exp2 -> binaryOpNumType li co exp1 exp2 BoolT BoolT "'<'"
+  Greater li co exp1 exp2 -> binaryOpNumType li co exp1 exp2 BoolT BoolT "'>'"
+  Greq    li co exp1 exp2 -> binaryOpNumType li co exp1 exp2 BoolT BoolT "'>='"
+  Smeq    li co exp1 exp2 -> binaryOpNumType li co exp1 exp2 BoolT BoolT "'<='"
 
-callRValType :: Id -> Exprs -> Sems Type
-callRValType id exprs = 
-  get >>= snd >>> searchCallableInSymTabs id (errAtId callErr id) >>= \cal ->
-  funcCallSems id cal exprs
+callType :: Id -> Exprs -> Sems Type
+callType id exprs = 
+  get >>= snd >>> searchCallableInSymTabs id (errAtId callErr id) >>= \case
+    Func  fs t           -> formalsExprsMatch id fs exprs >> right t
+    FuncDeclaration fs t -> error "Should not happen"
+    _                    -> errAtId callSemErr id
 
-funcCallSems :: Id -> Callable -> Exprs -> Sems Type
-funcCallSems id = \case
-  FuncDeclaration as t -> \exprs -> goodArgs id as exprs >> right t
-  Func  as t           -> \exprs -> goodArgs id as exprs >> right t
-  _                    -> \_     -> errAtId callSemErr id
+formalsExprsMatch :: Id -> [Formal] -> Exprs -> Sems ()
+formalsExprsMatch id fs exprs =
+  mapM exprType exprs >>= formalsExprsTypesMatch 1 id (formalsToTypes fs)
 
-goodArgs :: Id -> [Formal] -> Exprs -> Sems ()
-goodArgs id as exprs = mapM exprType exprs >>= argsExprsSems 1 id (formalsToTypes as)
+formalsExprsTypesMatch :: Int -> Id -> [(PassBy,Type)] -> [Type] -> Sems ()
+formalsExprsTypesMatch i id t1s t2s = case (t1s,t2s) of
+  ((Value,t1):t1s,t2:t2s)     -> formalExprTypeMatch i id t1 t2 t1s t2s
+  ((Reference,t1):t1s,t2:t2s) -> formalExprTypeMatch i id (Pointer t1) (Pointer t2) t1s t2s
+  ([],[])                     -> return ()
+  _                           -> errAtId argsExprsErr id
 
-argsExprsSems :: Int -> Id -> [(PassBy,Type)] -> [Type] -> Sems ()
-argsExprsSems i id ((Value,t1):t1s) (t2:t2s) = argsExprsSems' i id t1 t2 t1s t2s
-argsExprsSems i id ((Reference,t1):t1s) (t2:t2s) =
-  argsExprsSems' i id (Pointer t1) (Pointer t2) t1s t2s
-argsExprsSems _ _ [] [] = return ()
-argsExprsSems _ id _ _ = errAtId argsExprsErr id
-
-argsExprsSems' i id t1 t2 t1s t2s = do
+formalExprTypeMatch i id t1 t2 t1s t2s = do
   symbatos' t1 t2 $ errorAtArg badArgErr i id 
-  argsExprsSems (i+1) id t1s t2s
+  formalsExprsTypesMatch (i+1) id t1s t2s
 
-formalsToTypes :: [Formal] -> [(PassBy,Type)]
-formalsToTypes = map formalToType >>> concat
+comparisonType :: Int -> Int -> Expr -> Expr -> String -> Sems Type
+comparisonType li co exp1 exp2 a = mapM exprType [exp1,exp2] >>= \case
+  [IntT,IntT]           -> right BoolT
+  [IntT,RealT]          -> right BoolT
+  [RealT,IntT]          -> right BoolT
+  [RealT,RealT]         -> right BoolT
+  [BoolT,BoolT]         -> right BoolT
+  [CharT,CharT]         -> right BoolT
+  [Pointer _,Pointer _] -> right BoolT
+  [Pointer _,Nil]       -> right BoolT
+  [Nil,Pointer _]       -> right BoolT
+  [Nil,Nil]             -> right BoolT
+  _                     -> left $ errPos li co ++ mismTypesErr ++ a
 
-formalToType :: Formal -> [(PassBy,Type)]
-formalToType (pb,in1,myt) = map (\_ -> (pb,myt)) in1
+binaryOpBoolType :: Int -> Int -> Expr -> Expr -> String -> Sems Type
+binaryOpBoolType li co exp1 exp2 a = mapM exprType [exp1,exp2] >>= \case
+  [BoolT,BoolT] -> right BoolT
+  [BoolT,_]     -> left $ errPos li co ++ nonBoolAfErr ++ a
+  _             -> left $ errPos li co ++ nonBoolBefErr ++ a
 
-checkResult :: Sems ()
-checkResult = getEnv >>= \case
-  InFunc id _ False -> errAtId noResInFunErr id
-  _                 -> return ()
+binaryOpIntType :: Int -> Int -> Expr -> Expr -> String -> Sems Type
+binaryOpIntType li co exp1 exp2 a = mapM exprType [exp1,exp2] >>= \case
+  [IntT,IntT] -> right IntT
+  [IntT,_]    -> left $ errPos li co ++ nonIntAfErr ++ a
+  _           -> left $ errPos li co ++ nonIntBefErr ++ a
+
+binaryOpNumType :: Int -> Int -> Expr -> Expr -> Type -> Type-> String -> Sems Type
+binaryOpNumType li co exp1 exp2 intIntType restType a = mapM exprType [exp1,exp2] >>= \case
+  [IntT,IntT]   -> right intIntType
+  [IntT,RealT]  -> right restType
+  [RealT,IntT]  -> right restType
+  [RealT,RealT] -> right restType
+  [IntT,_]      -> left $ errPos li co ++ nonNumAfErr ++ a
+  [RealT,_]     -> left $ errPos li co ++ nonNumAfErr ++ a
+  _             -> left $ errPos li co ++ nonNumBefErr ++ a
+
+unaryOpNumType :: Int -> Int -> Expr -> String -> Sems Type
+unaryOpNumType li co expr a = exprType expr >>= \case
+  IntT  -> right IntT
+  RealT -> right RealT
+  _     -> left $ errPos li co ++ nonNumAfErr ++ a
+
+notType :: Int -> Int -> Expr -> Sems Type
+notType li co expr = exprType expr >>= \case
+  BoolT -> right BoolT
+  _     -> left $ errPos li co ++ nonBoolAfErr ++ "not"
 
 -- to check if func/proc with forward is defined
 checkBoolExpr :: Expr -> String -> Sems ()
@@ -260,83 +296,8 @@ deleteNewMap l nm errmsg = case lookup l nm of
 
 callSem :: Id -> Callable -> Exprs -> Sems ()
 callSem id = \case
-  ProcDeclaration as -> goodArgs id as
-  Proc  as -> goodArgs id as
-  _        -> \_ -> errAtId callSemErr id
-
-checkposneg :: Int -> Int -> Expr -> String -> Sems Type
-checkposneg li co expr a = exprType expr >>= \case
-    IntT  -> right IntT
-    RealT -> right RealT
-    _     -> left $ errPos li co ++ nonNumAfErr ++ a
-
-checkarithmetic :: Int -> Int -> Expr -> Expr -> String -> Sems Type
-checkarithmetic li co exp1 exp2 a = exprType exp1 >>= \case
-  IntT  -> exprType exp2 >>= \case
-    IntT  -> right IntT
-    RealT -> right RealT
-    _     -> left $ errPos li co ++ nonNumAfErr ++ a
-  RealT -> exprType exp2 >>= \case
-    RealT -> right RealT
-    IntT  -> right RealT
-    _     -> left $ errPos li co ++ nonNumAfErr ++ a
-  _     -> left $ errPos li co ++ nonNumBefErr ++ a
-
-checkinthmetic :: Int -> Int -> Expr -> Expr -> String -> Sems Type
-checkinthmetic li co exp1 exp2 a = exprType exp1 >>= \case
-  IntT  -> exprType exp2 >>= \case
-    IntT  -> right IntT
-    _     -> left $ errPos li co ++ nonIntAfErr ++ a
-  _     -> left $ errPos li co ++ nonIntBefErr ++ a
-
-checklogic :: Int -> Int -> Expr -> Expr -> String -> Sems Type
-checklogic li co exp1 exp2 a = exprType exp1 >>= \case
-    BoolT  -> exprType exp2 >>= \case
-      BoolT  -> right BoolT
-      _     -> left $ errPos li co ++ nonBoolAfErr ++ a
-    _     -> left $ errPos li co ++ nonBoolBefErr ++ a
-
-checkcompare :: Int -> Int -> Expr -> Expr -> String -> Sems Type
-checkcompare li co exp1 exp2 a = exprType exp1 >>= \case
-  IntT  -> arithmeticbool exp2 (errPos li co ++ mismTypesErr ++ a) (right BoolT)
-  RealT -> arithmeticbool exp2 (errPos li co ++ mismTypesErr ++ a) (right BoolT)
-  BoolT -> exprType exp2 >>= \case
-    BoolT  -> right BoolT
-    _      -> left $ errPos li co ++ mismTypesErr ++ a
-  CharT -> exprType exp2 >>= \case
-    CharT  -> right BoolT
-    _      -> left $ errPos li co ++ mismTypesErr ++ a
-  Pointer _ -> pointersbool exp2 (errPos li co ++ mismTypesErr ++ a)
-  Nil       -> pointersbool exp2 (errPos li co ++ mismTypesErr ++ a)
-  _     -> left $ errPos li co ++ mismTypesErr ++ a
-
-checknumcomp :: Int -> Int -> Expr -> Expr -> String -> Sems Type
-checknumcomp li co exp1 exp2 a =
-  arithmeticbool exp1 (nonNumBefErr ++ a)
-  (arithmeticbool exp2 (nonNumAfErr ++ a) (right BoolT))
-
-arithmeticbool :: Expr -> String -> Sems Type -> Sems Type
-arithmeticbool expr errmsg f = exprType expr >>= \case
-  IntT   -> f
-  RealT  -> f
-  _     -> left errmsg
-
-pointersbool :: Expr -> String -> Sems Type
-pointersbool expr a = exprType expr >>= \case
-  Pointer _  -> right BoolT
-  Nil        -> right BoolT
-  _           -> left a
-
-notRValType :: Int -> Int -> Expr -> Sems Type
-notRValType li co expr = exprType expr >>= \case
-  BoolT -> right BoolT
-  _     -> left $ errPos li co ++ nonBoolAfErr ++ "not"
-
-realDivRValType :: Int -> Int -> Expr -> Expr -> Sems Type
-realDivRValType li co exp1 exp2 =
-  arithmeticbool exp1 (errPos li co ++ nonNumBefErr ++ "'/'")
-  (arithmeticbool exp2 (errPos li co ++ nonNumAfErr ++ "'/'")
-                   (right RealT))
+  ProcDeclaration as -> formalsExprsMatch id as
+  Proc  as           -> formalsExprsMatch id as
+  _                  -> \_ -> errAtId callSemErr id
 
 errorAtArg err i (Id str li co) = errPos li co ++ err i str
-

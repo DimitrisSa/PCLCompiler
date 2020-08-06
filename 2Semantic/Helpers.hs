@@ -15,3 +15,9 @@ symbatos' t1 t2 err = case symbatos t1 t2 of True -> return (); _ -> left err
 
 dummy :: String -> Id
 dummy s = Id s 0 0 
+
+formalsToTypes :: [Formal] -> [(PassBy,Type)]
+formalsToTypes = map formalToType >>> concat
+
+formalToType :: Formal -> [(PassBy,Type)]
+formalToType (pb,ids,ty) = map (\_ -> (pb,ty)) ids
