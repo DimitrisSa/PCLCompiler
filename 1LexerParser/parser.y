@@ -152,7 +152,7 @@ Stmt :: { Stmt }
      : {-empty-}                   { Empty }
      | LVal equal Expr             { Equal (posnToLi $2) (posnToLi $2) $1 $3}
      | Block                       { Block $1 }
-     | Call                        { Call $1 }
+     | Call                        { CallS $1 }
      | if Expr then Stmt           { IfThen (posnToLi $1) (posnToCo $1) $2 $4 }
      | if Expr then Stmt else Stmt { IfThenElse (posnToLi $1) (posnToCo $1) $2 $4 $6 }
      | while Expr do Stmt          { While (posnToLi $1) (posnToCo $1) $2 $4 }
@@ -190,27 +190,27 @@ RVal     :: { RVal }
            | '(' RVal ')'                       { ParenR   $2 }
            | nil                                { NilR        }
            | Call                               { CallR    $1 }
-           | '@' LVal                           { Papaki  (posnToIntInt $1) $2 }
-           | not  Expr                          { Not     (posnToIntInt $1) $2 }
-           | '+'  Expr %prec POS                { Pos     (posnToIntInt $1) $2 }
-           | '-'  Expr %prec NEG                { Neg     (posnToIntInt $1) $2 }
-           | Expr '+'  Expr                     { Plus    (posnToIntInt $2) $1 $3 }
-           | Expr '*'  Expr                     { Mul     (posnToIntInt $2) $1 $3 }
-           | Expr '-'  Expr                     { Minus   (posnToIntInt $2) $1 $3 }
-           | Expr '/'  Expr                     { RealDiv (posnToIntInt $2) $1 $3 }
-           | Expr div  Expr                     { Div     (posnToIntInt $2) $1 $3 }
-           | Expr mod  Expr                     { Mod     (posnToIntInt $2) $1 $3 }
-           | Expr or   Expr                     { Or      (posnToIntInt $2) $1 $3 }
-           | Expr and  Expr                     { And     (posnToIntInt $2) $1 $3 }
-           | Expr '='  Expr                     { Eq      (posnToIntInt $2) $1 $3 }
-           | Expr diff Expr                     { Diff    (posnToIntInt $2) $1 $3 }
-           | Expr '<'  Expr                     { Less    (posnToIntInt $2) $1 $3 }
-           | Expr '>'  Expr                     { Greater (posnToIntInt $2) $1 $3 }
-           | Expr greq Expr                     { Greq    (posnToIntInt $2) $1 $3 }
-           | Expr smeq Expr                     { Smeq    (posnToIntInt $2) $1 $3 }
+           | '@' LVal                           { Papaki  (posnToLi $1) (posnToCo $1) $2 }
+           | not  Expr                          { Not     (posnToLi $1) (posnToCo $1) $2 }
+           | '+'  Expr %prec POS                { Pos     (posnToLi $1) (posnToCo $1) $2 }
+           | '-'  Expr %prec NEG                { Neg     (posnToLi $1) (posnToCo $1) $2 }
+           | Expr '+'  Expr                     { Plus    (posnToLi $2) (posnToCo $2) $1 $3 }
+           | Expr '*'  Expr                     { Mul     (posnToLi $2) (posnToCo $2) $1 $3 }
+           | Expr '-'  Expr                     { Minus   (posnToLi $2) (posnToCo $2) $1 $3 }
+           | Expr '/'  Expr                     { RealDiv (posnToLi $2) (posnToCo $2) $1 $3 }
+           | Expr div  Expr                     { Div     (posnToLi $2) (posnToCo $2) $1 $3 }
+           | Expr mod  Expr                     { Mod     (posnToLi $2) (posnToCo $2) $1 $3 }
+           | Expr or   Expr                     { Or      (posnToLi $2) (posnToCo $2) $1 $3 }
+           | Expr and  Expr                     { And     (posnToLi $2) (posnToCo $2) $1 $3 }
+           | Expr '='  Expr                     { Eq      (posnToLi $2) (posnToCo $2) $1 $3 }
+           | Expr diff Expr                     { Diff    (posnToLi $2) (posnToCo $2) $1 $3 }
+           | Expr '<'  Expr                     { Less    (posnToLi $2) (posnToCo $2) $1 $3 }
+           | Expr '>'  Expr                     { Greater (posnToLi $2) (posnToCo $2) $1 $3 }
+           | Expr greq Expr                     { Greq    (posnToLi $2) (posnToCo $2) $1 $3 }
+           | Expr smeq Expr                     { Smeq    (posnToLi $2) (posnToCo $2) $1 $3 }
 
-Call       :: { Call }
-           : id '(' ArgExprs ')'                { CId (tokenToId $1)  $3 }
+Call       :: { (Id,Exprs) }
+           : id '(' ArgExprs ')'                { (tokenToId $1,$3) }
 
 ArgExprs   :: { Exprs }
            : {-empty-}                          { [] }
@@ -297,7 +297,7 @@ data Stmt =
   Empty                             |
   Equal Int Int LVal Expr           |
   Block [Stmt]                      |
-  Call Call                         |
+  CallS (Id,Exprs)                         |
   IfThen Int Int Expr Stmt          |
   IfThenElse Int Int Expr Stmt Stmt |
   While Int Int Expr Stmt           |
@@ -342,29 +342,25 @@ data RVal =
   CharR Char         |
   ParenR RVal        |
   NilR               |
-  CallR    Call      |
-  Papaki  (Int,Int) LVal    |
-  Not     (Int,Int) Expr      |
-  Pos     (Int,Int) Expr      |
-  Neg     (Int,Int) Expr      |
-  Plus    (Int,Int) Expr Expr |
-  Mul     (Int,Int) Expr Expr |
-  Minus   (Int,Int) Expr Expr |
-  RealDiv (Int,Int) Expr Expr |
-  Div     (Int,Int) Expr Expr |
-  Mod     (Int,Int) Expr Expr |
-  Or      (Int,Int) Expr Expr |
-  And     (Int,Int) Expr Expr |
-  Eq      (Int,Int) Expr Expr |
-  Diff    (Int,Int) Expr Expr |
-  Less    (Int,Int) Expr Expr |
-  Greater (Int,Int) Expr Expr |
-  Greq    (Int,Int) Expr Expr |
-  Smeq    (Int,Int) Expr Expr
-  deriving(Show,Eq,Ord)
-
-data Call =
-  CId Id [Expr]
+  CallR   (Id,Exprs)      |
+  Papaki  Int Int LVal    |
+  Not     Int Int Expr      |
+  Pos     Int Int Expr      |
+  Neg     Int Int Expr      |
+  Plus    Int Int Expr Expr |
+  Mul     Int Int Expr Expr |
+  Minus   Int Int Expr Expr |
+  RealDiv Int Int Expr Expr |
+  Div     Int Int Expr Expr |
+  Mod     Int Int Expr Expr |
+  Or      Int Int Expr Expr |
+  And     Int Int Expr Expr |
+  Eq      Int Int Expr Expr |
+  Diff    Int Int Expr Expr |
+  Less    Int Int Expr Expr |
+  Greater Int Int Expr Expr |
+  Greq    Int Int Expr Expr |
+  Smeq    Int Int Expr Expr
   deriving(Show,Eq,Ord)
 
 parser s = runAlex s parse
@@ -374,9 +370,6 @@ tokenToId :: Token -> Id
 tokenToId = \case
   TId string (AlexPn _ line column) -> Id string line column
   _                                 -> error "Shouldn't happen, not id token"
-
-posnToIntInt :: AlexPosn -> (Int,Int)
-posnToIntInt (AlexPn _ l c) = (l,c)
 
 posnToLi :: AlexPosn -> Int
 posnToLi (AlexPn _ line _) = line

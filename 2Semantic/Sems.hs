@@ -72,7 +72,7 @@ stmtSems = \case
   Empty                             -> return ()
   Equal li co lVal expr             -> equalSems li co expr lVal
   Block stmts                       -> stmtsSems $ reverse stmts
-  Call (CId id exprs)               -> callSems id $ reverse exprs
+  CallS (id,exprs)                  -> callSems id $ reverse exprs
   IfThen  li co  expr stmt          -> ifThenSems li co expr stmt
   IfThenElse li co expr stmt1 stmt2 -> ifThenElseSems li co expr stmt1 stmt2
   While li co expr stmt             -> whileSems li co expr stmt
@@ -120,39 +120,57 @@ dereferenceType li co expr = exprType expr >>= \case
 
 rValType :: RVal -> Sems Type
 rValType = \case
-  IntR _                     -> right IntT
-  TrueR                      -> right BoolT
-  FalseR                     -> right BoolT
-  RealR _                    -> right RealT
-  CharR _                    -> right CharT
-  ParenR rVal                -> rValType rVal
-  NilR                       -> right Nil
-  CallR (CId id exprs)       -> callRValType id exprs
-  Papaki  posn lVal         -> lValType lVal >>= Pointer >>> right
-  Not     (li,co) expr      -> notRValType li co expr
-  Pos     posn expr         -> checkposneg posn expr "'+'"
-  Neg     posn expr         -> checkposneg posn expr "'-'"
-  Plus    posn exp1 exp2    -> checkarithmetic posn exp1 exp2 "'+'"
-  Mul     posn exp1 exp2    -> checkarithmetic posn exp1 exp2 "'*'"
-  Minus   posn exp1 exp2    -> checkarithmetic posn exp1 exp2 "'-'"
-  RealDiv (li,co) exp1 exp2 -> realDivRValType li co exp1 exp2
-  Div     posn exp1 exp2    -> checkinthmetic posn exp1 exp2 "'div'"
-  Mod     posn exp1 exp2    -> checkinthmetic posn exp1 exp2 "'mod'"
-  Or      posn exp1 exp2    -> checklogic   posn exp1 exp2 "'or'"
-  And     posn exp1 exp2    -> checklogic   posn exp1 exp2 "'and'"
-  Eq      posn exp1 exp2    -> checkcompare posn exp1 exp2 "'='"
-  Diff    posn exp1 exp2    -> checkcompare posn exp1 exp2 "'<>'"
-  Less    posn exp1 exp2    -> checknumcomp posn exp1 exp2 "'<'"
-  Greater posn exp1 exp2    -> checknumcomp posn exp1 exp2 "'>'"
-  Greq    posn exp1 exp2    -> checknumcomp posn exp1 exp2 "'>='"
-  Smeq    posn exp1 exp2    -> checknumcomp posn exp1 exp2 "'<='"
+  IntR _                  -> right IntT
+  TrueR                   -> right BoolT
+  FalseR                  -> right BoolT
+  RealR _                 -> right RealT
+  CharR _                 -> right CharT
+  ParenR  rVal            -> rValType rVal
+  NilR                    -> right Nil
+  CallR   (id,exprs)      -> callRValType id $ reverse exprs
+  Papaki  _ _ lVal        -> lValType lVal >>= Pointer >>> right
+  Not     li co expr      -> notRValType li co expr
+  Pos     li co expr      -> checkposneg li co expr "'+'"
+  Neg     li co expr      -> checkposneg li co expr "'-'"
+  Plus    li co exp1 exp2 -> checkarithmetic li co exp1 exp2 "'+'"
+  Mul     li co exp1 exp2 -> checkarithmetic li co exp1 exp2 "'*'"
+  Minus   li co exp1 exp2 -> checkarithmetic li co exp1 exp2 "'-'"
+  RealDiv li co exp1 exp2 -> realDivRValType li co exp1 exp2
+  Div     li co exp1 exp2 -> checkinthmetic li co exp1 exp2 "'div'"
+  Mod     li co exp1 exp2 -> checkinthmetic li co exp1 exp2 "'mod'"
+  Or      li co exp1 exp2 -> checklogic   li co exp1 exp2 "'or'"
+  And     li co exp1 exp2 -> checklogic   li co exp1 exp2 "'and'"
+  Eq      li co exp1 exp2 -> checkcompare li co exp1 exp2 "'='"
+  Diff    li co exp1 exp2 -> checkcompare li co exp1 exp2 "'<>'"
+  Less    li co exp1 exp2 -> checknumcomp li co exp1 exp2 "'<'"
+  Greater li co exp1 exp2 -> checknumcomp li co exp1 exp2 "'>'"
+  Greq    li co exp1 exp2 -> checknumcomp li co exp1 exp2 "'>='"
+  Smeq    li co exp1 exp2 -> checknumcomp li co exp1 exp2 "'<='"
 
 callRValType :: Id -> Exprs -> Sems Type
-callRValType id exprs = do
-  (_,sms) <- get
-  case searchCallSMs1 id sms of
-    Just t  -> funCallSem id t $ reverse exprs
-    Nothing -> errAtId callErr id
+callRValType id exprs = 
+  get >>= snd >>> searchCallableInSymTabs id (errAtId callErr id) >>= \cal ->
+  funcCallSems id cal exprs
+
+funcCallSems :: Id -> Callable -> Exprs -> Sems Type
+funcCallSems id = \case
+  FuncDeclaration as t -> \exprs -> goodArgs id as exprs >> right t
+  Func  as t           -> \exprs -> goodArgs id as exprs >> right t
+  _                    -> \_     -> errAtId callSemErr id
+
+goodArgs :: Id -> [Formal] -> Exprs -> Sems ()
+goodArgs id as exprs = mapM exprType exprs >>= argsExprsSems 1 id (formalsToTypes as)
+
+argsExprsSems :: Int -> Id -> [(PassBy,Type)] -> [Type] -> Sems ()
+argsExprsSems i id ((Value,t1):t1s) (t2:t2s) = argsExprsSems' i id t1 t2 t1s t2s
+argsExprsSems i id ((Reference,t1):t1s) (t2:t2s) =
+  argsExprsSems' i id (Pointer t1) (Pointer t2) t1s t2s
+argsExprsSems _ _ [] [] = return ()
+argsExprsSems _ id _ _ = errAtId argsExprsErr id
+
+argsExprsSems' i id t1 t2 t1s t2s = do
+  symbatos' t1 t2 $ errorAtArg badArgErr i id 
+  argsExprsSems (i+1) id t1s t2s
 
 formalsToTypes :: [Formal] -> [(PassBy,Type)]
 formalsToTypes = map formalToType >>> concat
@@ -166,18 +184,6 @@ checkResult = getEnv >>= \case
   _                 -> return ()
 
 -- to check if func/proc with forward is defined
-searchCallSM :: Id -> SymbolTable -> Maybe Callable
-searchCallSM id st = lookup id $ callableMap st
-
-searchCallSMs1 :: Id -> [SymbolTable] -> Maybe Callable
-searchCallSMs1 id = \case
-  sm:sms -> searchCallSMs2 id sms $ searchCallSM id sm
-  []     -> Nothing
-
-searchCallSMs2 id sms = \case
-  Nothing -> searchCallSMs1 id sms
-  x       -> x
-
 checkBoolExpr :: Expr -> String -> Sems ()
 checkBoolExpr expr stmtDesc = do
   et <- exprType expr
@@ -205,11 +211,9 @@ checkpointer lVal err = lValType lVal >>= \case
   _          -> left err
 
 callSems :: Id -> Exprs -> Sems ()
-callSems id exprs = do
-  (_,sms) <- get
-  case searchCallSMs1 id sms of
-    Just t  -> callSem id t exprs
-    Nothing -> errAtId callErr id
+callSems id exprs =
+  get >>= snd >>> searchCallableInSymTabs id (errAtId callErr id) >>= \t ->
+  callSem id t exprs
 
 ifThenSems :: Int -> Int -> Expr -> Stmt -> Sems ()
 ifThenSems li co expr stmt = do
@@ -260,18 +264,14 @@ callSem id = \case
   Proc  as -> goodArgs id as
   _        -> \_ -> errAtId callSemErr id
 
-goodArgs :: Id -> [Formal] -> Exprs -> Sems ()
-goodArgs id as exprs =
-  argsExprsSems 1 id (formalsToTypes as) =<< mapM exprType exprs
-
-checkposneg :: (Int,Int) -> Expr -> String -> Sems Type
-checkposneg (li,co) expr a = exprType expr >>= \case
+checkposneg :: Int -> Int -> Expr -> String -> Sems Type
+checkposneg li co expr a = exprType expr >>= \case
     IntT  -> right IntT
     RealT -> right RealT
     _     -> left $ errPos li co ++ nonNumAfErr ++ a
 
-checkarithmetic :: (Int,Int) -> Expr -> Expr -> String -> Sems Type
-checkarithmetic (li,co) exp1 exp2 a = exprType exp1 >>= \case
+checkarithmetic :: Int -> Int -> Expr -> Expr -> String -> Sems Type
+checkarithmetic li co exp1 exp2 a = exprType exp1 >>= \case
   IntT  -> exprType exp2 >>= \case
     IntT  -> right IntT
     RealT -> right RealT
@@ -282,22 +282,22 @@ checkarithmetic (li,co) exp1 exp2 a = exprType exp1 >>= \case
     _     -> left $ errPos li co ++ nonNumAfErr ++ a
   _     -> left $ errPos li co ++ nonNumBefErr ++ a
 
-checkinthmetic :: (Int,Int) -> Expr -> Expr -> String -> Sems Type
-checkinthmetic (li,co) exp1 exp2 a = exprType exp1 >>= \case
+checkinthmetic :: Int -> Int -> Expr -> Expr -> String -> Sems Type
+checkinthmetic li co exp1 exp2 a = exprType exp1 >>= \case
   IntT  -> exprType exp2 >>= \case
     IntT  -> right IntT
     _     -> left $ errPos li co ++ nonIntAfErr ++ a
   _     -> left $ errPos li co ++ nonIntBefErr ++ a
 
-checklogic :: (Int,Int) -> Expr -> Expr -> String -> Sems Type
-checklogic (li,co) exp1 exp2 a = exprType exp1 >>= \case
+checklogic :: Int -> Int -> Expr -> Expr -> String -> Sems Type
+checklogic li co exp1 exp2 a = exprType exp1 >>= \case
     BoolT  -> exprType exp2 >>= \case
       BoolT  -> right BoolT
       _     -> left $ errPos li co ++ nonBoolAfErr ++ a
     _     -> left $ errPos li co ++ nonBoolBefErr ++ a
 
-checkcompare :: (Int,Int) -> Expr -> Expr -> String -> Sems Type
-checkcompare (li,co) exp1 exp2 a = exprType exp1 >>= \case
+checkcompare :: Int -> Int -> Expr -> Expr -> String -> Sems Type
+checkcompare li co exp1 exp2 a = exprType exp1 >>= \case
   IntT  -> arithmeticbool exp2 (errPos li co ++ mismTypesErr ++ a) (right BoolT)
   RealT -> arithmeticbool exp2 (errPos li co ++ mismTypesErr ++ a) (right BoolT)
   BoolT -> exprType exp2 >>= \case
@@ -310,8 +310,8 @@ checkcompare (li,co) exp1 exp2 a = exprType exp1 >>= \case
   Nil       -> pointersbool exp2 (errPos li co ++ mismTypesErr ++ a)
   _     -> left $ errPos li co ++ mismTypesErr ++ a
 
-checknumcomp :: (Int,Int) -> Expr -> Expr -> String -> Sems Type
-checknumcomp (li,co) exp1 exp2 a =
+checknumcomp :: Int -> Int -> Expr -> Expr -> String -> Sems Type
+checknumcomp li co exp1 exp2 a =
   arithmeticbool exp1 (nonNumBefErr ++ a)
   (arithmeticbool exp2 (nonNumAfErr ++ a) (right BoolT))
 
@@ -338,20 +338,5 @@ realDivRValType li co exp1 exp2 =
   (arithmeticbool exp2 (errPos li co ++ nonNumAfErr ++ "'/'")
                    (right RealT))
 
-funCallSem :: Id -> Callable -> Exprs -> Sems Type
-funCallSem id = \case
-  FuncDeclaration as t -> \exprs -> goodArgs id as exprs >> right t
-  Func  as t -> \exprs -> goodArgs id as exprs >> right t
-  _          -> \_ -> errAtId callSemErr id
-
 errorAtArg err i (Id str li co) = errPos li co ++ err i str
 
-argsExprsSems :: Int -> Id -> [(PassBy,Type)] -> [Type] -> Sems ()
-argsExprsSems i id ((Value,t1):t1s) (t2:t2s) = do
-  symbatos' t1 t2 $ errorAtArg badArgErr i id 
-  argsExprsSems (i+1) id t1s t2s
-argsExprsSems i id ((Reference,t1):t1s) (t2:t2s) = do
-  symbatos' (Pointer t1) (Pointer t2) $ errorAtArg badArgErr i id 
-  argsExprsSems (i+1) id t1s t2s
-argsExprsSems _ _ [] [] = return ()
-argsExprsSems _ id _ _ = errAtId argsExprsErr id

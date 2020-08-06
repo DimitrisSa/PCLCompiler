@@ -70,3 +70,19 @@ insToNewMap id cal =
 
 lookupInVariableMapThenFun :: (Type -> Id -> Maybe Type -> Sems ()) -> Type -> Id -> Sems()
 lookupInVariableMapThenFun f ty id = getVariableMap >>= lookup id >>> f ty id 
+
+searchVarInSymTabs :: Id -> Sems Type -> [SymbolTable] -> Sems Type
+searchVarInSymTabs id err = searchInSymTabs variableMap id err
+
+searchCallableInSymTabs :: Id -> Sems Callable -> [SymbolTable] -> Sems Callable
+searchCallableInSymTabs id err = searchInSymTabs callableMap id err
+
+searchInSymTabs :: (SymbolTable -> Map Id a) -> Id -> Sems a -> [SymbolTable] -> Sems a
+searchInSymTabs map id err = \case
+  st:sts -> case lookup id $ map st of
+    Just t  -> return t
+    Nothing -> searchInSymTabs map id err sts
+  []     -> err
+
+
+
