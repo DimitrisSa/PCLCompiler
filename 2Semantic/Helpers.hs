@@ -1,6 +1,7 @@
 module Helpers where
 import Parser
 import SemsTypes
+import SemsErrs
 import Control.Monad.Trans.Either
 
 checkFullType :: Type -> Bool
