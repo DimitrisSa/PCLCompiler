@@ -44,3 +44,15 @@ notCases li co = \case
   BoolT -> right BoolT
   _     -> left $ errPos li co ++ nonBoolAfErr ++ "not"
 
+formalsExprsTypesMatch :: Int -> Id -> [(PassBy,Type)] -> [Type] -> Sems ()
+formalsExprsTypesMatch i id t1s t2s = case (t1s,t2s) of
+  ((Value,t1):t1s,t2:t2s)     -> formalExprTypeMatch i id t1 t2 t1s t2s
+  ((Reference,t1):t1s,t2:t2s) -> formalExprTypeMatch i id (Pointer t1) (Pointer t2) t1s t2s
+  ([],[])                     -> return ()
+  _                           -> errAtId argsExprsErr id
+
+formalExprTypeMatch i id t1 t2 t1s t2s = do
+  symbatos' t1 t2 $ errorAtArg badArgErr i id 
+  formalsExprsTypesMatch (i+1) id t1s t2s
+
+errorAtArg err i (Id str li co) = errPos li co ++ err i str

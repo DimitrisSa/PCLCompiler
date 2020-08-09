@@ -15,10 +15,10 @@ import HeaderParentSems (headerParentSems)
 import HeaderChildSems (headerChildSems)
 import LValTypes
 import RValTypesCases
+import StmtSems
 import CheckResult (checkResult)
 
 -- same name of fun inside of other fun?
-
 main :: IO ()
 main = sems
 
@@ -71,33 +71,19 @@ stmtsSems ss = mapM_ stmtSems ss
 
 stmtSems :: Stmt -> Sems ()
 stmtSems = \case
-  Empty                             -> return ()
-  Assignment li co lVal expr        -> equalSems li co expr lVal
-  Block stmts                       -> stmtsSems $ reverse stmts
-  CallS (id,exprs)                  -> callSems id $ reverse exprs
-  IfThen  li co  expr stmt          -> ifThenSems li co expr stmt
-  IfThenElse li co expr stmt1 stmt2 -> ifThenElseSems li co expr stmt1 stmt2
-  While li co expr stmt             -> whileSems li co expr stmt
-  Label label stmt                  -> checkDuplicateUndefined label >> stmtSems stmt
-  GoTo label                        -> checkLabelExists label
-  Return                            -> return ()
-  New li co new lVal                -> newSems li co new lVal
-  Dispose li co disptype lVal       -> disposeSems li co disptype lVal
-
-ifThenSems :: Int -> Int -> Expr -> Stmt -> Sems ()
-ifThenSems li co expr stmt = checkBoolExpr expr (errPos li co ++ "if-then") (stmtSems stmt)
-
-ifThenElseSems :: Int -> Int -> Expr -> Stmt -> Stmt -> Sems ()
-ifThenElseSems li co expr s1 s2 =
-  checkBoolExpr expr (errPos li co ++ "if-then-else") (stmtSems s1 >> stmtSems s2)
-
-whileSems :: Int -> Int -> Expr -> Stmt -> Sems ()
-whileSems li co expr stmt = 
-  checkBoolExpr expr (errPos li co ++ "while") (stmtSems stmt)
-
-checkBoolExpr expr stmtDesc action = exprType expr >>= \case
-  BoolT -> action
-  _     -> left $ nonBoolErr ++ stmtDesc
+  Empty                       -> return ()
+  Assignment li co lVal expr  -> equalSems li co expr lVal
+  Block stmts                 -> stmtsSems $ reverse stmts
+  CallS (id,exprs)            -> callSems id $ reverse exprs
+  IfThen li co e s            -> exprType e >>= boolCases li co "if-then" >> stmtSems s
+  IfThenElse li co e s1 s2    -> exprType e >>= boolCases li co "if-then-else" >>
+                                 stmtSems s1 >> stmtSems s2
+  While li co e stmt          -> exprType e >>= boolCases li co "while" >> stmtSems stmt
+  Label lab stmt              -> lookupInLabelMap lab >>= labelCases lab >> stmtSems stmt
+  GoTo lab                    -> lookupInLabelMap lab >>= goToCases lab
+  Return                      -> return ()
+  New li co new lVal          -> newSems li co new lVal
+  Dispose li co disptype lVal -> disposeSems li co disptype lVal
 
 callSems :: Id -> Exprs -> Sems ()
 callSems id exprs =
@@ -115,17 +101,6 @@ notStrLiteralEqualSems li co lVal expr = do
   lt <- lValType lVal
   et <- exprType expr
   symbatos' lt et $ errPos li co ++ assTypeMisErr
-
-checkLabelExists :: Id -> Sems ()
-checkLabelExists id = lookupInLabelMap id >>= \case
-  Nothing -> errAtId undefLabErr id
-  _       -> return ()
-
-checkDuplicateUndefined :: Id -> Sems ()
-checkDuplicateUndefined id = lookupInLabelMap id >>= \case
-  Just False -> insToLabelMap id True
-  Just True  -> errAtId dupLabErr id
-  Nothing    -> errAtId undefLabErr id
 
 checkpointer :: LVal -> Error -> Sems Type
 checkpointer lVal err = lValType lVal >>= \case
@@ -158,8 +133,6 @@ deleteNewMap :: LVal -> NewMap -> String -> Sems NewMap
 deleteNewMap l nm errmsg = case lookup l nm of
   Nothing -> left errmsg
   _       -> right $ delete l nm
-
-errorAtArg err i (Id str li co) = errPos li co ++ err i str
 
 --exprstart
 exprType :: Expr -> Sems Type
@@ -222,14 +195,3 @@ callType id exprs =
 formalsExprsMatch :: Id -> [Formal] -> Exprs -> Sems ()
 formalsExprsMatch id fs exprs =
   mapM exprType exprs >>= formalsExprsTypesMatch 1 id (formalsToTypes fs)
-
-formalsExprsTypesMatch :: Int -> Id -> [(PassBy,Type)] -> [Type] -> Sems ()
-formalsExprsTypesMatch i id t1s t2s = case (t1s,t2s) of
-  ((Value,t1):t1s,t2:t2s)     -> formalExprTypeMatch i id t1 t2 t1s t2s
-  ((Reference,t1):t1s,t2:t2s) -> formalExprTypeMatch i id (Pointer t1) (Pointer t2) t1s t2s
-  ([],[])                     -> return ()
-  _                           -> errAtId argsExprsErr id
-
-formalExprTypeMatch i id t1 t2 t1s t2s = do
-  symbatos' t1 t2 $ errorAtArg badArgErr i id 
-  formalsExprsTypesMatch (i+1) id t1s t2s
