@@ -9,10 +9,7 @@ insToSymTabVarsWithType :: ([Id],Type) -> Sems ()
 insToSymTabVarsWithType (vars,ty) = mapM_ (insToSymTabVarWithType ty) $ reverse vars
   
 insToSymTabVarWithType :: Type -> Id -> Sems ()
-insToSymTabVarWithType ty var = lookupInVariableMapThenFun afterVarLookup ty var
-
-afterVarLookup :: Type -> Id -> Maybe Type -> Sems ()
-afterVarLookup ty var = \case 
+insToSymTabVarWithType ty var = lookupInVariableMap var >>= \case 
   Nothing -> afterVarLookupOk ty var
   _       -> errAtId duplicateVariableErr var
 

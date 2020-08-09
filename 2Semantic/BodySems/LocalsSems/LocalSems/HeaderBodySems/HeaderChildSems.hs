@@ -14,8 +14,6 @@ insToSymTabFormal :: Formal -> Sems ()
 insToSymTabFormal (_,ids,t) = mapM_ (insToSymTabVar t) ids
 
 insToSymTabVar :: Type -> Id -> Sems ()
-insToSymTabVar ty var = lookupInVariableMapThenFun afterVarLookup ty var
-
-afterVarLookup ty var = \case
+insToSymTabVar ty var = lookupInVariableMap var >>= \case
   Nothing -> insToVariableMap var ty 
   _       -> errAtId duplicateArgumentErr var

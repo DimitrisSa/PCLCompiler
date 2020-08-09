@@ -150,7 +150,7 @@ Stmts :: { [Stmt] }
 
 Stmt :: { Stmt }
      : {-empty-}                   { Empty }
-     | LVal equal Expr             { Equal (posnToLi $2) (posnToLi $2) $1 $3}
+     | LVal equal Expr             { Assignment (posnToLi $2) (posnToLi $2) $1 $3}
      | Block                       { Block $1 }
      | Call                        { CallS $1 }
      | if Expr then Stmt           { IfThen (posnToLi $1) (posnToCo $1) $2 $4 }
@@ -295,9 +295,9 @@ data ArrSize =
 
 data Stmt =
   Empty                             |
-  Equal Int Int LVal Expr           |
+  Assignment Int Int LVal Expr      |
   Block [Stmt]                      |
-  CallS (Id,Exprs)                         |
+  CallS (Id,Exprs)                  |
   IfThen Int Int Expr Stmt          |
   IfThenElse Int Int Expr Stmt Stmt |
   While Int Int Expr Stmt           |

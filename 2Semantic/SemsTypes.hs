@@ -68,8 +68,11 @@ insToNewMap :: LVal -> () -> Sems ()
 insToNewMap id cal =
   modify $ \(e,st:sts) -> (e,st { newMap = insert id cal $ newMap st }:sts)
 
-lookupInVariableMapThenFun :: (Type -> Id -> Maybe Type -> Sems ()) -> Type -> Id -> Sems()
-lookupInVariableMapThenFun f ty id = getVariableMap >>= lookup id >>> f ty id 
+lookupInVariableMap :: Id -> Sems (Maybe Type)
+lookupInVariableMap id = getVariableMap >>= lookup id >>> return
+
+lookupInLabelMap :: Id -> Sems (Maybe Bool)
+lookupInLabelMap id = getLabelMap >>= lookup id >>> return
 
 searchVarInSymTabs :: Id -> Sems Type -> [SymbolTable] -> Sems Type
 searchVarInSymTabs id err = searchInSymTabs variableMap id err
@@ -83,6 +86,3 @@ searchInSymTabs map id err = \case
     Just t  -> return t
     Nothing -> searchInSymTabs map id err sts
   []     -> err
-
-
-
