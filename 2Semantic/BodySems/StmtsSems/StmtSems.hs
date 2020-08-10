@@ -14,6 +14,10 @@ goToCases id = \case
   Nothing -> errAtId undefLabErr id
   _       -> return ()
 
-boolCases li co stmtDesc = \case
+boolCases li co err = \case
   BoolT -> return ()
-  _     -> left $ nonBoolErr ++ errPos li co ++ stmtDesc
+  _     -> left $ errPos li co ++ nonBoolErr ++ err
+
+pointerCases li co err = \case
+  Pointer t -> return t
+  _         -> left $ errPos li co ++ err

@@ -102,15 +102,12 @@ notStrLiteralEqualSems li co lVal expr = do
   et <- exprType expr
   symbatos' lt et $ errPos li co ++ assTypeMisErr
 
-checkpointer :: LVal -> Error -> Sems Type
-checkpointer lVal err = lValType lVal >>= \case
-  Pointer t -> return t
-  _         -> left err
+checkpointer :: LVal -> Int -> Int -> Error -> Sems Type
+checkpointer lVal li co err = lValType lVal >>= pointerCases li co err
 
 newSems :: Int -> Int -> New -> LVal -> Sems ()
-newSems li co new lVal = do
-  insToNewMap lVal ()
-  t <- checkpointer lVal $ errPos li co ++ nonPointNewErr
+newSems li co new lVal = 
+  insToNewMap lVal () >> lValType lVal >>= pointerCases li co nonPointNewErr >>= \t ->
   case (new,checkFullType t) of
     (NewEmpty,True)   -> return ()
     (NewExpr e,False) -> exprType e >>= \case
@@ -123,7 +120,7 @@ disposeSems li co disptype lVal = do
   (e,st:sts) <- get
   newnm <- deleteNewMap lVal (newMap st) $ errPos li co ++ dispNullPointErr
   put $ (e,st:sts)
-  t <- checkpointer lVal $ errPos li co ++ dispNonPointErr
+  t <- checkpointer lVal li co dispNonPointErr
   case (disptype,checkFullType t) of
     (With,False)   -> return ()
     (Without,True) -> return ()

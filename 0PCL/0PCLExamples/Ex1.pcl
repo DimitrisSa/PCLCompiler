@@ -2,7 +2,7 @@ program hello;
 procedure ok();
 var a:boolean;
 begin
-a := 1 < 'b'
+new a
 end;
 begin
 end.
