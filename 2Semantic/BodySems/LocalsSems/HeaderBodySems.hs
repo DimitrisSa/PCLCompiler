@@ -16,11 +16,11 @@ insToSymTabFormal (_,ids,t) = mapM_ (insToSymTabVar t) ids
 insToSymTabVar :: Type -> Id -> Sems ()
 insToSymTabVar ty var = lookupInVariableMap var >>= \case
   Nothing -> insToVariableMap var ty 
-  _       -> errAtId duplicateArgumentErr var
+  _       -> errAtId "Duplicate Argument: " var
 
 checkResult :: Sems ()
 checkResult = getEnv >>= \case
-  InFunc id _ False -> errAtId noResInFunErr id
+  InFunc id _ False -> errAtId "Result not set for function: " id
   _                 -> return ()
 
 headerParentSems :: Header -> Sems ()
@@ -41,22 +41,20 @@ funcCases id fs ty = \case
   _                              -> errAtId duplicateCallableErr id
 
 insToSymTabIfFormalsMatch :: Id -> [Formal] -> [Formal] -> Sems ()
-insToSymTabIfFormalsMatch id fs fs' = do
-  sameTypes id fs fs'
-  insToCallableMap id (Proc fs)
+insToSymTabIfFormalsMatch id fs fs' = sameTypes id fs fs' >> insToCallableMap id (Proc fs)
 
 insToSymTabIfFormalsAndTypeMatch :: Id -> [Formal] -> [Formal] -> Type -> Type -> Sems ()
 insToSymTabIfFormalsAndTypeMatch id fs fs' ty ty' = do
   sameTypes id fs fs'
   case ty == ty' of
     True -> insToCallableMap id (Func fs ty)
-    _    -> errAtId resultTypeMismatchErr id
+    _    -> errAtId "Result type missmatch between declaration and definition for: " id
 
 insToSymTabIfFormalsAndTypeOk id fs = \case 
   Array _ _ -> errAtId funcResTypeErr id
-  t          -> insToSymTabIfFormalsOk id fs $ Func fs t
+  t         -> insToSymTabIfFormalsOk id fs $ Func fs t
 
 sameTypes :: Id -> [Formal] -> [Formal] -> Sems ()
 sameTypes id fs fs' = case ((==) `on` formalsToTypes) fs fs' of
   True -> return ()
-  _    -> errAtId paramenterTypeMismatchErr id
+  _    -> errAtId "Parameter type missmatch between declaration and definition for: " id

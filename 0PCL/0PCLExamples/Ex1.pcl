@@ -1,9 +1,5 @@
 program hello;
-var a:^real;
-procedure ok();
+var a:^array of real;
 begin
-ok()
-end;
-begin
-new [true] a;
+new a;
 end.

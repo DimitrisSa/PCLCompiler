@@ -84,9 +84,11 @@ searchCallableInSymTabs id = get >>= snd >>> searchInSymTabs callableMap id call
 searchInSymTabs :: (SymbolTable -> Map Id a) -> Id -> Error -> [SymbolTable] -> Sems a
 searchInSymTabs map id err = \case
   st:sts -> case lookup id $ map st of
-    Just t  -> return t
-    Nothing -> searchInSymTabs map id err sts
+    Just val -> return val
+    Nothing  -> searchInSymTabs map id err sts
   []     -> errAtId err id
 
 errAtId :: String -> Id -> Sems a
-errAtId err (Id str li co) = left $ concat [errPos li co,err,str]
+errAtId err (Id str li co) = errPos li co $ err ++ str
+
+errPos li co err = left $ concat [show li,":",show co,": ",err] 

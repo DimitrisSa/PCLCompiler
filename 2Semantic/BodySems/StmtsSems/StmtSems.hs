@@ -7,33 +7,45 @@ labelCases :: Id -> Maybe Bool -> Sems ()
 labelCases id = \case
   Just False -> insToLabelMap id True
   Just True  -> errAtId dupLabErr id
-  Nothing    -> errAtId undefLabErr id
+  Nothing    -> errAtId "Undeclared label: " id
 
 goToCases :: Id -> Maybe Bool -> Sems ()
 goToCases id = \case
-  Nothing -> errAtId undefLabErr id
+  Nothing -> errAtId "Goto undefined label: " id
   _       -> return ()
 
 boolCases li co err = \case
   BoolT -> return ()
-  _     -> left $ errPos li co ++ nonBoolErr ++ err
+  _     -> errPos li co $ "Non-boolean expression in " ++ err
 
 pointerCases li co err = \case
   Pointer t -> return t
-  _         -> left $ errPos li co ++ err
+  _         -> errPos li co err
 
-newPointerCases li co = pointerCases li co nonPointNewErr
+newPointerCases li co = pointerCases li co "non-pointer in new statement"
 
-newNoExprSems li co = newPointerCases li co >=> fullType >>> \case
+caseFalseThrowErr li co err = \case
   True -> return ()
-  _    -> left $ errPos li co ++ "new l statement: l must not be of type ^array of t"
+  _    -> errPos li co err
+
+newNoExprSems li co = newPointerCases li co >=> fullType >>>
+  caseFalseThrowErr li co "new l statement: l must not be of type ^array of t"
 
 newExprSems li co (et,lt) =
-  intCases li co et >>
-  newPointerCases li co lt >>= fullType >>> \case
-    False -> return ()
-    _     -> left $ errPos li co ++ "new [e] l statement: l must be of type ^array of t"
+  intCases li co et >> newPointerCases li co lt >>= fullType >>> not >>>
+  caseFalseThrowErr li co "new [e] l statement: l must be of type ^array of t"
+
+dispPointerCases li co = pointerCases li co dispNonPointErr
+
+dispWithoutSems li co = dispPointerCases li co >=> fullType >>>
+  caseFalseThrowErr li co "dispose l statement: l must not be of type ^array of t"
+
+dispWithSems li co = dispPointerCases li co >=> fullType >>> not >>>
+  caseFalseThrowErr li co "dispose [] l statement: l must be of type ^array of t"
+
+notStrLiteralSems li co = symbatos >>>
+  caseFalseThrowErr li co "type mismatch in assignment"
 
 intCases li co = \case
   IntT -> return ()
-  _    -> left $ errPos li co ++ "new [e] l statement: e must be of type integer" 
+  _    -> errPos li co "new [e] l statement: e must be of type integer" 

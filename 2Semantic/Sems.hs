@@ -10,7 +10,7 @@ import LocalsSems (varsWithTypeListSems,insToSymTabLabels,forwardSems
 import CheckUnusedLabels (checkUnusedLabels)
 import HeaderBodySems (headerParentSems,headerChildSems,checkResult)
 import LValTypes
-import RValTypesCases
+import RValTypes
 import StmtSems
 
 -- same name of fun inside of other fun?
@@ -75,7 +75,7 @@ stmtSems = \case
   Label lab stmt              -> lookupInLabelMap lab >>= labelCases lab >> stmtSems stmt
   GoTo lab                    -> lookupInLabelMap lab >>= goToCases lab
   Return                      -> return ()
-  New li co new lVal          -> newSems li co lVal new
+  New li co new lVal          -> newSems li co new lVal
   Dispose li co disptype lVal -> disposeSems li co disptype lVal
 
 callSems :: Id -> Exprs -> Sems ()
@@ -86,21 +86,18 @@ callSems id exprs = searchCallableInSymTabs id >>= \case
 
 assignmentSems :: Int -> Int -> Expr -> LVal -> Sems ()
 assignmentSems li co expr = \case
-  StrLiteral str -> left $ errPos li co ++ strAssignmentErr ++ str
-  lVal           -> exprLValTypes expr lVal >>= symbatos' (errPos li co ++ assTypeMisErr)
+  StrLiteral str -> errPos li co $ strAssignmentErr ++ str
+  lVal           -> exprLValTypes expr lVal >>= notStrLiteralSems li co
 
-newSems :: Int -> Int -> LVal -> New -> Sems ()
-newSems li co lVal = \case
-  NewNoExpr -> lValType lVal >>= newNoExprSems li co
-  NewExpr e -> exprLValTypes e lVal >>= newExprSems li co
+newSems :: Int -> Int -> New -> LVal -> Sems ()
+newSems li co = \case
+  NewNoExpr -> lValType >=> newNoExprSems li co
+  NewExpr e -> exprLValTypes e >=> newExprSems li co
 
 disposeSems :: Int -> Int -> DispType -> LVal -> Sems ()
-disposeSems li co disptype lVal = 
-  lValType lVal >>= pointerCases li co dispNonPointErr >>= \t ->
-  case (disptype,fullType t) of
-    (With,False)   -> return ()
-    (Without,True) -> return ()
-    _              -> left $ errPos li co ++ badPointDispErr
+disposeSems li co = \case
+  Without -> lValType >=> dispWithoutSems li co
+  With    -> lValType >=> dispWithSems li co
 
 exprType :: Expr -> Sems Type
 exprType = \case
@@ -109,7 +106,7 @@ exprType = \case
 
 lValType :: LVal -> Sems Type
 lValType = \case
-  IdL id                   -> idType id
+  IdL id                   -> searchVarInSymTabs id
   Result li co             -> resultType li co
   StrLiteral str           -> right $ Array (Size $ length str + 1) CharT
   Indexing li co lVal expr -> exprLValTypes expr lVal >>= indexingCases li co

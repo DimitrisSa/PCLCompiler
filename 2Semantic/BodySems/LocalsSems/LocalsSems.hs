@@ -16,7 +16,7 @@ insToSymTabForwardHeader id fs t = lookupInCallableMap id >>= \case
 insToSymTabLabels :: [Id] -> Sems ()
 insToSymTabLabels = mapM_ $ \label -> lookupInLabelMap label >>= \case 
   Nothing -> insToLabelMap label False
-  _       -> errAtId duplicateLabelDeclarationErr label
+  _       -> errAtId "Duplicate label declaration: " label
 
 varsWithTypeListSems :: [([Id],Type)] -> Sems ()
 varsWithTypeListSems = mapM_ insToSymTabVarsWithType 
@@ -27,7 +27,7 @@ insToSymTabVarsWithType (vars,ty) = mapM_ (insToSymTabVarWithType ty) $ reverse 
 insToSymTabVarWithType :: Type -> Id -> Sems ()
 insToSymTabVarWithType ty var = lookupInVariableMap var >>= \case 
   Nothing -> afterVarLookupOk ty var
-  _       -> errAtId duplicateVariableErr var
+  _       -> errAtId "Duplicate Variable: " var
 
 afterVarLookupOk :: Type -> Id -> Sems ()
 afterVarLookupOk ty var = case fullType ty of
@@ -36,6 +36,6 @@ afterVarLookupOk ty var = case fullType ty of
 
 checkUndefDeclarations :: Sems ()
 checkUndefDeclarations = getCallableMap >>= toList >>> mapM_ (\case
-  (id,ProcDeclaration _  ) -> errAtId undefinedDeclarationErr id
-  (id,FuncDeclaration _ _) -> errAtId undefinedDeclarationErr id
+  (id,ProcDeclaration _  ) -> errAtId "No definition for procedure declaration: " id
+  (id,FuncDeclaration _ _) -> errAtId "No definition for function declaration: " id
   _                        -> return ())
