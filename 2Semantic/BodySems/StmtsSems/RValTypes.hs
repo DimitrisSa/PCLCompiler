@@ -52,7 +52,7 @@ formalsExprsTypesMatch i id t1s t2s = case (t1s,t2s) of
   _                           -> errAtId argsExprsErr id
 
 formalExprTypeMatch i id t1 t2 t1s t2s = do
-  symbatos' t1 t2 $ errorAtArg badArgErr i id 
+  symbatos' (errorAtArg badArgErr i id) (t1,t2)
   formalsExprsTypesMatch (i+1) id t1s t2s
 
 errorAtArg err i (Id str li co) = errPos li co ++ err i str

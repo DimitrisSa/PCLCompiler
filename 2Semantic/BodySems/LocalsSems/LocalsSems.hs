@@ -1,21 +1,20 @@
-module LocalSems where
-import Prelude hiding (lookup)
+module LocalsSems where
 import Common
 
 forwardSems :: Header -> Sems ()
-forwardSems h = case h of
+forwardSems = \case
   ProcHeader i a   -> insToSymTabForwardHeader i a (ProcDeclaration $ reverse a)
   FuncHeader i a t -> case t of
     Array _ _ -> errAtId funcResTypeErr i
     _         -> insToSymTabForwardHeader i a (FuncDeclaration (reverse a) t)
 
 insToSymTabForwardHeader :: Id -> [Formal] -> Callable -> Sems ()
-insToSymTabForwardHeader id fs t = getCallableMap >>= lookup id >>> \case
+insToSymTabForwardHeader id fs t = lookupInCallableMap id >>= \case
   Nothing -> insToSymTabIfFormalsOk id fs t
   _       -> errAtId duplicateCallableErr id
 
 insToSymTabLabels :: [Id] -> Sems ()
-insToSymTabLabels = mapM_ $ \label -> getLabelMap >>= lookup label >>> \case 
+insToSymTabLabels = mapM_ $ \label -> lookupInLabelMap label >>= \case 
   Nothing -> insToLabelMap label False
   _       -> errAtId duplicateLabelDeclarationErr label
 
@@ -31,15 +30,12 @@ insToSymTabVarWithType ty var = lookupInVariableMap var >>= \case
   _       -> errAtId duplicateVariableErr var
 
 afterVarLookupOk :: Type -> Id -> Sems ()
-afterVarLookupOk ty var = case checkFullType ty of
+afterVarLookupOk ty var = case fullType ty of
   True -> insToVariableMap var ty 
   _    -> errAtId arrayOfDeclarationErr var
 
 checkUndefDeclarations :: Sems ()
-checkUndefDeclarations = getCallableMap >>= toList >>>  mapM_ checkUndefDeclaration
-
-checkUndefDeclaration :: (Id,Callable) -> Sems ()
-checkUndefDeclaration = \case
+checkUndefDeclarations = getCallableMap >>= toList >>> mapM_ (\case
   (id,ProcDeclaration _  ) -> errAtId undefinedDeclarationErr id
   (id,FuncDeclaration _ _) -> errAtId undefinedDeclarationErr id
-  _                        -> return ()
+  _                        -> return ())

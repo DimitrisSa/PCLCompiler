@@ -1,5 +1,4 @@
 module HeaderBodySems where
-import Prelude hiding (lookup)
 import Common 
 import Data.Function (on)
 

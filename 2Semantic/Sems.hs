@@ -1,13 +1,12 @@
 module Main where
-import Prelude hiding (lookup)
 import Control.Monad.Trans.Either
 import System.IO
 import System.Exit
 import Data.Function
 import Common hiding (map)
 import InitSymTab (initSymTab)
-import LocalSems (varsWithTypeListSems,insToSymTabLabels,forwardSems
-                 ,checkUndefDeclarations)
+import LocalsSems (varsWithTypeListSems,insToSymTabLabels,forwardSems
+                  ,checkUndefDeclarations)
 import CheckUnusedLabels (checkUnusedLabels)
 import HeaderBodySems (headerParentSems,headerChildSems,checkResult)
 import LValTypes
@@ -37,8 +36,8 @@ programSems :: Program -> Sems ()
 programSems (P _ body) = initSymTab >> bodySems body
 
 bodySems :: Body -> Sems ()
-bodySems (Body locals stmts) = localsSems (reverse locals) >> stmtsSems (reverse stmts) >>
-                               checkUnusedLabels
+bodySems (Body locals stmts) =
+  localsSems (reverse locals) >> stmtsSems (reverse stmts) >> checkUnusedLabels
 
 localsSems :: [Local] -> Sems ()
 localsSems locals = mapM_ localSems locals >> checkUndefDeclarations
@@ -66,7 +65,7 @@ stmtsSems ss = mapM_ stmtSems ss
 stmtSems :: Stmt -> Sems ()
 stmtSems = \case
   Empty                       -> return ()
-  Assignment li co lVal expr  -> equalSems li co expr lVal
+  Assignment li co lVal expr  -> assignmentSems li co expr lVal
   Block stmts                 -> stmtsSems $ reverse stmts
   CallS (id,exprs)            -> callSems id $ reverse exprs
   IfThen li co e s            -> exprType e >>= boolCases li co "if-then" >> stmtSems s
@@ -76,7 +75,7 @@ stmtSems = \case
   Label lab stmt              -> lookupInLabelMap lab >>= labelCases lab >> stmtSems stmt
   GoTo lab                    -> lookupInLabelMap lab >>= goToCases lab
   Return                      -> return ()
-  New li co new lVal          -> newSems li co new lVal
+  New li co new lVal          -> newSems li co lVal new
   Dispose li co disptype lVal -> disposeSems li co disptype lVal
 
 callSems :: Id -> Exprs -> Sems ()
@@ -85,28 +84,20 @@ callSems id exprs = searchCallableInSymTabs id >>= \case
   Proc  as           -> formalsExprsMatch id as exprs
   _                  -> errAtId callSemErr id
 
-equalSems :: Int -> Int -> Expr -> LVal -> Sems ()
-equalSems li co expr = \case
+assignmentSems :: Int -> Int -> Expr -> LVal -> Sems ()
+assignmentSems li co expr = \case
   StrLiteral str -> left $ errPos li co ++ strAssignmentErr ++ str
-  lVal           -> notStrLiteralEqualSems li co lVal expr
+  lVal           -> exprLValTypes expr lVal >>= symbatos' (errPos li co ++ assTypeMisErr)
 
-notStrLiteralEqualSems li co lVal expr = do
-  lt <- lValType lVal
-  et <- exprType expr
-  symbatos' lt et $ errPos li co ++ assTypeMisErr
-
-newSems :: Int -> Int -> New -> LVal -> Sems ()
-newSems li co new lVal = 
-  lValType lVal >>= pointerCases li co nonPointNewErr >>= \t ->
-  case (new,checkFullType t) of
-    (NewEmpty,True)   -> return ()
-    (NewExpr e,False) -> exprType e >>= intCases li co
-    _                 -> left $ errPos li co ++ badPointNewErr
+newSems :: Int -> Int -> LVal -> New -> Sems ()
+newSems li co lVal = \case
+  NewNoExpr -> lValType lVal >>= newNoExprSems li co
+  NewExpr e -> exprLValTypes e lVal >>= newExprSems li co
 
 disposeSems :: Int -> Int -> DispType -> LVal -> Sems ()
 disposeSems li co disptype lVal = 
   lValType lVal >>= pointerCases li co dispNonPointErr >>= \t ->
-  case (disptype,checkFullType t) of
+  case (disptype,fullType t) of
     (With,False)   -> return ()
     (Without,True) -> return ()
     _              -> left $ errPos li co ++ badPointDispErr

@@ -1,7 +1,9 @@
 program hello;
+var a:^real;
 procedure ok();
 begin
 ok()
 end;
 begin
+new [true] a;
 end.

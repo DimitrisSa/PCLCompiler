@@ -22,6 +22,18 @@ pointerCases li co err = \case
   Pointer t -> return t
   _         -> left $ errPos li co ++ err
 
+newPointerCases li co = pointerCases li co nonPointNewErr
+
+newNoExprSems li co = newPointerCases li co >=> fullType >>> \case
+  True -> return ()
+  _    -> left $ errPos li co ++ "new l statement: l must not be of type ^array of t"
+
+newExprSems li co (et,lt) =
+  intCases li co et >>
+  newPointerCases li co lt >>= fullType >>> \case
+    False -> return ()
+    _     -> left $ errPos li co ++ "new [e] l statement: l must be of type ^array of t"
+
 intCases li co = \case
   IntT -> return ()
-  _    -> left $ errPos li co ++ nonIntNewErr 
+  _    -> left $ errPos li co ++ "new [e] l statement: e must be of type integer" 

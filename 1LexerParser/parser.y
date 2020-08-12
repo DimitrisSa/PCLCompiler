@@ -163,7 +163,7 @@ Stmt :: { Stmt }
      | dispose Dispose LVal      { Dispose (posnToLi $1) (posnToCo $1) $2 $3 }
 
 New        :: { New }
-           :  {-empty-}                         { NewEmpty   }
+           :  {-empty-}                         { NewNoExpr   }
            | '[' Expr ']'                       { NewExpr $2 }
 
 Dispose    : {-empty-}                          { Without }
@@ -316,7 +316,7 @@ data DispType =
 type Exprs = [Expr]
 
 data New =
-  NewEmpty     |
+  NewNoExpr     |
   NewExpr Expr
   deriving(Show)
 
