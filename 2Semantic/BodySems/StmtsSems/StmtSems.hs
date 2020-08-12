@@ -21,3 +21,7 @@ boolCases li co err = \case
 pointerCases li co err = \case
   Pointer t -> return t
   _         -> left $ errPos li co ++ err
+
+intCases li co = \case
+  IntT -> return ()
+  _    -> left $ errPos li co ++ nonIntNewErr 

@@ -18,7 +18,15 @@ dummy :: String -> Id
 dummy s = Id s 0 0 
 
 formalsToTypes :: [Formal] -> [(PassBy,Type)]
-formalsToTypes = map formalToType >>> concat
+formalsToTypes = map formalToTypes >>> concat
 
-formalToType :: Formal -> [(PassBy,Type)]
-formalToType (pb,ids,ty) = map (\_ -> (pb,ty)) ids
+formalToTypes :: Formal -> [(PassBy,Type)]
+formalToTypes (pb,ids,ty) = map (\_ -> (pb,ty)) ids
+
+insToSymTabIfFormalsOk :: Id -> [Formal] -> Callable -> Sems ()
+insToSymTabIfFormalsOk id fs cal = case all formalOk fs of
+  True -> insToCallableMap id cal
+  _    -> errAtId arrByValErr id
+
+formalOk :: Formal -> Bool
+formalOk = \case (Value,_,Array _ _) -> False; _ -> True

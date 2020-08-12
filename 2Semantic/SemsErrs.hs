@@ -1,5 +1,4 @@
 module SemsErrs where
-import SemsTypes 
 import Parser
 import Control.Monad.Trans.Either
  
@@ -49,9 +48,6 @@ typeExprsErr = "Type mismatch of args for: "
 badArgErr i id = concat ["Type mismatch at argument ",show i, " in call of: ", id]
 refErr i id = concat ["Argument ",show i, " in call of \""
                      ,id,"\" cannot be passed by reference"]
-
-errAtId :: String -> Id -> Sems a
-errAtId err (Id str li co) = left $ concat [errPos li co,err,str]
 
 errPos :: Int -> Int -> String
 errPos li co = show li ++ ":" ++ show co ++ ": "

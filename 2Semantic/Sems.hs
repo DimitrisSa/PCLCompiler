@@ -6,28 +6,24 @@ import System.Exit
 import Data.Function
 import Common hiding (map)
 import InitSymTab (initSymTab)
-import VarsWithTypeListSems (varsWithTypeListSems)
-import InsToSymTabLabels (insToSymTabLabels)
-import ForwardSems (forwardSems)
-import CheckUndefDeclarationSems (checkUndefDeclarationSems)
+import LocalSems (varsWithTypeListSems,insToSymTabLabels,forwardSems
+                 ,checkUndefDeclarations)
 import CheckUnusedLabels (checkUnusedLabels)
-import HeaderParentSems (headerParentSems)
-import HeaderChildSems (headerChildSems)
+import HeaderBodySems (headerParentSems,headerChildSems,checkResult)
 import LValTypes
 import RValTypesCases
 import StmtSems
-import CheckResult (checkResult)
 
 -- same name of fun inside of other fun?
 main :: IO ()
 main = sems
 
 sems :: IO ()
-sems = getContents >>= parser >>> parserErrOrAstSems
+sems = getContents >>= parser >>> parserCases
 
-parserErrOrAstSems :: Either Error Program -> IO ()
-parserErrOrAstSems = \case 
-  Left e -> die e
+parserCases :: Either Error Program -> IO ()
+parserCases = \case 
+  Left e    -> die e
   Right ast -> astSems ast
 
 astSems :: Program -> IO ()
@@ -41,13 +37,11 @@ programSems :: Program -> Sems ()
 programSems (P _ body) = initSymTab >> bodySems body
 
 bodySems :: Body -> Sems ()
-bodySems (Body locals stmts) = do
-  localsSems $ reverse locals
-  stmtsSems $ reverse stmts
-  checkUnusedLabels
+bodySems (Body locals stmts) = localsSems (reverse locals) >> stmtsSems (reverse stmts) >>
+                               checkUnusedLabels
 
 localsSems :: [Local] -> Sems ()
-localsSems locals = mapM_ localSems locals >> checkUndefDeclarationSems
+localsSems locals = mapM_ localSems locals >> checkUndefDeclarations
 
 localSems :: Local -> Sems ()
 localSems = \case
@@ -86,11 +80,10 @@ stmtSems = \case
   Dispose li co disptype lVal -> disposeSems li co disptype lVal
 
 callSems :: Id -> Exprs -> Sems ()
-callSems id exprs =
-  get >>= snd >>> searchCallableInSymTabs id (errAtId callErr id) >>= \case
-    ProcDeclaration as -> formalsExprsMatch id as exprs
-    Proc  as           -> formalsExprsMatch id as exprs
-    _                  -> errAtId callSemErr id
+callSems id exprs = searchCallableInSymTabs id >>= \case
+  ProcDeclaration as -> formalsExprsMatch id as exprs
+  Proc  as           -> formalsExprsMatch id as exprs
+  _                  -> errAtId callSemErr id
 
 equalSems :: Int -> Int -> Expr -> LVal -> Sems ()
 equalSems li co expr = \case
@@ -102,42 +95,27 @@ notStrLiteralEqualSems li co lVal expr = do
   et <- exprType expr
   symbatos' lt et $ errPos li co ++ assTypeMisErr
 
-checkpointer :: LVal -> Int -> Int -> Error -> Sems Type
-checkpointer lVal li co err = lValType lVal >>= pointerCases li co err
-
 newSems :: Int -> Int -> New -> LVal -> Sems ()
 newSems li co new lVal = 
-  insToNewMap lVal () >> lValType lVal >>= pointerCases li co nonPointNewErr >>= \t ->
+  lValType lVal >>= pointerCases li co nonPointNewErr >>= \t ->
   case (new,checkFullType t) of
     (NewEmpty,True)   -> return ()
-    (NewExpr e,False) -> exprType e >>= \case
-      IntT -> return ()
-      _    -> left $ errPos li co ++ nonIntNewErr
-    _ -> left $ errPos li co ++ badPointNewErr
+    (NewExpr e,False) -> exprType e >>= intCases li co
+    _                 -> left $ errPos li co ++ badPointNewErr
 
 disposeSems :: Int -> Int -> DispType -> LVal -> Sems ()
-disposeSems li co disptype lVal = do
-  (e,st:sts) <- get
-  newnm <- deleteNewMap lVal (newMap st) $ errPos li co ++ dispNullPointErr
-  put $ (e,st:sts)
-  t <- checkpointer lVal li co dispNonPointErr
+disposeSems li co disptype lVal = 
+  lValType lVal >>= pointerCases li co dispNonPointErr >>= \t ->
   case (disptype,checkFullType t) of
     (With,False)   -> return ()
     (Without,True) -> return ()
-    _ -> left $ errPos li co ++ badPointDispErr
+    _              -> left $ errPos li co ++ badPointDispErr
 
-deleteNewMap :: LVal -> NewMap -> String -> Sems NewMap
-deleteNewMap l nm errmsg = case lookup l nm of
-  Nothing -> left errmsg
-  _       -> right $ delete l nm
-
---exprstart
 exprType :: Expr -> Sems Type
 exprType = \case
   LVal lval -> lValType lval
   RVal rval -> rValType rval
 
---lstart
 lValType :: LVal -> Sems Type
 lValType = \case
   IdL id                   -> idType id
@@ -150,7 +128,6 @@ lValType = \case
 exprLValTypes expr lVal =
   exprType expr >>= \etype -> lValType lVal >>= \ltype -> return (etype,ltype)
 
---rstart
 rValType :: RVal -> Sems Type
 rValType = \case
   IntR _              -> right IntT
@@ -183,11 +160,10 @@ rValType = \case
 exprsTypes exp1 exp2 = mapM exprType [exp1,exp2]
 
 callType :: Id -> Exprs -> Sems Type
-callType id exprs = 
-  get >>= snd >>> searchCallableInSymTabs id (errAtId callErr id) >>= \case
-    FuncDeclaration fs t -> formalsExprsMatch id fs exprs >> right t
-    Func  fs t           -> formalsExprsMatch id fs exprs >> right t
-    _                    -> errAtId callSemErr id
+callType id exprs = searchCallableInSymTabs id >>= \case
+  FuncDeclaration fs t -> formalsExprsMatch id fs exprs >> right t
+  Func  fs t           -> formalsExprsMatch id fs exprs >> right t
+  _                    -> errAtId callSemErr id
 
 formalsExprsMatch :: Id -> [Formal] -> Exprs -> Sems ()
 formalsExprsMatch id fs exprs =

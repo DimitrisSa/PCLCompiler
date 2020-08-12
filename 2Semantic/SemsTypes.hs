@@ -1,8 +1,9 @@
 module SemsTypes where
 import Prelude hiding (lookup)
-import Parser (Type,Id,LVal,Formal)
+import Parser 
+import SemsErrs
 import Control.Monad.State (State,get,modify)
-import Control.Monad.Trans.Either (EitherT)
+import Control.Monad.Trans.Either 
 import Data.Map (Map,empty,insert,lookup)
 
 data Callable =
@@ -16,7 +17,6 @@ data SymbolTable = SymbolTable {
    variableMap :: VariableMap
   ,labelMap    :: LabelMap
   ,callableMap :: CallableMap
-  ,newMap      :: NewMap
   }
 
 data Env = InProc | InFunc Id Type Bool
@@ -24,11 +24,10 @@ data Env = InProc | InFunc Id Type Bool
 type VariableMap = Map Id Type
 type LabelMap    = Map Id Bool
 type CallableMap = Map Id Callable
-type NewMap      = Map LVal ()
 type Error       = String
 type Sems a      = EitherT Error (State (Env,[SymbolTable])) a
 
-emptySymbolTable = SymbolTable empty empty empty empty
+emptySymbolTable = SymbolTable empty empty empty --empty
 initState = (InProc,[emptySymbolTable])
 
 infixl 9 >>>
@@ -64,25 +63,30 @@ insToCallableMap :: Id -> Callable -> Sems ()
 insToCallableMap id cal =
   modify $ \(e,st:sts) -> (e,st { callableMap = insert id cal $ callableMap st }:sts)
 
-insToNewMap :: LVal -> () -> Sems ()
-insToNewMap id cal =
-  modify $ \(e,st:sts) -> (e,st { newMap = insert id cal $ newMap st }:sts)
+lookupInMap :: Sems (Map Id a) -> Id -> Sems (Maybe a)
+lookupInMap getMap id = getMap >>= lookup id >>> return
 
 lookupInVariableMap :: Id -> Sems (Maybe Type)
-lookupInVariableMap id = getVariableMap >>= lookup id >>> return
+lookupInVariableMap = lookupInMap getVariableMap
 
 lookupInLabelMap :: Id -> Sems (Maybe Bool)
-lookupInLabelMap id = getLabelMap >>= lookup id >>> return
+lookupInLabelMap = lookupInMap getLabelMap
 
-searchVarInSymTabs :: Id -> Sems Type -> [SymbolTable] -> Sems Type
-searchVarInSymTabs id err = searchInSymTabs variableMap id err
+lookupInCallableMap :: Id -> Sems (Maybe Callable)
+lookupInCallableMap = lookupInMap getCallableMap
 
-searchCallableInSymTabs :: Id -> Sems Callable -> [SymbolTable] -> Sems Callable
-searchCallableInSymTabs id err = searchInSymTabs callableMap id err
+searchVarInSymTabs :: Id -> Sems Type
+searchVarInSymTabs id = get >>= snd >>> searchInSymTabs variableMap id varErr
 
-searchInSymTabs :: (SymbolTable -> Map Id a) -> Id -> Sems a -> [SymbolTable] -> Sems a
+searchCallableInSymTabs :: Id -> Sems Callable
+searchCallableInSymTabs id = get >>= snd >>> searchInSymTabs callableMap id callErr
+
+searchInSymTabs :: (SymbolTable -> Map Id a) -> Id -> Error -> [SymbolTable] -> Sems a
 searchInSymTabs map id err = \case
   st:sts -> case lookup id $ map st of
     Just t  -> return t
     Nothing -> searchInSymTabs map id err sts
-  []     -> err
+  []     -> errAtId err id
+
+errAtId :: String -> Id -> Sems a
+errAtId err (Id str li co) = left $ concat [errPos li co,err,str]
