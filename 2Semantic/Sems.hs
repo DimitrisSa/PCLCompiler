@@ -5,10 +5,8 @@ import System.Exit
 import Data.Function
 import Common hiding (map)
 import InitSymTab (initSymTab)
-import LocalsSems (varsWithTypeListSems,insToSymTabLabels,forwardSems
-                  ,checkUndefDeclarations)
+import LocalsSems 
 import CheckUnusedLabels (checkUnusedLabels)
-import HeaderBodySems (headerParentSems,headerChildSems,checkResult)
 import LValTypes
 import RValTypes
 import StmtSems
@@ -40,7 +38,7 @@ bodySems (Body locals stmts) =
   localsSems (reverse locals) >> stmtsSems (reverse stmts) >> checkUnusedLabels
 
 localsSems :: [Local] -> Sems ()
-localsSems locals = mapM_ localSems locals >> checkUndefDeclarations
+localsSems locals = mapM_ localSems locals >> checkUndefDclrs
 
 localSems :: Local -> Sems ()
 localSems = \case
@@ -65,12 +63,12 @@ stmtsSems ss = mapM_ stmtSems ss
 stmtSems :: Stmt -> Sems ()
 stmtSems = \case
   Empty                       -> return ()
-  Assignment li co lVal expr  -> assignmentSems li co expr lVal
+  Assignment li co lVal expr  -> assignmentSems li co lVal expr
   Block stmts                 -> stmtsSems $ reverse stmts
   CallS (id,exprs)            -> callSems id $ reverse exprs
   IfThen li co e s            -> exprType e >>= boolCases li co "if-then" >> stmtSems s
   IfThenElse li co e s1 s2    -> exprType e >>= boolCases li co "if-then-else" >>
-                                 stmtSems s1 >> stmtSems s2
+                                 mapM_ stmtSems [s1,s2]
   While li co e stmt          -> exprType e >>= boolCases li co "while" >> stmtSems stmt
   Label lab stmt              -> lookupInLabelMap lab >>= labelCases lab >> stmtSems stmt
   GoTo lab                    -> lookupInLabelMap lab >>= goToCases lab
@@ -80,14 +78,14 @@ stmtSems = \case
 
 callSems :: Id -> Exprs -> Sems ()
 callSems id exprs = searchCallableInSymTabs id >>= \case
-  ProcDeclaration as -> formalsExprsMatch id as exprs
-  Proc  as           -> formalsExprsMatch id as exprs
-  _                  -> errAtId callSemErr id
+  ProcDclr as -> formalsExprsMatch id as exprs
+  Proc  as    -> formalsExprsMatch id as exprs
+  _           -> errAtId "Use of function in call statement: " id
 
-assignmentSems :: Int -> Int -> Expr -> LVal -> Sems ()
-assignmentSems li co expr = \case
-  StrLiteral str -> errPos li co $ strAssignmentErr ++ str
-  lVal           -> exprLValTypes expr lVal >>= notStrLiteralSems li co
+assignmentSems :: Int -> Int -> LVal -> Expr -> Sems ()
+assignmentSems li co = \case
+  StrLiteral str -> \_ -> errPos li co $ "Assignment to string literal: " ++ str
+  lVal           -> lValExprTypes lVal >=> notStrLiteralSems li co
 
 newSems :: Int -> Int -> New -> LVal -> Sems ()
 newSems li co = \case
@@ -109,12 +107,15 @@ lValType = \case
   IdL id                   -> searchVarInSymTabs id
   Result li co             -> resultType li co
   StrLiteral str           -> right $ Array (Size $ length str + 1) CharT
-  Indexing li co lVal expr -> exprLValTypes expr lVal >>= indexingCases li co
+  Indexing li co lVal expr -> lValExprTypes lVal expr >>= indexingCases li co
   Dereference li co expr   -> exprType expr >>= dereferenceCases li co
   ParenL lVal              -> lValType lVal
 
 exprLValTypes expr lVal =
   exprType expr >>= \etype -> lValType lVal >>= \ltype -> return (etype,ltype)
+
+lValExprTypes lVal expr =
+  lValType lVal >>= \ltype -> exprType expr >>= \etype -> return (ltype,etype)
 
 rValType :: RVal -> Sems Type
 rValType = \case
@@ -149,10 +150,10 @@ exprsTypes exp1 exp2 = mapM exprType [exp1,exp2]
 
 callType :: Id -> Exprs -> Sems Type
 callType id exprs = searchCallableInSymTabs id >>= \case
-  FuncDeclaration fs t -> formalsExprsMatch id fs exprs >> right t
-  Func  fs t           -> formalsExprsMatch id fs exprs >> right t
-  _                    -> errAtId callSemErr id
+  FuncDclr fs t -> formalsExprsMatch id fs exprs >> right t
+  Func  fs t    -> formalsExprsMatch id fs exprs >> right t
+  _             -> errAtId "Use of procedure where a return value is required: " id
 
-formalsExprsMatch :: Id -> [Formal] -> Exprs -> Sems ()
+formalsExprsMatch :: Id -> [Frml] -> Exprs -> Sems ()
 formalsExprsMatch id fs exprs =
   mapM exprType exprs >>= formalsExprsTypesMatch 1 id (formalsToTypes fs)

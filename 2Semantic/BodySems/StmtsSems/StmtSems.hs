@@ -6,7 +6,7 @@ import Common
 labelCases :: Id -> Maybe Bool -> Sems ()
 labelCases id = \case
   Just False -> insToLabelMap id True
-  Just True  -> errAtId dupLabErr id
+  Just True  -> errAtId "Duplicate label: " id
   Nothing    -> errAtId "Undeclared label: " id
 
 goToCases :: Id -> Maybe Bool -> Sems ()
@@ -35,7 +35,7 @@ newExprSems li co (et,lt) =
   intCases li co et >> newPointerCases li co lt >>= fullType >>> not >>>
   caseFalseThrowErr li co "new [e] l statement: l must be of type ^array of t"
 
-dispPointerCases li co = pointerCases li co dispNonPointErr
+dispPointerCases li co = pointerCases li co "non-pointer in dispose statement"
 
 dispWithoutSems li co = dispPointerCases li co >=> fullType >>>
   caseFalseThrowErr li co "dispose l statement: l must not be of type ^array of t"

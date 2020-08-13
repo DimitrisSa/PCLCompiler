@@ -7,10 +7,10 @@ import Control.Monad.Trans.Either
 import Data.Map (Map,empty,insert,lookup)
 
 data Callable =
-  Proc [Formal]                  |
-  Func [Formal] Type             |
-  ProcDeclaration [Formal]       |
-  FuncDeclaration [Formal] Type
+  Proc [Frml]                  |
+  Func [Frml] Type             |
+  ProcDclr [Frml]       |
+  FuncDclr [Frml] Type
   deriving(Show,Eq)
 
 data SymbolTable = SymbolTable {
@@ -76,10 +76,12 @@ lookupInCallableMap :: Id -> Sems (Maybe Callable)
 lookupInCallableMap = lookupInMap getCallableMap
 
 searchVarInSymTabs :: Id -> Sems Type
-searchVarInSymTabs id = get >>= snd >>> searchInSymTabs variableMap id varErr
+searchVarInSymTabs id = get >>= snd >>>
+  searchInSymTabs variableMap id "Undeclared variable: "
 
 searchCallableInSymTabs :: Id -> Sems Callable
-searchCallableInSymTabs id = get >>= snd >>> searchInSymTabs callableMap id callErr
+searchCallableInSymTabs id = get >>= snd >>>
+  searchInSymTabs callableMap id "Undeclared function or procedure in call: "
 
 searchInSymTabs :: (SymbolTable -> Map Id a) -> Id -> Error -> [SymbolTable] -> Sems a
 searchInSymTabs map id err = \case

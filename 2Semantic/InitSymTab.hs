@@ -31,8 +31,8 @@ initSymTab = do
   insertFuncToSymTab "ord" [(Value,[dummy "r"],CharT)] IntT
   insertFuncToSymTab "chr" [(Value,[dummy "r"],IntT)] CharT
 
-insertProcToSymTab :: String -> [Formal] -> Sems ()
+insertProcToSymTab :: String -> [Frml] -> Sems ()
 insertProcToSymTab name myArgs = insToCallableMap (dummy name) (Proc myArgs)
 
-insertFuncToSymTab :: String -> [Formal] -> Type -> Sems ()
+insertFuncToSymTab :: String -> [Frml] -> Type -> Sems ()
 insertFuncToSymTab name myArgs myType = insToCallableMap (dummy name) (Func myArgs myType)

@@ -14,16 +14,8 @@ symbatos (lt,et) = (lt == et && fullType lt) || (lt == RealT && et == IntT)
 dummy :: String -> Id
 dummy s = Id s 0 0 
 
-formalsToTypes :: [Formal] -> [(PassBy,Type)]
+formalsToTypes :: [Frml] -> [(PassBy,Type)]
 formalsToTypes = map formalToTypes >>> concat
 
-formalToTypes :: Formal -> [(PassBy,Type)]
+formalToTypes :: Frml -> [(PassBy,Type)]
 formalToTypes (pb,ids,ty) = map (\_ -> (pb,ty)) ids
-
-insToSymTabIfFormalsOk :: Id -> [Formal] -> Callable -> Sems ()
-insToSymTabIfFormalsOk id fs cal = case all formalOk fs of
-  True -> insToCallableMap id cal
-  _    -> errAtId arrByValErr id
-
-formalOk :: Formal -> Bool
-formalOk = \case (Value,_,Array _ _) -> False; _ -> True

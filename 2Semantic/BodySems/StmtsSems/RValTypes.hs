@@ -33,7 +33,7 @@ binOpNumCases li co intIntType restType a = \case
   [RealT,RealT] -> right restType
   [IntT,_]      -> errPos li co $ nonNumAfErr ++ a
   [RealT,_]     -> errPos li co $ nonNumAfErr ++ a
-  _             -> errPos li co $ nonNumBefErr ++ a
+  _             -> errPos li co $ "Non-number expression before: " ++ a
 
 unaryOpNumCases li co a = \case
   IntT  -> right IntT
@@ -58,3 +58,4 @@ formalExprTypeMatch i id t1 t2 t1s t2s = case symbatos (t1,t2) of
 errorAtArg i (Id str li co) =
   errPos li co $ concat ["Type mismatch at argument ",show i, " in call of: ", str]
 
+nonNumAfErr = "Non-number expression after: " 

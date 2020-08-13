@@ -114,15 +114,15 @@ Header     :: { Header }
            : procedure id '(' Args ')'          { ProcHeader (tokenToId $2)  $4    }
            | function  id '(' Args ')' ':' Type { FuncHeader  (tokenToId $2)  $4 $7 }
 
-Args       :: { [Formal] }
+Args       :: { [Frml] }
            : {-empty-}                          { [] }
-           | Formals                            { $1 }
+           | Frmls                            { $1 }
 
-Formals    :: { [Formal] }
-           : Formal                             { [$1]  }
-           | Formals ';' Formal                 { $3:$1 }
+Frmls    :: { [Frml] }
+           : Frml                             { [$1]  }
+           | Frmls ';' Frml                 { $3:$1 }
 
-Formal     :: { Formal }
+Frml     :: { Frml }
            : Optvar Ids ':' Type                { ($1,$2,$4) }
 
 Optvar     :: { PassBy }
@@ -262,11 +262,11 @@ data Local =
 data Header =
   ProcHeader {
     pname :: Id
-  , pargs :: [Formal]
+  , pargs :: [Frml]
   }  |
   FuncHeader  {
     fname :: Id
-  , fargs :: [Formal]
+  , fargs :: [Frml]
   , fty :: Type
   }
   deriving(Show)
@@ -276,7 +276,7 @@ data PassBy =
   Reference
   deriving(Show,Eq)
 
-type Formal = (PassBy,[Id],Type)
+type Frml = (PassBy,[Id],Type)
 
 data Type =
   Nil                |

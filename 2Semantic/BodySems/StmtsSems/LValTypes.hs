@@ -14,6 +14,6 @@ dereferenceCases li co = \case
   _         -> errPos li co "dereferencing non-pointer"
 
 indexingCases li co = \case
-  (IntT,Array _ t)-> right t
-  (IntT,_)        -> errPos li co "indexing non-array"
-  _               -> errPos li co "non-integer index"
+  (Array _ t,IntT) -> right t
+  (_        ,IntT) -> errPos li co "indexing non-array"
+  _                -> errPos li co "non-integer index"
