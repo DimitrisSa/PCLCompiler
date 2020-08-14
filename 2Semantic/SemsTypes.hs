@@ -24,7 +24,7 @@ type VariableMap = Map Id Type
 type LabelMap    = Map Id Bool
 type CallableMap = Map Id Callable
 type Error       = String
-type Sems a      = EitherT Error (State (Env,[SymbolTable])) a
+type Sems        = EitherT Error (State (Env,[SymbolTable]))
 
 emptySymbolTable = SymbolTable empty empty empty
 initState = (InProc,[emptySymbolTable])
