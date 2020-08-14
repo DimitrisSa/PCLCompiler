@@ -232,11 +232,7 @@ data Program =
   P Id Body
   deriving(Show)
 
---instance Show Program with
---  show = \(P i b) -> concat ["P\n\n\n",show i,show b]
-
-data Body =
-  Body [Local] [Stmt]
+data Body = Body [Local] [Stmt]
   deriving(Show)
 
 data Id        = Id {idPosn :: (Int,Int), idString:: String}
@@ -255,21 +251,10 @@ data Local =
   Forward Header
   deriving(Show)
 
-data Header =
-  ProcHeader {
-    pname :: Id
-  , pargs :: [Frml]
-  }  |
-  FuncHeader  {
-    fname :: Id
-  , fargs :: [Frml]
-  , fty :: Type
-  }
+data Header = ProcHeader Id [Frml]  | FuncHeader Id [Frml] Type
   deriving(Show)
 
-data PassBy =
-  Value     |
-  Reference
+data PassBy = Value | Reference
   deriving(Show,Eq)
 
 type Frml = (PassBy,[Id],Type)
@@ -284,29 +269,25 @@ data Type =
   Pointer Type
   deriving(Show,Eq)
 
-data ArrSize =
-  Size Int |
-  NoSize
+data ArrSize = Size Int | NoSize
   deriving(Show,Eq)
 
 data Stmt =
-  Empty                             |
+  Empty                               |
   Assignment (Int,Int) LVal Expr      |
-  Block [Stmt]                      |
-  CallS (Id,Exprs)                  |
-  IfThen (Int,Int) Expr Stmt          |
+  Block      [Stmt]                   |
+  CallS      (Id,Exprs)               |
+  IfThen     (Int,Int) Expr Stmt      |
   IfThenElse (Int,Int) Expr Stmt Stmt |
-  While (Int,Int) Expr Stmt           |
-  Label Id Stmt                     |
-  GoTo Id                           |
-  Return                            |
-  New (Int,Int) New LVal              |
-  Dispose (Int,Int) DispType LVal
+  While      (Int,Int) Expr Stmt      |
+  Label      Id Stmt                  |
+  GoTo       Id                       |
+  Return                              |
+  New        (Int,Int) New LVal       |
+  Dispose    (Int,Int) DispType LVal
   deriving(Show)
 
-data DispType =
-  With    |
-  Without
+data DispType = With | Without
   deriving(Show)
 
 type Exprs = [Expr]
@@ -322,24 +303,24 @@ data Expr =
  deriving(Show,Ord,Eq)
 
 data LVal =
-  IdL Id                 |
-  Result (Int,Int)      |
-  StrLiteral String         |
-  Indexing (Int,Int) LVal Expr |
-  Dereference (Int,Int) Expr             |
-  ParenL LVal
+  IdL         Id                  |
+  Result      (Int,Int)           |
+  StrLiteral  String              |
+  Indexing    (Int,Int) LVal Expr |
+  Dereference (Int,Int) Expr      |
+  ParenL      LVal
   deriving(Show,Ord,Eq)
 
 data RVal =
-  IntR Int           |
-  TrueR              |
-  FalseR             |
-  RealR Double       |
-  CharR Char         |
-  ParenR RVal        |
-  NilR               |
-  CallR   (Id,Exprs)      |
-  Papaki  LVal    |
+  IntR    Int                 |
+  TrueR                       |
+  FalseR                      |
+  RealR   Double              |
+  CharR   Char                |
+  ParenR  RVal                |
+  NilR                        |
+  CallR   (Id,Exprs)          |
+  Papaki  LVal                |
   Not     (Int,Int) Expr      |
   Pos     (Int,Int) Expr      |
   Neg     (Int,Int) Expr      |

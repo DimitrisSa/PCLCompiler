@@ -9,9 +9,6 @@ symbatos :: (Type,Type) -> Bool
 symbatos (Pointer (Array NoSize t1),Pointer (Array (Size _) t2)) = t1 == t2
 symbatos (lt,et) = (lt == et && fullType lt) || (lt == RealT && et == IntT)
 
-dummy :: String -> Id
-dummy s = Id (0,0) s
-
 formalsToTypes :: [Frml] -> [(PassBy,Type)]
 formalsToTypes = map formalToTypes >>> concat
 

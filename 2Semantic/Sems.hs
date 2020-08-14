@@ -2,13 +2,10 @@ module Main where
 import Control.Monad.Trans.Either
 import System.IO
 import System.Exit
-import Data.Function
-import Common hiding (map)
+import Common
 import InitSymTab (initSymTab)
 import LocalsSems 
-import CheckUnusedLabels (checkUnusedLabels)
-import LValTypes
-import RValTypes
+import ValTypes
 import StmtSems
 
 -- same name of fun inside of other fun?
@@ -37,6 +34,11 @@ bodySems :: Body -> Sems ()
 bodySems (Body locals stmts) =
   localsSems (reverse locals) >> stmtsSems (reverse stmts) >> checkUnusedLabels
 
+checkUnusedLabels :: Sems ()
+checkUnusedLabels = getLabelMap >>= toList >>> (mapM_ $ \case
+  (id,False) -> errAtId "Label declared but not used: " id
+  _          -> return ())
+
 localsSems :: [Local] -> Sems ()
 localsSems locals = mapM_ localSems locals >> checkUndefDclrs
 
@@ -62,24 +64,24 @@ stmtsSems ss = mapM_ stmtSems ss
 
 stmtSems :: Stmt -> Sems ()
 stmtSems = \case
-  Empty                       -> return ()
-  Assignment posn lVal expr  -> assignmentSems posn lVal expr
-  Block stmts                 -> stmtsSems $ reverse stmts
-  CallS (id,exprs)            -> callSems id $ reverse exprs
-  IfThen posn e s            -> exprType e >>= boolCases posn "if-then" >> stmtSems s
-  IfThenElse posn e s1 s2    -> exprType e >>= boolCases posn "if-then-else" >>
-                                 mapM_ stmtSems [s1,s2]
-  While posn e stmt          -> exprType e >>= boolCases posn "while" >> stmtSems stmt
-  Label lab stmt              -> lookupInLabelMap lab >>= labelCases lab >> stmtSems stmt
-  GoTo lab                    -> lookupInLabelMap lab >>= goToCases lab
-  Return                      -> return ()
-  New posn new lVal          -> newSems posn new lVal
-  Dispose posn disptype lVal -> disposeSems posn disptype lVal
+  Empty                         -> return ()
+  Assignment posn lVal expr     -> assignmentSems posn lVal expr
+  Block      stmts              -> stmtsSems $ reverse stmts
+  CallS      (id,exprs)         -> callSems id $ reverse exprs
+  IfThen     posn e s           -> exprType e >>= boolCases posn "if-then" >> stmtSems s
+  IfThenElse posn e s1 s2       -> exprType e >>= boolCases posn "if-then-else" >>
+                                   stmtsSems [s1,s2]
+  While      posn e stmt        -> exprType e >>= boolCases posn "while" >> stmtSems stmt
+  Label      lab stmt           -> lookupInLabelMap lab >>= labelCases lab >> stmtSems stmt
+  GoTo       lab                -> lookupInLabelMap lab >>= goToCases lab
+  Return                        -> return ()
+  New        posn new lVal      -> newSems posn new lVal
+  Dispose    posn disptype lVal -> disposeSems posn disptype lVal
 
 callSems :: Id -> Exprs -> Sems ()
 callSems id exprs = searchCallableInSymTabs id >>= \case
-  ProcDclr as -> formalsExprsMatch id as exprs
-  Proc  as    -> formalsExprsMatch id as exprs
+  ProcDclr fs -> formalsExprsMatch id fs exprs
+  Proc     fs -> formalsExprsMatch id fs exprs
   _           -> errAtId "Use of function in call statement: " id
 
 assignmentSems :: (Int,Int) -> LVal -> Expr -> Sems ()
@@ -104,12 +106,12 @@ exprType = \case
 
 lValType :: LVal -> Sems Type
 lValType = \case
-  IdL id                   -> searchVarInSymTabs id
-  Result posn             -> resultType posn
-  StrLiteral str           -> right $ Array (Size $ length str + 1) CharT
-  Indexing posn lVal expr -> lValExprTypes lVal expr >>= indexingCases posn
-  Dereference posn expr   -> exprType expr >>= dereferenceCases posn
-  ParenL lVal              -> lValType lVal
+  IdL         id             -> searchVarInSymTabs id
+  Result      posn           -> resultType posn
+  StrLiteral  str            -> right $ Array (Size $ length str + 1) CharT
+  Indexing    posn lVal expr -> lValExprTypes lVal expr >>= indexingCases posn
+  Dereference posn expr      -> exprType expr >>= dereferenceCases posn
+  ParenL      lVal           -> lValType lVal
 
 exprLValTypes expr lVal = exprType expr >>= \et -> lValType lVal >>= \lt -> return (et,lt)
 
@@ -117,15 +119,15 @@ lValExprTypes lVal expr = lValType lVal >>= \lt -> exprType expr >>= \et -> retu
 
 rValType :: RVal -> Sems Type
 rValType = \case
-  IntR _              -> right IntT
-  TrueR               -> right BoolT
-  FalseR              -> right BoolT
-  RealR _             -> right RealT
-  CharR _             -> right CharT
-  ParenR  rVal        -> rValType rVal
-  NilR                -> right Nil
-  CallR   (id,exprs)  -> callType id $ reverse exprs
-  Papaki  lVal        -> lValType lVal >>= Pointer >>> right
+  IntR    _          -> right IntT
+  TrueR              -> right BoolT
+  FalseR             -> right BoolT
+  RealR   _          -> right RealT
+  CharR   _          -> right CharT
+  ParenR  rVal       -> rValType rVal
+  NilR               -> right Nil
+  CallR   (id,exprs) -> callType id $ reverse exprs
+  Papaki  lVal       -> lValType lVal >>= Pointer >>> right
   Not     posn expr  -> exprType expr >>= notCases posn
   Pos     posn expr  -> exprType expr >>= unaryOpNumCases posn "'+'"
   Neg     posn expr  -> exprType expr >>= unaryOpNumCases posn "'-'"

@@ -36,3 +36,6 @@ insertProcToSymTab name myArgs = insToCallableMap (dummy name) (Proc myArgs)
 
 insertFuncToSymTab :: String -> [Frml] -> Type -> Sems ()
 insertFuncToSymTab name myArgs myType = insToCallableMap (dummy name) (Func myArgs myType)
+
+dummy :: String -> Id
+dummy s = Id (0,0) s

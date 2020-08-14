@@ -26,7 +26,7 @@ type CallableMap = Map Id Callable
 type Error       = String
 type Sems a      = EitherT Error (State (Env,[SymbolTable])) a
 
-emptySymbolTable = SymbolTable empty empty empty --empty
+emptySymbolTable = SymbolTable empty empty empty
 initState = (InProc,[emptySymbolTable])
 
 infixl 9 >>>
