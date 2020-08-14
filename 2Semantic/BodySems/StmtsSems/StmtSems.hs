@@ -14,38 +14,38 @@ goToCases id = \case
   Nothing -> errAtId "Goto undefined label: " id
   _       -> return ()
 
-boolCases li co err = \case
+boolCases posn err = \case
   BoolT -> return ()
-  _     -> errPos li co $ "Non-boolean expression in " ++ err
+  _     -> errPos posn $ "Non-boolean expression in " ++ err
 
-pointerCases li co err = \case
+pointerCases posn err = \case
   Pointer t -> return t
-  _         -> errPos li co err
+  _         -> errPos posn err
 
-newPointerCases li co = pointerCases li co "non-pointer in new statement"
+newPointerCases posn = pointerCases posn "non-pointer in new statement"
 
-caseFalseThrowErr li co err = \case
+caseFalseThrowErr posn err = \case
   True -> return ()
-  _    -> errPos li co err
+  _    -> errPos posn err
 
-newNoExprSems li co = newPointerCases li co >=> fullType >>>
-  caseFalseThrowErr li co "new l statement: l must not be of type ^array of t"
+newNoExprSems posn = newPointerCases posn >=> fullType >>>
+  caseFalseThrowErr posn "new l statement: l must not be of type ^array of t"
 
-newExprSems li co (et,lt) =
-  intCases li co et >> newPointerCases li co lt >>= fullType >>> not >>>
-  caseFalseThrowErr li co "new [e] l statement: l must be of type ^array of t"
+newExprSems posn (et,lt) =
+  intCases posn et >> newPointerCases posn lt >>= fullType >>> not >>>
+  caseFalseThrowErr posn "new [e] l statement: l must be of type ^array of t"
 
-dispPointerCases li co = pointerCases li co "non-pointer in dispose statement"
+dispPointerCases posn = pointerCases posn "non-pointer in dispose statement"
 
-dispWithoutSems li co = dispPointerCases li co >=> fullType >>>
-  caseFalseThrowErr li co "dispose l statement: l must not be of type ^array of t"
+dispWithoutSems posn = dispPointerCases posn >=> fullType >>>
+  caseFalseThrowErr posn "dispose l statement: l must not be of type ^array of t"
 
-dispWithSems li co = dispPointerCases li co >=> fullType >>> not >>>
-  caseFalseThrowErr li co "dispose [] l statement: l must be of type ^array of t"
+dispWithSems posn = dispPointerCases posn >=> fullType >>> not >>>
+  caseFalseThrowErr posn "dispose [] l statement: l must be of type ^array of t"
 
-notStrLiteralSems li co = symbatos >>>
-  caseFalseThrowErr li co "type mismatch in assignment"
+notStrLiteralSems posn = symbatos >>>
+  caseFalseThrowErr posn "type mismatch in assignment"
 
-intCases li co = \case
+intCases posn = \case
   IntT -> return ()
-  _    -> errPos li co "new [e] l statement: e must be of type integer" 
+  _    -> errPos posn "new [e] l statement: e must be of type integer" 

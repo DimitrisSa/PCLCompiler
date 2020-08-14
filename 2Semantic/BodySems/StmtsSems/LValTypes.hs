@@ -3,17 +3,17 @@ import Prelude hiding (lookup)
 import Control.Monad.Trans.Either
 import Common
 
-resultType :: Int -> Int -> Sems Type
-resultType li co = getEnv >>= \case
+resultType :: (Int,Int) -> Sems Type
+resultType posn = getEnv >>= \case
   InFunc id ty _ -> setEnv (InFunc id ty True) >> return ty
-  InProc         -> errPos li co "Result in procedure"
+  InProc         -> errPos posn "Result in procedure"
 
-dereferenceCases li co = \case
+dereferenceCases posn = \case
   Pointer t -> right t
-  Nil       -> errPos li co "dereferencing Nil pointer"
-  _         -> errPos li co "dereferencing non-pointer"
+  Nil       -> errPos posn "dereferencing Nil pointer"
+  _         -> errPos posn "dereferencing non-pointer"
 
-indexingCases li co = \case
+indexingCases posn = \case
   (Array _ t,IntT) -> right t
-  (_        ,IntT) -> errPos li co "indexing non-array"
-  _                -> errPos li co "non-integer index"
+  (_        ,IntT) -> errPos posn "indexing non-array"
+  _                -> errPos posn "non-integer index"

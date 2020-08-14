@@ -1,7 +1,6 @@
 module SemsTypes where
 import Prelude hiding (lookup)
 import Parser 
-import SemsErrs
 import Control.Monad.State (State,get,modify)
 import Control.Monad.Trans.Either 
 import Data.Map (Map,empty,insert,lookup)
@@ -91,6 +90,6 @@ searchInSymTabs map id err = \case
   []     -> errAtId err id
 
 errAtId :: String -> Id -> Sems a
-errAtId err (Id str li co) = errPos li co $ err ++ str
+errAtId err (Id posn str) = errPos posn $ err ++ str
 
-errPos li co err = left $ concat [show li,":",show co,": ",err] 
+errPos (li,co) err = left $ concat [show li,":",show co,": ",err] 

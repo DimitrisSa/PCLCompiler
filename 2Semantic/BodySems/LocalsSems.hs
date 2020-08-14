@@ -109,3 +109,6 @@ sameTypes :: Id -> [Frml] -> [Frml] -> Sems ()
 sameTypes id fs fs' = case ((==) `on` formalsToTypes) fs fs' of
   True -> return ()
   _    -> errAtId "Parameter type missmatch between declaration and definition for: " id
+
+duplicateCallableErr = "Duplicate Function/Procedure name: "
+
