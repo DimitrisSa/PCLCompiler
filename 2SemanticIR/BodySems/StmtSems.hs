@@ -14,20 +14,25 @@ goToCases id = \case
   Nothing -> errAtId "Goto undefined label: " id
   _       -> return ()
 
+boolCases :: (Int,Int) -> String -> Type -> Sems ()
 boolCases posn err = \case
   BoolT -> return ()
   _     -> errPos posn $ "Non-boolean expression in " ++ err
 
+pointerCases :: (Int,Int) -> String -> Type -> Sems Type
 pointerCases posn err = \case
   Pointer t -> return t
   _         -> errPos posn err
 
+newPointerCases :: (Int,Int) -> Type -> Sems Type
 newPointerCases posn = pointerCases posn "non-pointer in new statement"
 
+caseFalseThrowErr :: (Int,Int) -> String -> Bool -> Sems ()
 caseFalseThrowErr posn err = \case
   True -> return ()
   _    -> errPos posn err
 
+newNoExprSems :: (Int,Int) -> Type -> Sems ()
 newNoExprSems posn = newPointerCases posn >=> fullType >>>
   caseFalseThrowErr posn "new l statement: l must not be of type ^array of t"
 

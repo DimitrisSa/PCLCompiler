@@ -1,5 +1,6 @@
 module LocalsSems where
 import Common
+import IR
 import Data.Function (on)
 
 forwardSems :: Header -> Sems ()
@@ -80,7 +81,8 @@ checkResult = getEnv >>= \case
 headerParentSems :: Header -> Sems ()
 headerParentSems = \case
   ProcHeader id fs    -> lookupInCallableMap id >>= procCases id (reverse fs)
-  FuncHeader id fs ty -> lookupInCallableMap id >>= funcCases id (reverse fs) ty
+  FuncHeader id fs ty -> lookupInCallableMap id >>= funcCases id (reverse fs) ty >>
+                         frmlsDefine (idString id) fs ty 
 
 procCases :: Id -> [Frml] -> Maybe Callable -> Sems ()
 procCases id fs = \case
@@ -110,5 +112,5 @@ sameTypes id fs fs' = case ((==) `on` formalsToTypes) fs fs' of
   True -> return ()
   _    -> errAtId "Parameter type missmatch between declaration and definition for: " id
 
+duplicateCallableErr :: String
 duplicateCallableErr = "Duplicate Function/Procedure name: "
-

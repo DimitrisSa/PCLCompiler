@@ -1,5 +1,5 @@
 program hello;
-var a:real;b:integer;c: array [2] of integer;
+var a:real;b:integer;
 forward function ok(a:real;b:integer):real;
 function ok(a:real;b:integer):real;
 begin
@@ -7,5 +7,4 @@ result := a
 end;
 begin
 a := ok(2,2);
-c[1] := 2.0
 end.

@@ -6,8 +6,6 @@ import Control.Monad.Trans.Either
 import Data.Map (Map,empty,insert,lookup)
 import LLVM.AST
 import LLVM.AST.Type as T
-import LLVM.IRBuilder.Module
-
 
 data Callable =
   Proc [Frml]                  |
