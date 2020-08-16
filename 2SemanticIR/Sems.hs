@@ -1,4 +1,4 @@
-module Main where
+module Sems where
 import Data.Text.Lazy.IO as T
 import Control.Monad.Trans.Either
 import System.IO as S
@@ -12,9 +12,6 @@ import LLVM.Pretty
 import IR
 
 -- same name of fun inside of other fun?
-main :: IO ()
-main = sems
-
 sems :: IO ()
 sems = S.getContents >>= parser >>> parserCases
 

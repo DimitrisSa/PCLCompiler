@@ -3,6 +3,6 @@
 for file in 0PCL/0PCLExamples/*
 do
   echo "$file:"
-  ./compiler < $file
+  cabal new-run < $file
   echo ""
 done
