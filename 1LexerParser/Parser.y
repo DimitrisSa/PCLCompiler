@@ -209,14 +209,14 @@ RVal     :: { RVal }
            | Expr greq Expr                     { Greq    (posnToLiCo $2) $1 $3 }
            | Expr smeq Expr                     { Smeq    (posnToLiCo $2) $1 $3 }
 
-Call       :: { (Id,Exprs) }
+Call       :: { (Id,[Expr]) }
            : id '(' ArgExprs ')'                { (tokenToId $1,$3) }
 
-ArgExprs   :: { Exprs }
+ArgExprs   :: { [Expr] }
            : {-empty-}                          { [] }
            | Exprs                              { $1 }
 
-Exprs      :: { Exprs }
+Exprs      :: { [Expr] }
            : Expr                               { [$1]  }
            | Exprs ',' Expr                     { $3:$1 }
 
@@ -246,8 +246,8 @@ instance Ord Id where
 
 data Local =
   VarsWithTypeList [([Id],Type)]    |
-  Labels [Id]             |
-  HeaderBody Header Body |
+  Labels [Id]                       |
+  HeaderBody Header Body            |
   Forward Header
   deriving(Show)
 
@@ -276,7 +276,7 @@ data Stmt =
   Empty                               |
   Assignment (Int,Int) LVal Expr      |
   Block      [Stmt]                   |
-  CallS      (Id,Exprs)               |
+  CallS      (Id,[Expr])              |
   IfThen     (Int,Int) Expr Stmt      |
   IfThenElse (Int,Int) Expr Stmt Stmt |
   While      (Int,Int) Expr Stmt      |
@@ -289,8 +289,6 @@ data Stmt =
 
 data DispType = With | Without
   deriving(Show)
-
-type Exprs = [Expr]
 
 data New =
   NewNoExpr     |
@@ -319,7 +317,7 @@ data RVal =
   CharR   Char                |
   ParenR  RVal                |
   NilR                        |
-  CallR   (Id,Exprs)          |
+  CallR   (Id,[Expr])         |
   Papaki  LVal                |
   Not     (Int,Int) Expr      |
   Pos     (Int,Int) Expr      |

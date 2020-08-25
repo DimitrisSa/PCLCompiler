@@ -42,6 +42,13 @@
   (major1) == 8 && (major2) <  0 || \
   (major1) == 8 && (major2) == 0 && (minor) <= 2)
 
+/* package llvm-hs-9.0.1 */
+#define VERSION_llvm_hs "9.0.1"
+#define MIN_VERSION_llvm_hs(major1,major2,minor) (\
+  (major1) <  9 || \
+  (major1) == 9 && (major2) <  0 || \
+  (major1) == 9 && (major2) == 0 && (minor) <= 1)
+
 /* package llvm-hs-pretty-0.9.0.0 */
 #define VERSION_llvm_hs_pretty "0.9.0.0"
 #define MIN_VERSION_llvm_hs_pretty(major1,major2,minor) (\

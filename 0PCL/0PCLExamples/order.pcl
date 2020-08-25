@@ -1,6 +1,12 @@
 program order;
 var n:integer ;
-var n:boolean ;
+function ok():integer;
+  function ok():integer;
+  begin
+    result := 1;
+  end;
 begin
-	n:=@i
+  result := 1;
+end;
+begin
 end.
