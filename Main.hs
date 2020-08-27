@@ -6,4 +6,5 @@ import Codegen
 import Emit
 
 main :: IO ()
-main = sems >> return ()
+main = process
+--main = sems >>= show >>> putStrLn

@@ -10,7 +10,12 @@ import StmtSems
 
 -- same name of fun inside of other fun?
 sems :: IO Program
-sems = S.getContents >>= parser >>> parserCases
+sems = do
+  c <- S.getContents
+  putStrLn c
+  p <- parserCases $ parser c
+  print p
+  return p
 
 parserCases :: Either Error Program -> IO Program
 parserCases = \case 

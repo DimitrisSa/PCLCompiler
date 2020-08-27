@@ -1,10 +1,7 @@
 program hello;
-var a:real;b:integer;
-forward function ok(a:real;b:integer):real;
-function ok(a:real;b:integer):real;
+var a:^boolean;
 begin
-result := a
-end;
-begin
-a := ok(2,2);
+  begin
+    a := nil
+  end
 end.

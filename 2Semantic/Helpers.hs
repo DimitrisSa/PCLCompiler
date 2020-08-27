@@ -7,6 +7,7 @@ fullType = \case Array NoSize _ -> False; _ -> True
 
 symbatos :: (Type,Type) -> Bool
 symbatos (Pointer (Array NoSize t1),Pointer (Array (Size _) t2)) = t1 == t2
+symbatos (Pointer _,Nil) = True
 symbatos (lt,et) = (lt == et && fullType lt) || (lt == RealT && et == IntT)
 
 formalsToTypes :: [Frml] -> [(PassBy,Type)]

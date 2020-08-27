@@ -24,52 +24,61 @@ import LLVM.AST.Type as T
 import Data.Bits.Extras
 import Data.String.Transform
 import Data.Char (ord)
+import Data.ByteString.Char8 (unpack)
 
 --toSig :: [String] -> [(AST.Type, AST.Name)]
 --toSig = map (\x -> (double, AST.Name x))
 
-process :: IO (Maybe AST.Module)
-process = sems >>= codegenProgram >>= Just >>> return
+process :: IO ()
+process = sems >>= codegenProgram
 
-codegenProgram :: Program -> IO AST.Module
+codegenProgram :: Program -> IO ()
 codegenProgram (P id body) = codegen (emptyModule $ idString id) body
 
-codegen :: AST.Module -> Body -> IO AST.Module
+codegen :: AST.Module -> Body -> IO ()
 codegen mod b = withContext $ \context -> withModuleFromAST context newast $ \m -> do
-    llstr <- moduleLLVMAssembly m
-    putStrLn $ show llstr
-    return newast
+  llstr <- moduleLLVMAssembly m
+  putStrLn $ unpack llstr
   where
     modn    = codegenBody b
     newast  = runLLVM mod modn
 
 codegenBody :: Body -> LLVM ()
-codegenBody (Body lcls stmts) = undefined
---  define void "main" [] blks
---  where
---    blks = createBlocks $ execCodegen $ do
---      mapM cgenLcl lcls
---      entry <- addBlock entryBlockName
---      setBlock entry
---      cgen exp >>= ret
+codegenBody body = 
+  define T.void "main" [] blks
+  where
+    blks = createBlocks $ execCodegen $ do
+      entry <- addBlock entryBlockName
+      setBlock entry
+      cgenBody body
+      retVoid
+
+cgenBody :: Body -> Codegen ()
+cgenBody (Body lcls stmts) = do
+  mapM_ cgenLcl $ reverse lcls
+  mapM_ cgenStmt $ reverse stmts
 
 cgenLcl :: Local -> Codegen ()
 cgenLcl = \case
-  VarsWithTypeList idsWithTylist -> mapM_ cgenVars idsWithTylist
+  VarsWithTypeList idsWithTylist -> mapM_ cgenVars $ reverse idsWithTylist
   Labels ids                     -> return () -- should we do anything ?
   HeaderBody hdr bd              -> undefined
-  Forward hdr                    -> undefined
+  Forward hdr                    -> cgenHdr hdr
 
 cgenVars :: ([Id],P.Type) -> Codegen ()
 cgenVars (ids,ty) = mapM_ (cgenVar ty) ids
 
 cgenVar :: P.Type -> Id -> Codegen ()
-cgenVar ty id =  undefined -- do we do anything ?
+cgenVar ty id =  do -- undefined -- do we do anything ?
+  var <- alloca $ toTType ty
+  --store var (local $ idToName id)
+  assign (idString id) var
 
-cgenStmt :: Stmt -> Codegen Operand -- Operand?
+cgenStmt :: Stmt -> Codegen () -- Operand?, Unit?
 cgenStmt = \case
-  Assignment _ lVal expr        -> undefined 
-  Block      [stmt]             -> undefined -- return what? mapM will yield Codegen [Ope]
+  Empty                         -> return ()
+  Assignment _ lVal expr        -> cgenAssign lVal expr
+  Block      stmts              -> mapM_ cgenStmt stmts
   CallS      (id,exprs)         -> undefined
 --cgen (S.Call fn args) = do
 --  largs <- mapM cgen args
@@ -83,6 +92,12 @@ cgenStmt = \case
   New        _ new lVal         -> undefined
   Dispose    _ dispType lVal    -> undefined
 
+cgenAssign :: LVal -> Expr -> Codegen ()
+cgenAssign lVal expr = do
+  lValOper <- cgenLVal lVal
+  exprOper <- cgenExpr expr
+  store lValOper exprOper
+
 cgenHdr :: Header -> Codegen ()
 cgenHdr = \case
   ProcHeader id frmls    -> undefined
@@ -95,41 +110,46 @@ cgenExpr = \case
 
 cgenLVal :: LVal -> Codegen Operand
 cgenLVal = \case
-  IdL         id          -> undefined
+  IdL         id          -> getvar $ idString id
   Result      _           -> undefined
   StrLiteral  string      -> undefined
   Indexing    _ lVal expr -> undefined
-  Dereference _ expr      -> undefined
-  ParenL      lVal        -> undefined
+  Dereference _ expr      -> undefined --cgenExpr expr
+  ParenL      lVal        -> cgenLVal lVal
 
 cgenRVal :: RVal -> Codegen Operand
 cgenRVal = \case
   IntR    int           -> return $ cons $ C.Int 16 $ toInteger int
   TrueR                 -> return $ cons $ C.Int 8 $ toInteger 1
   FalseR                -> return $ cons $ C.Int 8 $ toInteger 0
-  RealR   double        -> return $ cons $ C.Float  $ F.Double double
+  RealR   double        -> return $ cons $ C.Float  $ F.Double double --X86_FP80
   CharR   char          -> return $ cons $ C.Int 8 $ toInteger $ ord char
   ParenR  rVal          -> cgenRVal rVal
-  NilR                  -> undefined --return $ cons $ C.Null $ _a
+  NilR                  -> return $ cons $ C.Null $ ptr VoidType --Void? if not how to know
   CallR   (id,exprs)    -> undefined
-  Papaki  lVal          -> undefined
+  Papaki  lVal          -> undefined -- cgenLVal lVal
   Not     _ expr        -> cgenExpr expr >>= cgenNot
   Pos     _ expr        -> cgenExpr expr -- ?
   Neg     _ expr        -> undefined --fneg?
-  Plus    _ expr1 expr2 -> mapM cgenExpr [expr1,expr2] >>= undefined --add,fadd
-  P.Mul   _ expr1 expr2 -> mapM cgenExpr [expr1,expr2] >>= undefined --mul,fmul
-  Minus   _ expr1 expr2 -> mapM cgenExpr [expr1,expr2] >>= undefined --sub,fsub
-  RealDiv _ expr1 expr2 -> mapM cgenExpr [expr1,expr2] >>= undefined --fdiv
-  Div     _ expr1 expr2 -> mapM cgenExpr [expr1,expr2] >>= undefined --udiv,sdiv (prob s)
-  Mod     _ expr1 expr2 -> mapM cgenExpr [expr1,expr2] >>= undefined --urem,srem (prob s)
-  P.Or    _ expr1 expr2 -> mapM cgenExpr [expr1,expr2] >>= undefined --or
-  P.And   _ expr1 expr2 -> mapM cgenExpr [expr1,expr2] >>= undefined --and
-  Eq      _ expr1 expr2 -> mapM cgenExpr [expr1,expr2] >>= undefined --icmp,fcmp
-  Diff    _ expr1 expr2 -> mapM cgenExpr [expr1,expr2] >>= undefined --icmp,fcmp
-  Less    _ expr1 expr2 -> mapM cgenExpr [expr1,expr2] >>= undefined --icmp,fcmp
-  Greater _ expr1 expr2 -> mapM cgenExpr [expr1,expr2] >>= undefined --icmp,fcmp
-  Greq    _ expr1 expr2 -> mapM cgenExpr [expr1,expr2] >>= undefined --icmp,fcmp
-  Smeq    _ expr1 expr2 -> mapM cgenExpr [expr1,expr2] >>= undefined --icmp,fcmp
+  Plus    _ expr1 expr2 -> cgenBinOp fadd expr1 expr2
+  P.Mul   _ expr1 expr2 -> cgenBinOp fmul expr1 expr2
+  Minus   _ expr1 expr2 -> cgenBinOp fsub expr1 expr2
+  RealDiv _ expr1 expr2 -> cgenBinOp fdiv expr1 expr2
+  Div     _ expr1 expr2 -> cgenBinOp sdiv expr1 expr2
+  Mod     _ expr1 expr2 -> cgenBinOp srem expr1 expr2
+  P.Or    _ expr1 expr2 -> cgenBinOp orInstr expr1 expr2
+  P.And   _ expr1 expr2 -> cgenBinOp andInstr expr1 expr2
+  Eq      _ expr1 expr2 -> cgenBinOp (fcmp FP.OEQ) expr1 expr2
+  Diff    _ expr1 expr2 -> cgenBinOp (fcmp FP.ONE) expr1 expr2
+  Less    _ expr1 expr2 -> cgenBinOp (fcmp FP.OLT) expr1 expr2
+  Greater _ expr1 expr2 -> cgenBinOp (fcmp FP.OGT) expr1 expr2
+  Greq    _ expr1 expr2 -> cgenBinOp (fcmp FP.OGE) expr1 expr2
+  Smeq    _ expr1 expr2 -> cgenBinOp (fcmp FP.OLE) expr1 expr2
+
+cgenBinOp inst expr1 expr2 = do
+  op1 <- cgenExpr expr1
+  op2 <- cgenExpr expr2
+  inst op1 op2
 
 cgenNot :: Operand -> Codegen Operand
 cgenNot op 
