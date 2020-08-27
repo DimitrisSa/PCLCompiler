@@ -69,27 +69,27 @@ cgenVars :: ([Id],P.Type) -> Codegen ()
 cgenVars (ids,ty) = mapM_ (cgenVar ty) ids
 
 cgenVar :: P.Type -> Id -> Codegen ()
-cgenVar ty id = do -- undefined -- do we do anything ?
+cgenVar ty id = do 
   var <- alloca $ toTType ty
   assign (idString id) var
 
-cgenStmt :: Stmt -> Codegen () -- Operand?, Unit?
+cgenStmt :: Stmt -> Codegen () 
 cgenStmt = \case
   Empty                         -> return ()
   Assignment _ lVal expr        -> cgenAssign lVal expr
   Block      stmts              -> mapM_ cgenStmt stmts
   CallS      (id,exprs)         -> undefined
---cgen (S.Call fn args) = do
---  largs <- mapM cgen args
---  call (externf (AST.Name fn)) largs
   IfThen     _ expr stmt        -> undefined
-  IfThenElse _ expr stmt1 stmt2 -> undefined
+  IfThenElse _ expr stmt1 stmt2 -> cgenIfThenElse expr stmt1 stmt2
   While      _ expr stmt        -> undefined
   Label      id stmt            -> undefined
   GoTo       id                 -> undefined
   Return                        -> undefined
   New        _ new lVal         -> undefined
   Dispose    _ dispType lVal    -> undefined
+
+cgenIfThenElse :: Expr -> Stmt -> Stmt -> Codegen ()
+cgenIfThenElse expr stmt1 stmt2 = undefined
 
 cgenAssign :: LVal -> Expr -> Codegen ()
 cgenAssign lVal expr = do
