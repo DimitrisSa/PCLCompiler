@@ -69,9 +69,8 @@ cgenVars :: ([Id],P.Type) -> Codegen ()
 cgenVars (ids,ty) = mapM_ (cgenVar ty) ids
 
 cgenVar :: P.Type -> Id -> Codegen ()
-cgenVar ty id =  do -- undefined -- do we do anything ?
+cgenVar ty id = do -- undefined -- do we do anything ?
   var <- alloca $ toTType ty
-  --store var (local $ idToName id)
   assign (idString id) var
 
 cgenStmt :: Stmt -> Codegen () -- Operand?, Unit?
