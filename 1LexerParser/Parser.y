@@ -176,7 +176,7 @@ Expr       :: { Expr }
 LVal     :: { LVal }
            : id                { IdL        (tokenToId $1)    }
            | result            { Result    (posnToLiCo $1) }
-           | stringconst       { StrLiteral    (getString $1)    }
+           | stringconst       { StrLiteral    (filter (/='"') $ getString $1)    }
            | LVal '[' Expr ']' { Indexing (posnToLiCo $2) $1 $3 }
            | Expr '^'          { Dereference      (posnToLiCo $2) $1    }
            | '(' LVal ')'      { ParenL     $2    }

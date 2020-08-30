@@ -36,21 +36,26 @@ newNoExprSems :: (Int,Int) -> Type -> Sems ()
 newNoExprSems posn = newPointerCases posn >=> fullType >>>
   caseFalseThrowErr posn "new l statement: l must not be of type ^array of t"
 
+newExprSems :: (Int,Int) -> (Type,Type) -> Sems ()
 newExprSems posn (et,lt) =
   intCases posn et >> newPointerCases posn lt >>= fullType >>> not >>>
   caseFalseThrowErr posn "new [e] l statement: l must be of type ^array of t"
 
+dispPointerCases :: (Int,Int) -> Type -> Sems Type
 dispPointerCases posn = pointerCases posn "non-pointer in dispose statement"
 
+dispWithoutSems :: (Int,Int) -> Type -> Sems ()
 dispWithoutSems posn = dispPointerCases posn >=> fullType >>>
   caseFalseThrowErr posn "dispose l statement: l must not be of type ^array of t"
 
+dispWithSems :: (Int,Int) -> Type -> Sems ()
 dispWithSems posn = dispPointerCases posn >=> fullType >>> not >>>
   caseFalseThrowErr posn "dispose [] l statement: l must be of type ^array of t"
 
-notStrLiteralSems posn = symbatos >>>
-  caseFalseThrowErr posn "type mismatch in assignment"
-
+notStrLiteralSems :: (Int,Int) -> (Type,Type) -> Sems ()
+notStrLiteralSems posn (t1,t2) = 
+  caseFalseThrowErr posn ("type mismatch in assignment" ++ show t1 ++ show t2)
+      (symbatos (t1,t2))
 intCases posn = \case
   IntT -> return ()
   _    -> errPos posn "new [e] l statement: e must be of type integer" 

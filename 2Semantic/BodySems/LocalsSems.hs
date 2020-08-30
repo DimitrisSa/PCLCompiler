@@ -1,6 +1,5 @@
 module LocalsSems where
 import Common
-import IR
 import Data.Function (on)
 
 forwardSems :: Header -> Sems ()

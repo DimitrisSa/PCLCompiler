@@ -1,7 +1,5 @@
 program hello;
-var a:^boolean;
+var a:^array of real;
 begin
-  begin
-    a := nil
-  end
+  new [2] a
 end.

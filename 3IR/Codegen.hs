@@ -26,9 +26,6 @@ import qualified LLVM.AST.FloatingPointPredicate as FP
 
 import Parser as P
 import SemsTypes ((>>>))
--------------------------------------------------------------------------------
--- Module Level
--------------------------------------------------------------------------------
 
 newtype LLVM a = LLVM (State AST.Module a)
   deriving (Functor, Applicative, Monad, MonadState AST.Module )
@@ -63,18 +60,6 @@ external retty label argtys = addDefn $
   , basicBlocks = []
   }
 
----------------------------------------------------------------------------------
--- Types
--------------------------------------------------------------------------------
-
--- IEEE 754 double
---double :: T.Type
---double = FloatingPointType 64 IEEE
-
--------------------------------------------------------------------------------
--- Names
--------------------------------------------------------------------------------
-
 type Names = Map.Map String Int
 
 uniqueName :: String -> Names -> (String, Names)
@@ -83,32 +68,24 @@ uniqueName nm ns =
     Nothing -> (nm,  Map.insert nm 1 ns)
     Just ix -> (nm ++ show ix, Map.insert nm (ix+1) ns)
 
--------------------------------------------------------------------------------
--- Codegen State
--------------------------------------------------------------------------------
-
 type SymbolTable = [(String, Operand)]
 
 data CodegenState
   = CodegenState {
-    currentBlock :: Name                     -- Name of the active block to append to
-  , blocks       :: Map.Map Name BlockState  -- Blocks for function
-  , symtab       :: SymbolTable              -- Function scope symbol table
-  , blockCount   :: Int                      -- Count of basic blocks
-  , count        :: Word                     -- Count of unnamed instructions
-  , names        :: Names                    -- Name Supply
+    currentBlock :: Name                     
+  , blocks       :: Map.Map Name BlockState  
+  , symtab       :: SymbolTable              
+  , blockCount   :: Int                      
+  , count        :: Word                     
+  , names        :: Names                    
   } deriving Show
 
 data BlockState
   = BlockState {
-    idx   :: Int                            -- Block index
-  , stack :: [Named Instruction]            -- Stack of instructions
-  , term  :: Maybe (Named Terminator)       -- Block terminator
+    idx   :: Int                            
+  , stack :: [Named Instruction]            
+  , term  :: Maybe (Named Terminator)       
   } deriving Show
-
--------------------------------------------------------------------------------
--- Codegen Operations
--------------------------------------------------------------------------------
 
 newtype Codegen a = Codegen { runCodegen :: State CodegenState a }
   deriving (Functor, Applicative, Monad, MonadState CodegenState )
@@ -169,10 +146,6 @@ terminatorVoid trm = do
   blk <- current
   modifyBlock (blk { term = Just trm })
 
--------------------------------------------------------------------------------
--- Block Stack
--------------------------------------------------------------------------------
-
 entry :: Codegen Name
 entry = gets currentBlock
 
@@ -181,10 +154,8 @@ addBlock bname = do
   bls <- gets blocks
   ix  <- gets blockCount
   nms <- gets names
-
   let new = emptyBlock ix
       (qname, supply) = uniqueName bname nms
-
   modify $ \s -> s { blocks = Map.insert (toShortName qname) new bls
                    , blockCount = ix + 1
                    , names = supply
@@ -214,10 +185,6 @@ current = do
     Just x -> return x
     Nothing -> error $ "No such block: " ++ show c
 
--------------------------------------------------------------------------------
--- Symbol Table
--------------------------------------------------------------------------------
-
 assign :: String -> Operand -> Codegen ()
 assign var x = do
   lcls <- gets symtab
@@ -230,9 +197,6 @@ getvar var = do
     Just x  -> return x
     Nothing -> error $ "Local variable not in scope: " ++ show var
 
--------------------------------------------------------------------------------
-
--- References
 local ::  Name -> Operand
 local = LocalReference double
 
@@ -240,9 +204,8 @@ global ::  Name -> C.Constant
 global = C.GlobalReference double
 
 externf :: Name -> Operand
-externf = ConstantOperand . C.GlobalReference T.double
+externf = ConstantOperand . C.GlobalReference T.VoidType
 
--- Arithmetic and Constants
 fadd :: Operand -> Operand -> Codegen Operand
 fadd a b = instr $ FAdd noFastMathFlags a b []
 
@@ -270,6 +233,9 @@ andInstr a b = instr $ AST.And a b []
 fcmp :: FP.FloatingPointPredicate -> Operand -> Operand -> Codegen Operand
 fcmp cond a b = instr $ FCmp cond a b []
 
+phi :: AST.Type -> [(Operand, Name)] -> Codegen ()
+phi ty incoming = instrDo $ Phi ty incoming []
+
 cons :: C.Constant -> Operand
 cons = ConstantOperand
 
@@ -279,12 +245,14 @@ uitofp ty a = instr $ UIToFP a ty []
 toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
 toArgs = map (\x -> (x, []))
 
--- Effects
 call :: Operand -> [Operand] -> Codegen Operand
 call fn args = instr $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
 
 alloca :: T.Type -> Codegen Operand
 alloca ty = instr $ Alloca ty Nothing 0 []
+
+allocaNum :: Operand -> T.Type -> Codegen Operand
+allocaNum oper ty = instr $ Alloca ty (Just oper) 0 []
 
 store :: Operand -> Operand -> Codegen ()
 store ptr val = instrDo $ Store False ptr val Nothing 0 []
@@ -292,7 +260,10 @@ store ptr val = instrDo $ Store False ptr val Nothing 0 []
 load :: Operand -> Codegen Operand
 load ptr = instr $ Load False ptr Nothing 0 []
 
--- Control Flow
+getElemPtr :: Operand -> Operand -> Codegen Operand
+getElemPtr arrPtr ind =
+  instr $ GetElementPtr False arrPtr [cons $ C.Int 16 $ toInteger 0,ind] []
+
 br :: Name -> Codegen (Named Terminator)
 br val = terminator $ Do $ Br val []
 

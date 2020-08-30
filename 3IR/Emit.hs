@@ -19,15 +19,14 @@ import qualified Data.Map as Map
 import Codegen
 import Parser as P
 import Sems
-import SemsTypes ((>>>))
+import SemsTypes ((>>>),Env(InProc))
 import LLVM.AST.Type as T
 import Data.Bits.Extras
 import Data.String.Transform
 import Data.Char (ord)
 import Data.ByteString.Char8 (unpack)
-
---toSig :: [String] -> [(AST.Type, AST.Name)]
---toSig = map (\x -> (double, AST.Name x))
+import Control.Monad.State
+import Control.Monad.Trans.Either
 
 process :: IO ()
 process = sems >>= codegenProgram
@@ -44,14 +43,21 @@ codegen mod b = withContext $ \context -> withModuleFromAST context newast $ \m 
     newast  = runLLVM mod modn
 
 codegenBody :: Body -> LLVM ()
-codegenBody body = 
+codegenBody body = do
+--external T.void "printf" [(toTType $ Array NoSize CharT,toName "string")]
+--define T.void "writeString" [(toTType $ Array NoSize CharT,toName "string")] blks
+--  where
+--    blks = createBlocks $ execCodegen $ do -- call printf
+--      entry <- addBlock entryBlockName
+--      setBlock entry
+--      cgenStmt (CallS
   define T.void "main" [] blks
-  where
-    blks = createBlocks $ execCodegen $ do
-      entry <- addBlock entryBlockName
-      setBlock entry
-      cgenBody body
-      retVoid
+    where
+      blks = createBlocks $ execCodegen $ do
+        entry <- addBlock entryBlockName
+        setBlock entry
+        cgenBody body
+        retVoid
 
 cgenBody :: Body -> Codegen ()
 cgenBody (Body lcls stmts) = do
@@ -66,7 +72,7 @@ cgenLcl = \case
   Forward hdr                    -> cgenHdr hdr
 
 cgenVars :: ([Id],P.Type) -> Codegen ()
-cgenVars (ids,ty) = mapM_ (cgenVar ty) ids
+cgenVars (ids,ty) = mapM_ (cgenVar ty) $ reverse ids
 
 cgenVar :: P.Type -> Id -> Codegen ()
 cgenVar ty id = do 
@@ -78,18 +84,95 @@ cgenStmt = \case
   Empty                         -> return ()
   Assignment _ lVal expr        -> cgenAssign lVal expr
   Block      stmts              -> mapM_ cgenStmt stmts
-  CallS      (id,exprs)         -> undefined
-  IfThen     _ expr stmt        -> undefined
+  CallS      (id,exprs)         -> cgenCallStmt id exprs
+  IfThen     _ expr stmt        -> cgenIfThen expr stmt
   IfThenElse _ expr stmt1 stmt2 -> cgenIfThenElse expr stmt1 stmt2
-  While      _ expr stmt        -> undefined
+  While      _ expr stmt        -> cgenWhile expr stmt
   Label      id stmt            -> undefined
   GoTo       id                 -> undefined
   Return                        -> undefined
-  New        _ new lVal         -> undefined
+  New        _ new lVal         -> cgenNew lVal new
   Dispose    _ dispType lVal    -> undefined
 
+cgenNew :: LVal -> New -> Codegen ()
+cgenNew lVal = \case
+  NewNoExpr     -> cgenNewNoExpr lVal
+  NewExpr expr  -> cgenNewExpr lVal expr
+
+cgenNewNoExpr :: LVal -> Codegen ()
+cgenNewNoExpr lVal = do
+  lValOper <- cgenLVal lVal
+  newPtr <- alloca $ case lValOper of
+    LocalReference ty name -> ty
+    _                      -> error "cgenNewNoExpr: should not happen"
+  store lValOper newPtr
+
+cgenNewExpr :: LVal -> Expr -> Codegen ()
+cgenNewExpr lVal expr = do
+  lValOper <- cgenLVal lVal
+  exprOper <- cgenExpr expr
+  newPtr <- allocaNum exprOper $ case lValOper of
+    LocalReference ty name -> ty
+    _                      -> error "cgenNewExpr: should not happen"
+  store lValOper newPtr
+
+cgenCallStmt :: Id -> [Expr] -> Codegen ()
+cgenCallStmt id exprs = do
+  largs <- mapM cgenExpr exprs
+  call (externf $ idToName id) largs
+  return ()
+
+cgenIfThen :: Expr -> Stmt -> Codegen ()
+cgenIfThen expr stmt = do
+  ifthen <- addBlock "if.then"
+  ifexit <- addBlock "if.exit"
+
+  cond <- cgenExpr expr
+  cbr cond ifthen ifexit
+
+  setBlock ifthen
+  cgenStmt stmt          
+  br ifexit              
+
+  setBlock ifexit
+  return ()
+
 cgenIfThenElse :: Expr -> Stmt -> Stmt -> Codegen ()
-cgenIfThenElse expr stmt1 stmt2 = undefined
+cgenIfThenElse expr stmt1 stmt2 = do
+  ifthen <- addBlock "if.then"
+  ifelse <- addBlock "if.else"
+  ifexit <- addBlock "if.exit"
+
+  cond <- cgenExpr expr
+  cbr cond ifthen ifelse
+
+  setBlock ifthen
+  cgenStmt stmt1
+  br ifexit     
+
+  setBlock ifelse
+  cgenStmt stmt2
+  br ifexit     
+
+  setBlock ifexit
+  return ()
+
+cgenWhile :: Expr -> Stmt -> Codegen ()
+cgenWhile expr stmt = do
+  while     <- addBlock "while"
+  whileExit <- addBlock "while.exit"
+
+  cond <- cgenExpr expr
+  cbr cond while whileExit
+
+  setBlock while
+  cgenStmt stmt          
+  cond <- cgenExpr expr
+  cbr cond while whileExit
+
+  setBlock whileExit
+  return ()
+
 
 cgenAssign :: LVal -> Expr -> Codegen ()
 cgenAssign lVal expr = do
@@ -104,17 +187,39 @@ cgenHdr = \case
 
 cgenExpr :: Expr -> Codegen Operand
 cgenExpr = \case
-  LVal lVal -> cgenLVal lVal
+  LVal lVal -> cgenLVal lVal >>= load
   RVal rVal -> cgenRVal rVal
 
 cgenLVal :: LVal -> Codegen Operand
 cgenLVal = \case
   IdL         id          -> getvar $ idString id
   Result      _           -> undefined
-  StrLiteral  string      -> undefined
-  Indexing    _ lVal expr -> undefined
-  Dereference _ expr      -> undefined --cgenExpr expr
+  StrLiteral  string      -> cgenStrLiteral string
+  Indexing    _ lVal expr -> cgenIndexing lVal expr
+  Dereference _ expr      -> cgenExpr expr 
   ParenL      lVal        -> cgenLVal lVal
+
+cgenStrLiteral :: String -> Codegen Operand
+cgenStrLiteral string = do
+  strOper <- alloca $ toTType $ Array (Size $ length string + 1) CharT
+  mapM_ (cgenStrLitChar strOper) $ indexed 0 $ string ++ ['\0']
+  return strOper
+
+cgenStrLitChar :: Operand -> (Int,Char) -> Codegen ()
+cgenStrLitChar strOper (ind,char) = do
+  charPtr <- getElemPtr strOper (cons $ C.Int 16 $ toInteger ind)
+  store charPtr $ cons $ C.Int 8 $ toInteger $ ord char
+
+indexed :: Int -> String -> [(Int,Char)]
+indexed i = \case
+  c:cs -> (i,c):indexed (i+1) cs
+  []   -> []
+
+cgenIndexing :: LVal -> Expr -> Codegen Operand
+cgenIndexing lVal expr = do
+  lOper <- cgenLVal lVal
+  eOper <- cgenExpr expr
+  getElemPtr lOper eOper >>= return
 
 cgenRVal :: RVal -> Codegen Operand
 cgenRVal = \case
@@ -126,7 +231,7 @@ cgenRVal = \case
   ParenR  rVal          -> cgenRVal rVal
   NilR                  -> return $ cons $ C.Null $ ptr VoidType --Void? if not how to know
   CallR   (id,exprs)    -> undefined
-  Papaki  lVal          -> undefined -- cgenLVal lVal
+  Papaki  lVal          -> cgenLVal lVal
   Not     _ expr        -> cgenExpr expr >>= cgenNot
   Pos     _ expr        -> cgenExpr expr -- ?
   Neg     _ expr        -> undefined --fneg?
@@ -145,6 +250,8 @@ cgenRVal = \case
   Greq    _ expr1 expr2 -> cgenBinOp (fcmp FP.OGE) expr1 expr2
   Smeq    _ expr1 expr2 -> cgenBinOp (fcmp FP.OLE) expr1 expr2
 
+type InstType = Operand -> Operand -> Codegen Operand
+cgenBinOp :: InstType -> Expr -> Expr -> Codegen Operand
 cgenBinOp inst expr1 expr2 = do
   op1 <- cgenExpr expr1
   op2 <- cgenExpr expr2
@@ -157,84 +264,22 @@ cgenNot op
   | otherwise = error $ "cgenNot: should not have this value" ++ show op
 
 idToName :: Id -> Name
-idToName =  idString >>> toShortByteString >>> Name
+idToName =  idString >>> toName
+
+toName :: String -> Name
+toName =  toShortByteString >>> Name
 
 toTType :: P.Type -> T.Type
 toTType = \case
   Nil           -> undefined
   IntT          -> i16
-  RealT         -> x86_fp80  
+  RealT         -> double
   BoolT         -> i8
   CharT         -> i8
   Array size ty -> arrayToTType ty size
   Pointer ty    -> ptr $ toTType ty
- 
+
 arrayToTType :: P.Type -> ArrSize -> T.Type
 arrayToTType ty = \case
-  NoSize -> ptr $ toTType ty
+  NoSize -> toTType ty -- is this right? what could the type be
   Size n -> ArrayType (w64 n) $ toTType ty
-
---codegenTop :: S.Expr -> LLVM ()
---codegenTop (S.Function name args body) = do
---  define double name fnargs bls
---  where
---    fnargs = toSig args
---    bls = createBlocks $ execCodegen $ do
---      entry <- addBlock entryBlockName
---      setBlock entry
---      forM args $ \a -> do
---        var <- alloca double
---        store var (local (AST.Name a))
---        assign a var
---      cgen body >>= ret
---
---codegenTop (S.Extern name args) = do
---  external double name fnargs
---  where fnargs = toSig args
---
---codegenTop exp = do
---  define double "main" [] blks
---  where
---    blks = createBlocks $ execCodegen $ do
---      entry <- addBlock entryBlockName
---      setBlock entry
---      cgen exp >>= ret
---
----------------------------------------------------------------------------------
----- Operations
----------------------------------------------------------------------------------
---
---lt :: AST.Operand -> AST.Operand -> Codegen AST.Operand
---lt a b = do
---  test <- fcmp FP.ULT a b
---  uitofp double test
---
---binops = Map.fromList [
---      ("+", fadd)
---    , ("-", fsub)
---    , ("*", fmul)
---    , ("/", fdiv)
---    , ("<", lt)
---  ]
---
---cgen :: S.Expr -> Codegen AST.Operand
---cgen (S.UnaryOp op a) = do
---  cgen $ S.Call ("unary" ++ op) [a]
---cgen (S.BinaryOp "=" (S.Var var) val) = do
---  a <- getvar var
---  cval <- cgen val
---  store a cval
---  return cval
---cgen (S.BinaryOp op a b) = do
---  case Map.lookup op binops of
---    Just f  -> do
---      ca <- cgen a
---      cb <- cgen b
---      f ca cb
---    Nothing -> error "No such operator"
---cgen (S.Var x) = getvar x >>= load
---cgen (S.Float n) = return $ cons $ C.Float (F.Double n)
---cgen (S.Call fn args) = do
---  largs <- mapM cgen args
---  call (externf (AST.Name fn)) largs
---

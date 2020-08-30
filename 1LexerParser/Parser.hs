@@ -1861,7 +1861,7 @@ happyReduction_53 _  = notHappyAtAll
 happyReduce_54 = happySpecReduce_1  24 happyReduction_54
 happyReduction_54 (HappyTerminal happy_var_1)
 	 =  HappyAbsSyn24
-		 (StrLiteral    (getString happy_var_1)
+		 (StrLiteral    (filter (/='"') $ getString happy_var_1)
 	)
 happyReduction_54 _  = notHappyAtAll 
 
