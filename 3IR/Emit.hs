@@ -11,6 +11,7 @@ import qualified LLVM.AST.Float as F
 import qualified LLVM.AST.FloatingPointPredicate as FP
 import qualified LLVM.AST.FloatingPointPredicate as FP
 import qualified LLVM.AST.IntegerPredicate as I
+import LLVM.AST.AddrSpace
 
 import Data.Word
 import Data.Int
@@ -49,13 +50,14 @@ codegen mod b = withContext $ \context -> withModuleFromAST context newast $ \m 
 
 codegenBody :: Body -> LLVM ()
 codegenBody body = do
---external T.void "printf" [(toTType $ Array NoSize CharT,toName "string")]
---define T.void "writeString" [(toTType $ Array NoSize CharT,toName "string")] blks
---  where
---    blks = createBlocks $ execCodegen $ do -- call printf
---      entry <- addBlock entryBlockName
---      setBlock entry
---      cgenStmt (CallS
+  printfDef
+  writeStringDef (createBlocks $ execCodegen $ do -- call printf
+        entry <- addBlock entryBlockName
+        setBlock entry
+        res <- call (externf $ toName $ "printf") [
+          LocalReference (PointerType (IntegerType 8) (AddrSpace 0)) (UnName 0)]
+        ret res
+        )
   define T.void "main" [] blks
     where
       blks = createBlocks $ execCodegen $ do
@@ -199,7 +201,7 @@ cgenAssign lVal expr = do
 cgenHdr :: Header -> Codegen ()
 cgenHdr = \case
   ProcHeader id frmls    -> undefined
-  FuncHeader id frmls ty -> undefined
+  FuncHeader id frmls ty -> undefined 
 
 cgenExpr :: Expr -> Codegen Operand
 cgenExpr = \case
@@ -217,13 +219,16 @@ cgenLVal = \case
 
 cgenStrLiteral :: String -> Codegen Operand
 cgenStrLiteral string = do
-  strOper <- alloca $ toTType $ Array (Size $ length string + 1) CharT
+  num <- cgenRVal $ IntR $ length string + 1
+  strPtrOper <- alloca $ toTType $ Pointer CharT
+  strOper <- allocaNum num $ toTType CharT
   mapM_ (cgenStrLitChar strOper) $ indexed 0 $ string ++ ['\0']
-  return strOper
+  store strPtrOper strOper
+  return strPtrOper
 
 cgenStrLitChar :: Operand -> (Int,Char) -> Codegen ()
 cgenStrLitChar strOper (ind,char) = do
-  charPtr <- getElemPtr strOper (cons $ C.Int 16 $ toInteger ind)
+  charPtr <- getElemPtr' strOper (cons $ C.Int 16 $ toInteger ind)
   store charPtr $ cons $ C.Int 8 $ toInteger $ ord char
 
 indexed :: Int -> String -> [(Int,Char)]

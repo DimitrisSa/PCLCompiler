@@ -24,6 +24,7 @@ import qualified LLVM.AST.Attribute as A
 import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.FloatingPointPredicate as FP
 import qualified LLVM.AST.IntegerPredicate as I
+import LLVM.AST.AddrSpace
 
 import Parser as P
 import SemsTypes ((>>>))
@@ -60,6 +61,37 @@ external retty label argtys = addDefn $
   , returnType  = retty
   , basicBlocks = []
   }
+
+printfDef :: LLVM()
+printfDef = addDefn $
+  GlobalDefinition $ functionDefaults {
+      returnType = IntegerType 32
+    , name = Name "printf"
+    , parameters = (
+        [ Parameter
+            (PointerType (IntegerType 8) (AddrSpace 0))
+            (UnName 0)
+            []
+        ]
+      , True
+      )
+    } 
+
+writeStringDef :: [BasicBlock] -> LLVM ()
+writeStringDef blks = addDefn $
+  GlobalDefinition $ functionDefaults {
+      returnType = IntegerType 32
+    , name = Name "writeString"
+    , parameters = (
+        [ Parameter
+            (PointerType (IntegerType 8) (AddrSpace 0))
+            (UnName 0)
+            []
+        ]
+      , True
+      )
+    , basicBlocks = blks
+    } 
 
 type Names = Map.Map String Int
 
@@ -205,7 +237,19 @@ global ::  Name -> C.Constant
 global = C.GlobalReference double
 
 externf :: Name -> Operand
-externf = ConstantOperand . C.GlobalReference T.VoidType
+externf = ConstantOperand . C.GlobalReference printfType
+
+printfType =
+  PointerType {
+    pointerReferent = FunctionType {
+      resultType = IntegerType {typeBits = 32}
+    , argumentTypes = [
+        PointerType {
+          pointerReferent = IntegerType {typeBits = 8}
+        , pointerAddrSpace = AddrSpace 0}
+      ]
+    , isVarArg = True}
+  , pointerAddrSpace = AddrSpace 0}
 
 fadd :: Operand -> Operand -> Codegen Operand
 fadd a b = instr $ FAdd noFastMathFlags a b []
@@ -270,6 +314,10 @@ load ptr = instr $ Load False ptr Nothing 0 []
 getElemPtr :: Operand -> Operand -> Codegen Operand
 getElemPtr arrPtr ind =
   instr $ GetElementPtr False arrPtr [cons $ C.Int 16 $ toInteger 0,ind] []
+
+getElemPtr' :: Operand -> Operand -> Codegen Operand
+getElemPtr' arrPtr ind =
+  instr $ GetElementPtr False arrPtr [ind] []
 
 br :: Name -> Codegen (Named Terminator)
 br val = terminator $ Do $ Br val []

@@ -1,14 +1,4 @@
 program hello;
-var a,c:real;b: array [2] of real;
 begin
-  b[0] := 1.0;
-  b[1] := 2.0;
-  a := 10.0;
-  c := -1.0;
-  while a > 0.0 do
-  begin
-    b[0] := b[0] + 1.0;
-    b[1] := b[1] + 1.0;
-    a := a + c
-  end
+  writeString("Hello World\n")
 end.

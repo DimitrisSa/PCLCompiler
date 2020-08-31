@@ -1,41 +1,50 @@
 ; ModuleID = 'hello'
 source_filename = "<string>"
 
+declare i32 @printf(i8*, ...)
+
+define i32 @writeString(i8*, ...) {
+entry:
+  %1 = call i32 (i8*, ...) @printf(i8* %0)
+  ret i32 %1
+}
+
 define void @main() {
 entry:
-  %0 = alloca double
-  %1 = alloca double
-  %2 = alloca [2 x double]
-  %3 = getelementptr [2 x double], [2 x double]* %2, i16 0, i16 0
-  store double 1.000000e+00, double* %3
-  %4 = getelementptr [2 x double], [2 x double]* %2, i16 0, i16 1
-  store double 2.000000e+00, double* %4
-  store double 1.000000e+01, double* %0
-  %5 = fsub double 0.000000e+00, 1.000000e+00
-  store double %5, double* %1
-  %6 = load double, double* %0
-  %7 = fcmp ogt double %6, 0.000000e+00
-  br i1 %7, label %while, label %while.exit
-
-while:                                            ; preds = %while, %entry
-  %8 = load double, double* %0
-  %9 = load double, double* %1
-  %10 = fadd double %8, %9
-  store double %10, double* %0
-  %11 = getelementptr [2 x double], [2 x double]* %2, i16 0, i16 1
-  %12 = getelementptr [2 x double], [2 x double]* %2, i16 0, i16 1
-  %13 = load double, double* %12
-  %14 = fadd double %13, 1.000000e+00
-  store double %14, double* %11
-  %15 = getelementptr [2 x double], [2 x double]* %2, i16 0, i16 0
-  %16 = getelementptr [2 x double], [2 x double]* %2, i16 0, i16 0
-  %17 = load double, double* %16
-  %18 = fadd double %17, 1.000000e+00
-  store double %18, double* %15
-  %19 = load double, double* %0
-  %20 = fcmp ogt double %19, 0.000000e+00
-  br i1 %20, label %while, label %while.exit
-
-while.exit:                                       ; preds = %while, %entry
+  %0 = alloca i8*
+  %1 = alloca i8, i16 15
+  %2 = getelementptr i8, i8* %1, i16 0
+  store i8 72, i8* %2
+  %3 = getelementptr i8, i8* %1, i16 1
+  store i8 101, i8* %3
+  %4 = getelementptr i8, i8* %1, i16 2
+  store i8 108, i8* %4
+  %5 = getelementptr i8, i8* %1, i16 3
+  store i8 108, i8* %5
+  %6 = getelementptr i8, i8* %1, i16 4
+  store i8 111, i8* %6
+  %7 = getelementptr i8, i8* %1, i16 5
+  store i8 32, i8* %7
+  %8 = getelementptr i8, i8* %1, i16 6
+  store i8 87, i8* %8
+  %9 = getelementptr i8, i8* %1, i16 7
+  store i8 111, i8* %9
+  %10 = getelementptr i8, i8* %1, i16 8
+  store i8 114, i8* %10
+  %11 = getelementptr i8, i8* %1, i16 9
+  store i8 108, i8* %11
+  %12 = getelementptr i8, i8* %1, i16 10
+  store i8 100, i8* %12
+  %13 = getelementptr i8, i8* %1, i16 11
+  store i8 32, i8* %13
+  %14 = getelementptr i8, i8* %1, i16 12
+  store i8 92, i8* %14
+  %15 = getelementptr i8, i8* %1, i16 13
+  store i8 110, i8* %15
+  %16 = getelementptr i8, i8* %1, i16 14
+  store i8 0, i8* %16
+  store i8* %1, i8** %0
+  %17 = load i8*, i8** %0
+  %18 = call i32 (i8*, ...) @writeString(i8* %17)
   ret void
 }
