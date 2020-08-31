@@ -15,5 +15,5 @@ To Do:
 - return statement
 - result lval
 - dispose statement
-- find all the build in functions in llvm and define then (like printf)
+- find all the built-in functions in llvm and define them (like printf)
       -> then define the PCL equivalent (like writeString)
