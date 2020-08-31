@@ -63,7 +63,8 @@ tokens :-
   @real                 { \(p,_,_,s) l -> return $ TRealconst     (read $ take l s) p }
   @comment              ;
   @char                 { \(p,_,_,s) l -> return $ TCharconst     (read $ take l s) p }
-  @string               { \(p,_,_,s) l -> return $ TStringconst   (take l s) p }
+  @string               { \(p,_,_,s) l ->
+                                return $ TStringconst (correctStrLit $ take l s) p }
   =                     { \(p,_,_,_) _ -> return $ TLogiceq       p }
   >                     { \(p,_,_,_) _ -> return $ TGreater       p }
   \<                    { \(p,_,_,_) _ -> return $ TSmaller       p }
@@ -151,4 +152,19 @@ data Token =
 
 alexEOF :: Alex Token
 alexEOF = return Eof
+
+correctStrLit :: String -> String
+correctStrLit (c1:c2:str) = case c1 of
+  '\\' -> case c2 of
+    'n'  -> '\n' : correctStrLit str
+    't'  -> '\t' : correctStrLit str
+    'r'  -> '\r' : correctStrLit str
+    '0'  -> '\0' : correctStrLit str
+    '\\' -> '\\' : correctStrLit str
+    '\'' -> '\'' : correctStrLit str
+    '\"' -> '\"' : correctStrLit str
+  _    -> c1 : correctStrLit (c2:str)
+
+correctStrLit s = s
+
 }

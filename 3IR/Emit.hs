@@ -136,9 +136,13 @@ cgenNewExpr lVal expr = do
 
 cgenCallStmt :: Id -> [Expr] -> Codegen ()
 cgenCallStmt id exprs = do
+  cgenCallR id exprs
+  return ()
+
+cgenCallR :: Id -> [Expr] -> Codegen Operand
+cgenCallR id exprs = do
   largs <- mapM cgenExpr exprs
   call (externf $ idToName id) largs
-  return ()
 
 cgenIfThen :: Expr -> Stmt -> Codegen ()
 cgenIfThen expr stmt = do
@@ -251,10 +255,10 @@ cgenRVal = \case
   CharR   char          -> return $ cons $ C.Int 8 $ toInteger $ ord char
   ParenR  rVal          -> cgenRVal rVal
   NilR                  -> return $ cons $ C.Null $ ptr VoidType --Void? if not how to know
-  CallR   (id,exprs)    -> undefined
+  CallR   (id,exprs)    -> cgenCallR id exprs
   Papaki  lVal          -> cgenLVal lVal
   Not     _ expr        -> cgenBinOp (icmp I.EQ) expr $ RVal FalseR
-  Pos     _ expr        -> cgenExpr expr -- ?
+  Pos     _ expr        -> cgenExpr expr
   Neg     _ expr        -> cgenBinOp fsub (RVal $ RealR 0) expr
   Plus    _ expr1 expr2 -> cgenBinOp fadd expr1 expr2
   P.Mul   _ expr1 expr2 -> cgenBinOp fmul expr1 expr2
@@ -279,10 +283,10 @@ cgenBinOp inst expr1 expr2 = do
   inst op1 op2
 
 idToName :: Id -> Name
-idToName =  idString >>> toName
+idToName = idString >>> toName
 
 toName :: String -> Name
-toName =  toShortByteString >>> Name
+toName = toShortByteString >>> Name
 
 toTType :: P.Type -> T.Type
 toTType = \case

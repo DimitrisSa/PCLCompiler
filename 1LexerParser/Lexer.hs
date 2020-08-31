@@ -21771,7 +21771,7 @@ alex_actions = array (0 :: Int, 152)
   , (0,alex_action_59)
   ]
 
-{-# LINE 89 "1LexerParser/Lexer.x" #-}
+{-# LINE 90 "1LexerParser/Lexer.x" #-}
 
 data Token =
   TAnd                {posn :: AlexPosn} |
@@ -21838,6 +21838,21 @@ data Token =
 alexEOF :: Alex Token
 alexEOF = return Eof
 
+correctStrLit :: String -> String
+correctStrLit (c1:c2:str) = case c1 of
+  '\\' -> case c2 of
+    'n'  -> '\n' : correctStrLit str
+    't'  -> '\t' : correctStrLit str
+    'r'  -> '\r' : correctStrLit str
+    '0'  -> '\0' : correctStrLit str
+    '\\' -> '\\' : correctStrLit str
+    '\'' -> '\'' : correctStrLit str
+    '\"' -> '\"' : correctStrLit str
+  _    -> c1 : correctStrLit (c2:str)
+
+correctStrLit s = s
+
+
 alex_action_1 =  \(p,_,_,_) _ -> return $ TAnd           p 
 alex_action_2 =  \(p,_,_,_) _ -> return $ TArray         p 
 alex_action_3 =  \(p,_,_,_) _ -> return $ TBegin         p 
@@ -21874,7 +21889,8 @@ alex_action_33 =  \(p,_,_,s) l -> return $ TId            (take l s) p
 alex_action_34 =  \(p,_,_,s) l -> return $ TIntconst      (read $ take l s) p 
 alex_action_35 =  \(p,_,_,s) l -> return $ TRealconst     (read $ take l s) p 
 alex_action_37 =  \(p,_,_,s) l -> return $ TCharconst     (read $ take l s) p 
-alex_action_38 =  \(p,_,_,s) l -> return $ TStringconst   (take l s) p 
+alex_action_38 =  \(p,_,_,s) l ->
+                                return $ TStringconst (correctStrLit $ take l s) p 
 alex_action_39 =  \(p,_,_,_) _ -> return $ TLogiceq       p 
 alex_action_40 =  \(p,_,_,_) _ -> return $ TGreater       p 
 alex_action_41 =  \(p,_,_,_) _ -> return $ TSmaller       p 
