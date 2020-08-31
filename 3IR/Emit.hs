@@ -9,6 +9,8 @@ import LLVM.AST as AST
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Float as F
 import qualified LLVM.AST.FloatingPointPredicate as FP
+import qualified LLVM.AST.FloatingPointPredicate as FP
+import qualified LLVM.AST.IntegerPredicate as I
 
 import Data.Word
 import Data.Int
@@ -27,6 +29,7 @@ import Data.Char (ord)
 import Data.ByteString.Char8 (unpack)
 import Control.Monad.State
 import Control.Monad.Trans.Either
+import System.Process
 
 process :: IO ()
 process = sems >>= codegenProgram
@@ -38,6 +41,8 @@ codegen :: AST.Module -> Body -> IO ()
 codegen mod b = withContext $ \context -> withModuleFromAST context newast $ \m -> do
   llstr <- moduleLLVMAssembly m
   putStrLn $ unpack llstr
+  writeFile "llvmhs.ll" $ unpack llstr
+  callCommand "./usefulHs.sh"
   where
     modn    = codegenBody b
     newast  = runLLVM mod modn
@@ -92,7 +97,18 @@ cgenStmt = \case
   GoTo       id                 -> undefined
   Return                        -> undefined
   New        _ new lVal         -> cgenNew lVal new
-  Dispose    _ dispType lVal    -> undefined
+  Dispose    _ dispType lVal    -> cgenDispType lVal dispType
+
+cgenDispType :: LVal -> DispType -> Codegen ()
+cgenDispType lVal = \case
+  With    -> cgenDispWith lVal
+  Without -> cgenDispWithout lVal 
+
+cgenDispWith :: LVal -> Codegen ()
+cgenDispWith lVal = undefined
+
+cgenDispWithout :: LVal -> Codegen ()
+cgenDispWithout lVal = undefined
 
 cgenNew :: LVal -> New -> Codegen ()
 cgenNew lVal = \case
@@ -224,17 +240,17 @@ cgenIndexing lVal expr = do
 cgenRVal :: RVal -> Codegen Operand
 cgenRVal = \case
   IntR    int           -> return $ cons $ C.Int 16 $ toInteger int
-  TrueR                 -> return $ cons $ C.Int 8 $ toInteger 1
-  FalseR                -> return $ cons $ C.Int 8 $ toInteger 0
+  TrueR                 -> return $ cons $ C.Int 1 1
+  FalseR                -> return $ cons $ C.Int 1 0
   RealR   double        -> return $ cons $ C.Float  $ F.Double double --X86_FP80
   CharR   char          -> return $ cons $ C.Int 8 $ toInteger $ ord char
   ParenR  rVal          -> cgenRVal rVal
   NilR                  -> return $ cons $ C.Null $ ptr VoidType --Void? if not how to know
   CallR   (id,exprs)    -> undefined
   Papaki  lVal          -> cgenLVal lVal
-  Not     _ expr        -> cgenExpr expr >>= cgenNot
+  Not     _ expr        -> cgenBinOp (icmp I.EQ) expr $ RVal FalseR
   Pos     _ expr        -> cgenExpr expr -- ?
-  Neg     _ expr        -> undefined --fneg?
+  Neg     _ expr        -> cgenBinOp fsub (RVal $ RealR 0) expr
   Plus    _ expr1 expr2 -> cgenBinOp fadd expr1 expr2
   P.Mul   _ expr1 expr2 -> cgenBinOp fmul expr1 expr2
   Minus   _ expr1 expr2 -> cgenBinOp fsub expr1 expr2
@@ -257,12 +273,6 @@ cgenBinOp inst expr1 expr2 = do
   op2 <- cgenExpr expr2
   inst op1 op2
 
-cgenNot :: Operand -> Codegen Operand
-cgenNot op 
-  | op == (cons $ C.Int 8 $ toInteger 1) = return $ cons $ C.Int 8 $ toInteger 0
-  | op == (cons $ C.Int 8 $ toInteger 0) = return $ cons $ C.Int 8 $ toInteger 1
-  | otherwise = error $ "cgenNot: should not have this value" ++ show op
-
 idToName :: Id -> Name
 idToName =  idString >>> toName
 
@@ -274,7 +284,7 @@ toTType = \case
   Nil           -> undefined
   IntT          -> i16
   RealT         -> double
-  BoolT         -> i8
+  BoolT         -> i1
   CharT         -> i8
   Array size ty -> arrayToTType ty size
   Pointer ty    -> ptr $ toTType ty

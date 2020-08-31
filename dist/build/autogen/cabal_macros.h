@@ -77,6 +77,13 @@
   (major1) == 2 && (major2) <  2 || \
   (major1) == 2 && (major2) == 2 && (minor) <= 1)
 
+/* package process-1.4.3.0 */
+#define VERSION_process "1.4.3.0"
+#define MIN_VERSION_process(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  4 || \
+  (major1) == 1 && (major2) == 4 && (minor) <= 3)
+
 /* package string-transform-1.1.1 */
 #define VERSION_string_transform "1.1.1"
 #define MIN_VERSION_string_transform(major1,major2,minor) (\

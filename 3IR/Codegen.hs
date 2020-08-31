@@ -23,6 +23,7 @@ import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Attribute as A
 import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.FloatingPointPredicate as FP
+import qualified LLVM.AST.IntegerPredicate as I
 
 import Parser as P
 import SemsTypes ((>>>))
@@ -209,6 +210,9 @@ externf = ConstantOperand . C.GlobalReference T.VoidType
 fadd :: Operand -> Operand -> Codegen Operand
 fadd a b = instr $ FAdd noFastMathFlags a b []
 
+add :: Operand -> Operand -> Codegen Operand
+add a b = instr $ Add False False a b []
+
 fsub :: Operand -> Operand -> Codegen Operand
 fsub a b = instr $ FSub noFastMathFlags a b []
 
@@ -232,6 +236,9 @@ andInstr a b = instr $ AST.And a b []
 
 fcmp :: FP.FloatingPointPredicate -> Operand -> Operand -> Codegen Operand
 fcmp cond a b = instr $ FCmp cond a b []
+
+icmp :: I.IntegerPredicate -> Operand -> Operand -> Codegen Operand
+icmp cond a b = instr $ ICmp cond a b []
 
 phi :: AST.Type -> [(Operand, Name)] -> Codegen ()
 phi ty incoming = instrDo $ Phi ty incoming []
