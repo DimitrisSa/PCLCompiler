@@ -21,7 +21,7 @@ import qualified Data.Map as Map
 
 import Codegen
 import Parser as P
-import Sems
+import Sems (sems)
 import SemsTypes ((>>>),Env(InProc))
 import LLVM.AST.Type as T
 import Data.Bits.Extras
@@ -33,31 +33,44 @@ import Control.Monad.Trans.Either
 import System.Process
 
 process :: IO ()
-process = sems >>= codegenProgram
+process = sems >>= codegen
 
-codegenProgram :: Program -> IO ()
-codegenProgram (P id body) = codegen (emptyModule $ idString id) body
-
-codegen :: AST.Module -> Body -> IO ()
-codegen mod b = withContext $ \context -> withModuleFromAST context newast $ \m -> do
-  llstr <- moduleLLVMAssembly m
-  putStrLn $ unpack llstr
-  writeFile "llvmhs.ll" $ unpack llstr
-  callCommand "./usefulHs.sh"
+codegen :: Program -> IO ()
+codegen program =
+  withContext $ \context -> withModuleFromAST context newast $ \m -> do
+    llstr <- moduleLLVMAssembly m
+    --putStrLn $ unpack llstr
+    writeFile "llvmhs.ll" $ unpack llstr
+    callCommand "./usefulHs.sh"
   where
-    modn    = codegenBody b
-    newast  = runLLVM mod modn
+    newast = execState (codegenProgram program) defaultModule
+
+codegenProgram :: Program -> LLVM ()
+codegenProgram (P id body) = do
+  modify $ \mod -> mod { moduleName = idToShort id }
+  codegenBody body
 
 codegenBody :: Body -> LLVM ()
 codegenBody body = do
   printfDef
+  writeRealDef (createBlocks $ execCodegen $ do -- call printf
+      entry <- addBlock entryBlockName
+      setBlock entry
+      str <- getElemPtrInBounds
+        (ConstantOperand $ C.GlobalReference (PointerType (ArrayType 4 i8) (AddrSpace 0))
+          ".str")	  
+        (cons $ C.Int 16 $ toInteger 0)
+      call (printf $ toName $ "printf") [str,LocalReference double (UnName 0)]
+      retVoid
+    )
   writeStringDef (createBlocks $ execCodegen $ do -- call printf
-        entry <- addBlock entryBlockName
-        setBlock entry
-        res <- call (externf $ toName $ "printf") [
-          LocalReference (PointerType (IntegerType 8) (AddrSpace 0)) (UnName 0)]
-        ret res
-        )
+      entry <- addBlock entryBlockName
+      setBlock entry
+      res <- call (printf $ toName $ "printf") [
+          LocalReference (PointerType i8 (AddrSpace 0)) (UnName 0)
+        ]
+      retVoid
+    )
   define T.void "main" [] blks
     where
       blks = createBlocks $ execCodegen $ do
@@ -136,13 +149,14 @@ cgenNewExpr lVal expr = do
 
 cgenCallStmt :: Id -> [Expr] -> Codegen ()
 cgenCallStmt id exprs = do
-  cgenCallR id exprs
-  return ()
+  largs <- mapM cgenExpr exprs
+  case idToName id of
+    "writeReal" -> callVoid (writeReal $ idToName id) largs
+    "writeString" -> callVoid (writeString $ idToName id) largs
+    _ -> undefined
 
 cgenCallR :: Id -> [Expr] -> Codegen Operand
-cgenCallR id exprs = do
-  largs <- mapM cgenExpr exprs
-  call (externf $ idToName id) largs
+cgenCallR id exprs = undefined
 
 cgenIfThen :: Expr -> Stmt -> Codegen ()
 cgenIfThen expr stmt = do
@@ -287,6 +301,8 @@ idToName = idString >>> toName
 
 toName :: String -> Name
 toName = toShortByteString >>> Name
+
+idToShort = idString >>> toShortByteString
 
 toTType :: P.Type -> T.Type
 toTType = \case

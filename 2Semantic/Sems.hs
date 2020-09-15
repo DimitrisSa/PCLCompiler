@@ -14,7 +14,7 @@ sems = do
   c <- S.getContents
   putStrLn c
   p <- parserCases $ parser c
-  print p
+  --print p
   return p
 
 parserCases :: Either Error Program -> IO Program
@@ -26,7 +26,7 @@ astSems :: Program -> IO Program
 astSems ast =
   let runProgramSems = programSems >>> runEitherT >>> runState
   in case runProgramSems ast initState of
-    (Right _,_) -> putStrLn "Good" >> return ast
+    (Right _,_) -> return ast
     (Left e,_)  -> die e
 
 programSems :: Program -> Sems ()

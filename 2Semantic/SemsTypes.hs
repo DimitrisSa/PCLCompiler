@@ -6,9 +6,9 @@ import Control.Monad.Trans.Either
 import Data.Map (Map,empty,insert,lookup)
 
 data Callable =
-  Proc [Frml]                  |
-  Func [Frml] P.Type             |
-  ProcDclr [Frml]       |
+  Proc [Frml]            |
+  Func [Frml] P.Type     |
+  ProcDclr [Frml]        |
   FuncDclr [Frml] P.Type
   deriving(Show,Eq)
 

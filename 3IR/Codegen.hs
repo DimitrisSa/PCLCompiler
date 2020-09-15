@@ -29,14 +29,7 @@ import LLVM.AST.AddrSpace
 import Parser as P
 import SemsTypes ((>>>))
 
-newtype LLVM a = LLVM (State AST.Module a)
-  deriving (Functor, Applicative, Monad, MonadState AST.Module )
-
-runLLVM :: AST.Module -> LLVM a -> AST.Module
-runLLVM mod (LLVM m) = execState m mod
-
-emptyModule :: String -> AST.Module
-emptyModule label = defaultModule { moduleName = toShortByteString label }
+type LLVM = State AST.Module
 
 addDefn :: Definition -> LLVM ()
 addDefn d = do
@@ -52,27 +45,13 @@ define retty label argtys body = addDefn $
   , basicBlocks = body
   }
 
-external ::  T.Type -> String -> [(T.Type, Name)] -> LLVM ()
-external retty label argtys = addDefn $
-  GlobalDefinition $ functionDefaults {
-    name        = toShortName label
-  , linkage     = L.External
-  , parameters  = ([Parameter ty nm [] | (ty, nm) <- argtys], False)
-  , returnType  = retty
-  , basicBlocks = []
-  }
-
 printfDef :: LLVM()
 printfDef = addDefn $
   GlobalDefinition $ functionDefaults {
-      returnType = IntegerType 32
+      returnType = i32
     , name = Name "printf"
     , parameters = (
-        [ Parameter
-            (PointerType (IntegerType 8) (AddrSpace 0))
-            (UnName 0)
-            []
-        ]
+        [ Parameter (PointerType i8 (AddrSpace 0)) (UnName 0) [] ]
       , True
       )
     } 
@@ -80,15 +59,32 @@ printfDef = addDefn $
 writeStringDef :: [BasicBlock] -> LLVM ()
 writeStringDef blks = addDefn $
   GlobalDefinition $ functionDefaults {
-      returnType = IntegerType 32
+      returnType = T.void
     , name = Name "writeString"
     , parameters = (
-        [ Parameter
-            (PointerType (IntegerType 8) (AddrSpace 0))
-            (UnName 0)
-            []
-        ]
+        [ Parameter (PointerType i8 (AddrSpace 0)) (UnName 0) [] ]
       , True
+      )
+    , basicBlocks = blks
+    } 
+
+writeRealDef :: [BasicBlock] -> LLVM ()
+writeRealDef blks = do
+  addDefn $ GlobalDefinition $ globalVariableDefaults {
+      name = Name ".str"
+    , linkage = L.Private
+    , unnamedAddr = Just GlobalAddr
+    , isConstant = True
+    , LLVM.AST.Global.type' = ArrayType 4 i8 
+    , LLVM.AST.Global.alignment = 1
+    , initializer = Just $ C.Array i8 [C.Int 8 37, C.Int 8 102,C.Int 8 10, C.Int 8 0]
+    }
+  addDefn $ GlobalDefinition $ functionDefaults {
+      returnType = T.void
+    , name = Name "writeReal"
+    , parameters = (
+        [ Parameter double (UnName 0) [] ]
+      , False
       )
     , basicBlocks = blks
     } 
@@ -236,8 +232,14 @@ local = LocalReference double
 global ::  Name -> C.Constant
 global = C.GlobalReference double
 
-externf :: Name -> Operand
-externf = ConstantOperand . C.GlobalReference printfType
+printf :: Name -> Operand
+printf = ConstantOperand . C.GlobalReference printfType
+
+writeReal :: Name -> Operand
+writeReal = ConstantOperand . C.GlobalReference writeRealType
+
+writeString :: Name -> Operand
+writeString = ConstantOperand . C.GlobalReference writeStringType
 
 printfType =
   PointerType {
@@ -249,6 +251,26 @@ printfType =
         , pointerAddrSpace = AddrSpace 0}
       ]
     , isVarArg = True}
+  , pointerAddrSpace = AddrSpace 0}
+
+writeStringType =
+  PointerType {
+    pointerReferent = FunctionType {
+      resultType = T.void
+    , argumentTypes = [
+        PointerType {
+          pointerReferent = IntegerType {typeBits = 8}
+        , pointerAddrSpace = AddrSpace 0}
+      ]
+    , isVarArg = True}
+  , pointerAddrSpace = AddrSpace 0}
+
+writeRealType =
+  PointerType {
+    pointerReferent = FunctionType {
+      resultType = T.void
+    , argumentTypes = [double]
+    , isVarArg = False}
   , pointerAddrSpace = AddrSpace 0}
 
 fadd :: Operand -> Operand -> Codegen Operand
@@ -299,6 +321,9 @@ toArgs = map (\x -> (x, []))
 call :: Operand -> [Operand] -> Codegen Operand
 call fn args = instr $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
 
+callVoid :: Operand -> [Operand] -> Codegen ()
+callVoid fn args = instrDo $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
+
 alloca :: T.Type -> Codegen Operand
 alloca ty = instr $ Alloca ty Nothing 0 []
 
@@ -314,6 +339,10 @@ load ptr = instr $ Load False ptr Nothing 0 []
 getElemPtr :: Operand -> Operand -> Codegen Operand
 getElemPtr arrPtr ind =
   instr $ GetElementPtr False arrPtr [cons $ C.Int 16 $ toInteger 0,ind] []
+
+getElemPtrInBounds :: Operand -> Operand -> Codegen Operand
+getElemPtrInBounds arrPtr ind =
+  instr $ GetElementPtr True arrPtr [cons $ C.Int 16 $ toInteger 0,ind] []
 
 getElemPtr' :: Operand -> Operand -> Codegen Operand
 getElemPtr' arrPtr ind =
