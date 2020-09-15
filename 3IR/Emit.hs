@@ -21,7 +21,6 @@ import qualified Data.Map as Map
 
 import Codegen
 import Parser as P
-import Sems (sems)
 import SemsTypes ((>>>),Env(InProc))
 import LLVM.AST.Type as T
 import Data.Bits.Extras
@@ -31,9 +30,6 @@ import Data.ByteString.Char8 (unpack)
 import Control.Monad.State
 import Control.Monad.Trans.Either
 import System.Process
-
-process :: IO ()
-process = sems >>= codegen
 
 codegen :: Program -> IO ()
 codegen program =
@@ -50,27 +46,30 @@ codegenProgram (P id body) = do
   modify $ \mod -> mod { moduleName = idToShort id }
   codegenBody body
 
+writeRealBlocks :: Codegen ()
+writeRealBlocks = do 
+  entry <- addBlock entryBlockName
+  setBlock entry
+  str <- getElemPtrInBounds
+    (cons $ C.GlobalReference (PointerType (ArrayType 4 i8) (AddrSpace 0)) ".str")	  
+    (cons $ C.Int 16 $ toInteger 0)
+  call (printf $ toName $ "printf") [str,LocalReference double (UnName 0)]
+  retVoid
+
+writeStringBlocks :: Codegen ()
+writeStringBlocks = do 
+  entry <- addBlock entryBlockName
+  setBlock entry
+  res <- call (printf $ toName $ "printf") [
+      LocalReference (PointerType i8 (AddrSpace 0)) (UnName 0)
+    ]
+  retVoid
+
 codegenBody :: Body -> LLVM ()
 codegenBody body = do
   printfDef
-  writeRealDef (createBlocks $ execCodegen $ do -- call printf
-      entry <- addBlock entryBlockName
-      setBlock entry
-      str <- getElemPtrInBounds
-        (ConstantOperand $ C.GlobalReference (PointerType (ArrayType 4 i8) (AddrSpace 0))
-          ".str")	  
-        (cons $ C.Int 16 $ toInteger 0)
-      call (printf $ toName $ "printf") [str,LocalReference double (UnName 0)]
-      retVoid
-    )
-  writeStringDef (createBlocks $ execCodegen $ do -- call printf
-      entry <- addBlock entryBlockName
-      setBlock entry
-      res <- call (printf $ toName $ "printf") [
-          LocalReference (PointerType i8 (AddrSpace 0)) (UnName 0)
-        ]
-      retVoid
-    )
+  writeRealDef $ createBlocks $ execCodegen writeRealBlocks
+  writeStringDef (createBlocks $ execCodegen $  writeStringBlocks )
   define T.void "main" [] blks
     where
       blks = createBlocks $ execCodegen $ do

@@ -4,6 +4,7 @@ import Parser as P
 import Control.Monad.State 
 import Control.Monad.Trans.Either 
 import Data.Map (Map,empty,insert,lookup)
+import LLVM.AST
 
 data Callable =
   Proc [Frml]            |
@@ -24,22 +25,31 @@ type VariableMap = Map Id P.Type
 type LabelMap    = Map Id Bool
 type CallableMap = Map Id Callable
 type Error       = String
-type Sems        = EitherT Error (State (Env,[SymbolTable]))
+type Sems        = EitherT Error (State (Env,[SymbolTable],Module))
 
 emptySymbolTable = SymbolTable empty empty empty
-initState = (InProc,[emptySymbolTable])
+initState = (InProc,[emptySymbolTable],defaultModule)
 
 infixl 9 >>>
 (>>>) = (flip (.))
 
+addDef :: Definition -> Sems ()
+addDef d = modifyMod $ \s -> s { moduleDefinitions = (moduleDefinitions s) ++ [d] }
+
+addGlobalDef :: Global -> Sems ()
+addGlobalDef = GlobalDefinition >>> addDef
+
+modifyMod :: (Module -> Module) -> Sems ()
+modifyMod f = modify $ \(env,sts,m) -> (env,sts,f m)
+
 getEnv :: Sems Env
-getEnv = get >>= fst >>> return
+getEnv = get >>= (\(x,_,_) -> x) >>> return
 
 setEnv :: Env -> Sems ()
-setEnv env = modify $ \(_,sts) -> (env,sts)
+setEnv env = modify $ \(_,sts,m) -> (env,sts,m)
 
 getSymTabs :: Sems [SymbolTable]
-getSymTabs = get >>= snd >>> return
+getSymTabs = get >>= (\(_,x,_) -> x) >>> return
 
 getMap :: (SymbolTable -> a) -> Sems a
 getMap map = getSymTabs >>= head >>> map >>> return
@@ -55,15 +65,15 @@ getCallableMap = getMap callableMap
 
 insToVariableMap :: Id -> P.Type -> Sems ()
 insToVariableMap var ty =
-  modify $ \(e,st:sts) -> (e,st { variableMap = insert var ty $ variableMap st }:sts)
+  modify $ \(e,st:sts,m) -> (e,st { variableMap = insert var ty $ variableMap st }:sts,m)
 
 insToLabelMap :: Id -> Bool -> Sems ()
 insToLabelMap label b =
-  modify $ \(e,st:sts) -> (e,st { labelMap = insert label b $ labelMap st }:sts)
+  modify $ \(e,st:sts,m) -> (e,st { labelMap = insert label b $ labelMap st }:sts,m)
 
 insToCallableMap :: Id -> Callable -> Sems ()
 insToCallableMap id cal =
-  modify $ \(e,st:sts) -> (e,st { callableMap = insert id cal $ callableMap st }:sts)
+  modify $ \(e,st:sts,m) -> (e,st { callableMap = insert id cal $ callableMap st }:sts,m)
 
 lookupInMap :: Sems (Map Id a) -> Id -> Sems (Maybe a)
 lookupInMap getMap id = getMap >>= lookup id >>> return

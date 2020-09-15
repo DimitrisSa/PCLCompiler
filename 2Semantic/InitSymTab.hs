@@ -1,8 +1,19 @@
 module InitSymTab where
 import Common
+import LLVM.AST
+import LLVM.AST.Global
+import LLVM.AST.Type
+import LLVM.AST.AddrSpace
+import Data.Word
+import Data.String
+import Data.List
+import Data.Function
+import Data.String.Transform
+
 
 initSymTab :: Sems ()
 initSymTab = do
+  printfDef
   insertProcToSymTab "writeInteger" [(Value,[dummy "n"],IntT)]
   insertProcToSymTab "writeBoolean" [(Value,[dummy "b"],BoolT)]
   insertProcToSymTab "writeChar" [(Value,[dummy "c"],CharT)]
@@ -32,10 +43,23 @@ initSymTab = do
   insertFuncToSymTab "chr" [(Value,[dummy "r"],IntT)] CharT
 
 insertProcToSymTab :: String -> [Frml] -> Sems ()
-insertProcToSymTab name myArgs = insToCallableMap (dummy name) (Proc myArgs)
+insertProcToSymTab name myArgs = do
+  insToCallableMap (dummy name) (Proc myArgs)
 
-insertFuncToSymTab :: String -> [Frml] -> Type -> Sems ()
-insertFuncToSymTab name myArgs myType = insToCallableMap (dummy name) (Func myArgs myType)
+insertFuncToSymTab :: String -> [Frml] -> Common.Type -> Sems ()
+insertFuncToSymTab name myArgs myType = do
+  insToCallableMap (dummy name) (Func myArgs myType)
 
 dummy :: String -> Id
 dummy s = Id (0,0) s
+
+printfDef :: Sems ()
+printfDef = addGlobalDef $ functionDefaults {
+    returnType = i32
+  , name = Name $ toShortByteString "printf"
+  , parameters = (
+      [ Parameter (PointerType i8 (AddrSpace 0)) (UnName 0) [] ]
+    , True
+    )
+  } 
+

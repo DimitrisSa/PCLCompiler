@@ -7,6 +7,13 @@ import InitSymTab (initSymTab)
 import LocalsSems 
 import ValTypes
 import StmtSems
+import LLVM.Context
+import LLVM.Module
+import Emit
+import qualified LLVM.AST as AST
+
+process :: IO ()
+process = sems >>= codegen
 
 -- same name of fun inside of other fun?
 sems :: IO Program
@@ -30,11 +37,16 @@ astSems ast =
     (Left e,_)  -> die e
 
 programSems :: Program -> Sems ()
-programSems (P id body) = initSymTab >> bodySems body -- >> nameModule id
+programSems (P id body) = do
+  modifyMod $ \mod -> mod { AST.moduleName = idToShort id }
+  initSymTab
+  bodySems body
 
 bodySems :: Body -> Sems ()
-bodySems (Body locals stmts) =
-  localsSems (reverse locals) >> stmtsSems (reverse stmts) >> checkUnusedLabels
+bodySems (Body locals stmts) = do
+  localsSems (reverse locals) 
+  stmtsSems (reverse stmts) 
+  checkUnusedLabels
 
 checkUnusedLabels :: Sems ()
 checkUnusedLabels = getLabelMap >>= toList >>> (mapM_ $ \case
@@ -54,13 +66,13 @@ localSems = \case
 headerBodySems :: Header -> Body -> Sems ()
 headerBodySems h b = do
   headerParentSems h
-  (e,sms) <- get
-  put $ (e,emptySymbolTable:sms)
+  (e,sms,m) <- get
+  put $ (e,emptySymbolTable:sms,m)
   headerChildSems h
   bodySems b
   checkResult
   --IRFUnc h b?
-  put (e,sms)
+  put (e,sms,m)
 
 stmtsSems :: [Stmt] -> Sems ()
 stmtsSems ss = mapM_ stmtSems ss

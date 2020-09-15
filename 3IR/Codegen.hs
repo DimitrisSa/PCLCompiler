@@ -45,16 +45,15 @@ define retty label argtys body = addDefn $
   , basicBlocks = body
   }
 
-printfDef :: LLVM()
-printfDef = addDefn $
-  GlobalDefinition $ functionDefaults {
-      returnType = i32
-    , name = Name "printf"
-    , parameters = (
-        [ Parameter (PointerType i8 (AddrSpace 0)) (UnName 0) [] ]
-      , True
-      )
-    } 
+printfDef :: LLVM ()
+printfDef = addDefn $ GlobalDefinition $ functionDefaults {
+    returnType = i32
+  , name = Name "printf"
+  , parameters = (
+      [ Parameter (PointerType i8 (AddrSpace 0)) (UnName 0) [] ]
+    , True
+    )
+  } 
 
 writeStringDef :: [BasicBlock] -> LLVM ()
 writeStringDef blks = addDefn $
