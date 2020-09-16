@@ -3,6 +3,7 @@ import Sems
 import SemsTypes
 import Codegen
 import Emit
+import SemsCodegen
 
 main :: IO ()
 main = process

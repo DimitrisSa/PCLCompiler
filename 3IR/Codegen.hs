@@ -50,7 +50,7 @@ printfDef = addDefn $ GlobalDefinition $ functionDefaults {
     returnType = i32
   , name = Name "printf"
   , parameters = (
-      [ Parameter (PointerType i8 (AddrSpace 0)) (UnName 0) [] ]
+      [ Parameter (ptr i8) (UnName 0) [] ]
     , True
     )
   } 
@@ -61,7 +61,7 @@ writeStringDef blks = addDefn $
       returnType = T.void
     , name = Name "writeString"
     , parameters = (
-        [ Parameter (PointerType i8 (AddrSpace 0)) (UnName 0) [] ]
+        [ Parameter (ptr i8) (UnName 0) [] ]
       , True
       )
     , basicBlocks = blks
@@ -115,8 +115,7 @@ data BlockState
   , term  :: Maybe (Named Terminator)       
   } deriving Show
 
-newtype Codegen a = Codegen { runCodegen :: State CodegenState a }
-  deriving (Functor, Applicative, Monad, MonadState CodegenState )
+type Codegen = State CodegenState
 
 sortBlocks :: [(Name, BlockState)] -> [(Name, BlockState)]
 sortBlocks = sortBy (compare `on` (idx . snd))
@@ -140,7 +139,7 @@ emptyCodegen :: CodegenState
 emptyCodegen = CodegenState (toShortName entryBlockName) Map.empty [] 1 0 Map.empty
 
 execCodegen :: Codegen a -> CodegenState
-execCodegen m = execState (runCodegen m) emptyCodegen
+execCodegen m = execState m emptyCodegen
 
 fresh :: Codegen Word
 fresh = do
@@ -148,7 +147,7 @@ fresh = do
   modify $ \s -> s { count = 1 + i }
   return $ i + 1
 
-instr :: Instruction -> Codegen (Operand)
+instr :: Instruction -> Codegen Operand
 instr ins = do
   n <- fresh
   let ref = (UnName n)
@@ -228,11 +227,11 @@ getvar var = do
 local ::  Name -> Operand
 local = LocalReference double
 
-global ::  Name -> C.Constant
-global = C.GlobalReference double
+consGlobalRef :: T.Type -> Name -> Operand
+consGlobalRef ty name = ConstantOperand $ C.GlobalReference ty name
 
-printf :: Name -> Operand
-printf = ConstantOperand . C.GlobalReference printfType
+printf :: Operand
+printf = consGlobalRef printfType "printf"
 
 writeReal :: Name -> Operand
 writeReal = ConstantOperand . C.GlobalReference writeRealType
@@ -240,37 +239,24 @@ writeReal = ConstantOperand . C.GlobalReference writeRealType
 writeString :: Name -> Operand
 writeString = ConstantOperand . C.GlobalReference writeStringType
 
-printfType =
-  PointerType {
-    pointerReferent = FunctionType {
-      resultType = IntegerType {typeBits = 32}
-    , argumentTypes = [
-        PointerType {
-          pointerReferent = IntegerType {typeBits = 8}
-        , pointerAddrSpace = AddrSpace 0}
-      ]
-    , isVarArg = True}
-  , pointerAddrSpace = AddrSpace 0}
+printfType = ptr $ FunctionType {
+    resultType = i32
+  , argumentTypes = [ptr i8]
+  , isVarArg = True
+  }
 
-writeStringType =
-  PointerType {
-    pointerReferent = FunctionType {
-      resultType = T.void
-    , argumentTypes = [
-        PointerType {
-          pointerReferent = IntegerType {typeBits = 8}
-        , pointerAddrSpace = AddrSpace 0}
-      ]
-    , isVarArg = True}
-  , pointerAddrSpace = AddrSpace 0}
+writeStringType = ptr $ FunctionType {
+    resultType = T.void
+  , argumentTypes = [ptr i8]
+  , isVarArg = True
+  }
 
-writeRealType =
-  PointerType {
-    pointerReferent = FunctionType {
-      resultType = T.void
-    , argumentTypes = [double]
-    , isVarArg = False}
-  , pointerAddrSpace = AddrSpace 0}
+writeRealType = ptr $ FunctionType {
+    resultType = T.void
+  , argumentTypes = [double]
+  , isVarArg = False
+  }
+  
 
 fadd :: Operand -> Operand -> Codegen Operand
 fadd a b = instr $ FAdd noFastMathFlags a b []

@@ -49,6 +49,13 @@
   (major1) == 8 && (major2) <  0 || \
   (major1) == 8 && (major2) == 0 && (minor) <= 2)
 
+/* package ilist-0.3.1.0 */
+#define VERSION_ilist "0.3.1.0"
+#define MIN_VERSION_ilist(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  3 || \
+  (major1) == 0 && (major2) == 3 && (minor) <= 1)
+
 /* package llvm-hs-9.0.1 */
 #define VERSION_llvm_hs "9.0.1"
 #define MIN_VERSION_llvm_hs(major1,major2,minor) (\

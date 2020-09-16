@@ -9,11 +9,34 @@ import ValTypes
 import StmtSems
 import LLVM.Context
 import LLVM.Module
-import Emit
+import Emit (codegen,codegen')
+import SemsCodegen
 import qualified LLVM.AST as AST
+import qualified LLVM.AST.Type as T
+import qualified LLVM.AST.Constant as C
+import qualified LLVM.AST.Float as F
+import Data.String.Transform
 
 process :: IO ()
-process = sems >>= codegen
+process = sems'
+
+sems' :: IO ()
+sems' = do
+  c <- S.getContents
+  putStrLn c
+  parserCases' $ parser c
+
+parserCases' :: Either Error Program -> IO ()
+parserCases' = \case 
+  Left e    -> die e
+  Right ast -> astSems' ast
+
+astSems' :: Program -> IO ()
+astSems' ast =
+  let runProgramSems = programSems >>> runEitherT >>> runState
+  in case runProgramSems ast initState of
+    (Right _,(_,_,m,_)) -> codegen' m
+    (Left e,_)          -> die e
 
 -- same name of fun inside of other fun?
 sems :: IO Program
@@ -40,7 +63,16 @@ programSems :: Program -> Sems ()
 programSems (P id body) = do
   modifyMod $ \mod -> mod { AST.moduleName = idToShort id }
   initSymTab
+  defineFun "main" T.void [] $ mainCodegen body
+
+idToShort = idString >>> toShortByteString
+
+mainCodegen :: Body -> Sems ()
+mainCodegen body = do
+  entry <- addBlock "entry"
+  setBlock entry
   bodySems body
+  retVoid
 
 bodySems :: Body -> Sems ()
 bodySems (Body locals stmts) = do
@@ -58,21 +90,32 @@ localsSems locals = mapM_ localSems locals >> checkUndefDclrs
 
 localSems :: Local -> Sems ()
 localSems = \case
-  VarsWithTypeList vwtl -> varsWithTypeListSems $ reverse vwtl
+  VarsWithTypeList vwtl -> varsWithTypeListSemsIR $ reverse vwtl
   Labels ls             -> insToSymTabLabels $ reverse ls
   HeaderBody h b        -> headerBodySems h b
   Forward h             -> forwardSems h
 
+varsWithTypeListSemsIR rvwtl = do
+  varsWithTypeListSems rvwtl
+  mapM_ cgenVars rvwtl
+
+cgenVars :: ([Id],Type) -> Sems ()
+cgenVars (ids,ty) = mapM_ (cgenVar ty) $ reverse ids
+
+cgenVar :: Type -> Id -> Sems ()
+cgenVar ty id = do 
+  var <- alloca $ toTType ty
+  assign (idString id) var
+
 headerBodySems :: Header -> Body -> Sems ()
 headerBodySems h b = do
   headerParentSems h
-  (e,sms,m) <- get
-  put $ (e,emptySymbolTable:sms,m)
+  (e,sms,m,cgen) <- get
+  put $ (e,emptySymbolTable:sms,m,cgen)
   headerChildSems h
   bodySems b
   checkResult
-  --IRFUnc h b?
-  put (e,sms,m)
+  put (e,sms,m,cgen)
 
 stmtsSems :: [Stmt] -> Sems ()
 stmtsSems ss = mapM_ stmtSems ss
@@ -80,18 +123,34 @@ stmtsSems ss = mapM_ stmtSems ss
 stmtSems :: Stmt -> Sems ()
 stmtSems = \case
   Empty                         -> return ()
-  Assignment posn lVal expr     -> assignmentSems posn lVal expr
+  Assignment posn lVal expr     -> do
+                                     assignmentSems posn lVal expr
+                                     cgenAssign lVal expr 
   Block      stmts              -> stmtsSems $ reverse stmts
   CallS      (id,exprs)         -> callSems id $ reverse exprs
-  IfThen     posn e s           -> exprType e >>= boolCases posn "if-then" >> stmtSems s
-  IfThenElse posn e s1 s2       -> exprType e >>= boolCases posn "if-then-else" >>
-                                   stmtsSems [s1,s2]
-  While      posn e stmt        -> exprType e >>= boolCases posn "while" >> stmtSems stmt
+  IfThen     posn e s           -> do
+                                     (ty,op) <- exprTypeOper e
+                                     boolCases posn "if-then" ty
+                                     stmtSems s
+  IfThenElse posn e s1 s2       -> do
+                                     (ty,op) <- exprTypeOper e
+                                     boolCases posn "if-then-else" ty
+                                     stmtsSems [s1,s2]
+  While      posn e stmt        -> do
+                                     (ty,op) <- exprTypeOper e
+                                     boolCases posn "while" ty
+                                     stmtSems stmt
   Label      lab stmt           -> lookupInLabelMap lab >>= labelCases lab >> stmtSems stmt
   GoTo       lab                -> lookupInLabelMap lab >>= goToCases lab
   Return                        -> return ()
   New        posn new lVal      -> newSems posn new lVal
   Dispose    posn disptype lVal -> disposeSems posn disptype lVal
+
+cgenAssign :: LVal -> Expr -> Sems ()
+cgenAssign lVal expr = do
+  (_,lValOper) <- lValTypeOper lVal
+  (_,exprOper) <- exprTypeOper expr
+  store lValOper exprOper
 
 callSems :: Id -> [Expr] -> Sems ()
 callSems id exprs = searchCallableInSymTabs id >>= \case
@@ -114,61 +173,70 @@ disposeSems posn = \case
   Without -> lValType >=> dispWithoutSems posn
   With    -> lValType >=> dispWithSems posn
 
-exprType :: Expr -> Sems Type
-exprType = \case
-  LVal lval -> lValType lval
-  RVal rval -> rValType rval
+exprTypeOper :: Expr -> Sems (Type,AST.Operand)
+exprTypeOper = \case
+  LVal lval -> lValTypeOper lval
+  RVal rval -> rValTypeOper rval
 
-lValType :: LVal -> Sems Type
-lValType = \case
+lValTypeOper :: LVal -> Sems (Type,AST.Operand)
+lValTypeOper = \case
   IdL         id             -> searchVarInSymTabs id
   Result      posn           -> resultType posn
   StrLiteral  str            -> right $ Array (Size $ length str + 1) CharT
   Indexing    posn lVal expr -> lValExprTypes lVal expr >>= indexingCases posn
-  Dereference posn expr      -> exprType expr >>= dereferenceCases posn
+  Dereference posn expr      -> exprTypeOper expr >>= dereferenceCases posn
   ParenL      lVal           -> lValType lVal
 
-exprLValTypes expr lVal = exprType expr >>= \et -> lValType lVal >>= \lt -> return (et,lt)
+exprLValTypeOpers expr lVal = do
+  eto <- exprTypeOper expr
+  lto <- lValTypeOper lVal
+  return (eto,lto)
 
-lValExprTypes lVal expr = lValType lVal >>= \lt -> exprType expr >>= \et -> return (lt,et)
+lValExprTypeOpers lVal expr = do
+  lto <- lValTypeOper lVal 
+  eto <- exprTypeOper expr
+  return (lto,eto)
 
-rValType :: RVal -> Sems Type
-rValType = \case
-  IntR    _          -> right IntT
-  TrueR              -> right BoolT
-  FalseR             -> right BoolT
-  RealR   _          -> right RealT
-  CharR   _          -> right CharT
-  ParenR  rVal       -> rValType rVal
-  NilR               -> right Nil
+rValTypeOper :: RVal -> Sems (Type,AST.Operand)
+rValTypeOper = \case
+  IntR    int        -> right (IntT,cons $ C.Int 16 $ toInteger int)
+  TrueR              -> right (BoolT,cons $ C.Int 1 1)
+  FalseR             -> right (BoolT,cons $ C.Int 1 0)
+  RealR   double     -> right (RealT,cons $ C.Float $ F.Double double) --X86_FP80
+  CharR   char       -> right (CharT,cons $ C.Int 8 $ toInteger $ ord char)
+  ParenR  rVal       -> rValTypeOper rVal
+  NilR               -> right (Nil,cons $ C.Null $ ptr VoidType)
   CallR   (id,exprs) -> callType id $ reverse exprs
-  Papaki  lVal       -> lValType lVal >>= Pointer >>> right
-  Not     posn expr  -> exprType expr >>= notCases posn
-  Pos     posn expr  -> exprType expr >>= unaryOpNumCases posn "'+'"
-  Neg     posn expr  -> exprType expr >>= unaryOpNumCases posn "'-'"
-  Plus    posn e1 e2 -> exprsTypes e1 e2 >>= binOpNumCases posn IntT RealT "'+'"
-  Mul     posn e1 e2 -> exprsTypes e1 e2 >>= binOpNumCases posn IntT RealT "'*'"
-  Minus   posn e1 e2 -> exprsTypes e1 e2 >>= binOpNumCases posn IntT RealT "'-'"
-  RealDiv posn e1 e2 -> exprsTypes e1 e2 >>= binOpNumCases posn RealT RealT "'/'"
-  Div     posn e1 e2 -> exprsTypes e1 e2 >>= binOpIntCases posn "'div'"
-  Mod     posn e1 e2 -> exprsTypes e1 e2 >>= binOpIntCases posn "'mod'"
-  Or      posn e1 e2 -> exprsTypes e1 e2 >>= binOpBoolCases posn "'or'"
-  And     posn e1 e2 -> exprsTypes e1 e2 >>= binOpBoolCases posn "'and'"
-  Eq      posn e1 e2 -> exprsTypes e1 e2 >>= comparisonCases posn "'='"
-  Diff    posn e1 e2 -> exprsTypes e1 e2 >>= comparisonCases posn "'<>'"
-  Less    posn e1 e2 -> exprsTypes e1 e2 >>= binOpNumCases posn BoolT BoolT "'<'"
-  Greater posn e1 e2 -> exprsTypes e1 e2 >>= binOpNumCases posn BoolT BoolT "'>'"
-  Greq    posn e1 e2 -> exprsTypes e1 e2 >>= binOpNumCases posn BoolT BoolT "'>='"
-  Smeq    posn e1 e2 -> exprsTypes e1 e2 >>= binOpNumCases posn BoolT BoolT "'<='"
+  Papaki  lVal       -> lValTypeOper lVal >>= \(ty,op) -> right (Pointer ty,op)
+  Not     posn expr  -> exprTypeOper expr >>= notCases posn
+  Pos     posn expr  -> exprTypeOper expr >>= unaryOpNumCases posn "'+'"
+  Neg     posn expr  -> exprTypeOper expr >>= unaryOpNumCases posn "'-'"
+  Plus    posn e1 e2 -> exprsTypeOpers e1 e2 >>= binOpNumCases posn IntT RealT "'+'"
+  Mul     posn e1 e2 -> exprsTypeOpers e1 e2 >>= binOpNumCases posn IntT RealT "'*'"
+  Minus   posn e1 e2 -> exprsTypeOpers e1 e2 >>= binOpNumCases posn IntT RealT "'-'"
+  RealDiv posn e1 e2 -> exprsTypeOpers e1 e2 >>= binOpNumCases posn RealT RealT "'/'"
+  Div     posn e1 e2 -> exprsTypeOpers e1 e2 >>= binOpIntCases posn "'div'"
+  Mod     posn e1 e2 -> exprsTypeOpers e1 e2 >>= binOpIntCases posn "'mod'"
+  Or      posn e1 e2 -> exprsTypeOpers e1 e2 >>= binOpBoolCases posn "'or'"
+  And     posn e1 e2 -> exprsTypeOpers e1 e2 >>= binOpBoolCases posn "'and'"
+  Eq      posn e1 e2 -> exprsTypeOpers e1 e2 >>= comparisonCases posn "'='"
+  Diff    posn e1 e2 -> exprsTypeOpers e1 e2 >>= comparisonCases posn "'<>'"
+  Less    posn e1 e2 -> exprsTypeOpers e1 e2 >>= binOpNumCases posn BoolT BoolT "'<'"
+  Greater posn e1 e2 -> exprsTypeOpers e1 e2 >>= binOpNumCases posn BoolT BoolT "'>'"
+  Greq    posn e1 e2 -> exprsTypeOpers e1 e2 >>= binOpNumCases posn BoolT BoolT "'>='"
+  Smeq    posn e1 e2 -> exprsTypeOpers e1 e2 >>= binOpNumCases posn BoolT BoolT "'<='"
 
-exprsTypes exp1 exp2 = mapM exprType [exp1,exp2]
+exprsTypeOpers exp1 exp2 = mapM exprTypeOper [exp1,exp2]
 
-callType :: Id -> [Expr] -> Sems Type
-callType id exprs = searchCallableInSymTabs id >>= \case
-  FuncDclr fs t -> formalsExprsMatch id fs exprs >> right t
-  Func  fs t    -> formalsExprsMatch id fs exprs >> right t
-  _             -> errAtId "Use of procedure where a return value is required: " id
+callType :: Id -> [Expr] -> Sems (Type,AST.Operand)
+callType id exprs = do
+  callable <- searchCallableInSymTabs id 
+  case callable of
+    FuncDclr fs t -> formalsExprsMatch id fs exprs >> right (t,undefined)
+    Func  fs t    -> formalsExprsMatch id fs exprs >> right (t,undefined)
+    _             -> errAtId "Use of procedure where a return value is required: " id
 
 formalsExprsMatch :: Id -> [Frml] -> [Expr] -> Sems ()
-formalsExprsMatch id fs exprs =
-  mapM exprType exprs >>= formalsExprsTypesMatch 1 id (formalsToTypes fs)
+formalsExprsMatch id fs exprs = do
+  types <- mapM (exprTypeOper >=> return . fst) exprs 
+  formalsExprsTypesMatch 1 id (formalsToTypes fs) types

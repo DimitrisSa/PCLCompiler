@@ -32,14 +32,15 @@ import Control.Monad.Trans.Either
 import System.Process
 
 codegen :: Program -> IO ()
-codegen program =
-  withContext $ \context -> withModuleFromAST context newast $ \m -> do
+codegen program = codegen' $ execState (codegenProgram program) defaultModule
+
+codegen' :: AST.Module -> IO ()
+codegen' m =
+  withContext $ \context -> withModuleFromAST context m $ \m -> do
     llstr <- moduleLLVMAssembly m
     --putStrLn $ unpack llstr
     writeFile "llvmhs.ll" $ unpack llstr
     callCommand "./usefulHs.sh"
-  where
-    newast = execState (codegenProgram program) defaultModule
 
 codegenProgram :: Program -> LLVM ()
 codegenProgram (P id body) = do
@@ -51,25 +52,23 @@ writeRealBlocks = do
   entry <- addBlock entryBlockName
   setBlock entry
   str <- getElemPtrInBounds
-    (cons $ C.GlobalReference (PointerType (ArrayType 4 i8) (AddrSpace 0)) ".str")	  
+    (cons $ C.GlobalReference (ptr (ArrayType 4 i8)) ".str")	  
     (cons $ C.Int 16 $ toInteger 0)
-  call (printf $ toName $ "printf") [str,LocalReference double (UnName 0)]
+  callVoid printf [str,LocalReference double (UnName 0)]
   retVoid
 
 writeStringBlocks :: Codegen ()
 writeStringBlocks = do 
   entry <- addBlock entryBlockName
   setBlock entry
-  res <- call (printf $ toName $ "printf") [
-      LocalReference (PointerType i8 (AddrSpace 0)) (UnName 0)
-    ]
+  callVoid printf [ LocalReference (ptr i8) (UnName 0) ]
   retVoid
 
 codegenBody :: Body -> LLVM ()
 codegenBody body = do
   printfDef
+  writeStringDef $ createBlocks $ execCodegen writeStringBlocks
   writeRealDef $ createBlocks $ execCodegen writeRealBlocks
-  writeStringDef (createBlocks $ execCodegen $  writeStringBlocks )
   define T.void "main" [] blks
     where
       blks = createBlocks $ execCodegen $ do
@@ -207,7 +206,6 @@ cgenWhile expr stmt = do
 
   setBlock whileExit
   return ()
-
 
 cgenAssign :: LVal -> Expr -> Codegen ()
 cgenAssign lVal expr = do
