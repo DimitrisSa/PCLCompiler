@@ -22,7 +22,7 @@ import LLVM.AST.Type as T
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Attribute as A
 import qualified LLVM.AST.CallingConvention as CC
---import qualified LLVM.AST.FloatingPointPredicate as FP
+import qualified LLVM.AST.FloatingPointPredicate as FP
 import qualified LLVM.AST.IntegerPredicate as I
 --import LLVM.AST.AddrSpace
 --
@@ -192,13 +192,13 @@ assign var x = do
   lcls <- getFromCodegen symtab
   modifyCodegen $ \s -> s { symtab = [(var, x)] ++ lcls }
 
---getvar :: String -> Sems Operand
---getvar var = do
---  syms <- gets symtab
---  case lookup var syms of
---    Just x  -> return x
---    Nothing -> error $ "Local variable not in scope: " ++ show var
---
+getvar :: String -> Sems Operand
+getvar var = do
+  syms <- getFromCodegen symtab
+  case lookup var syms of
+    Just x  -> return x
+    Nothing -> error $ "Local variable not in scope: " ++ show var
+
 local ::  Name -> Operand
 local = LocalReference double
 --
@@ -271,8 +271,8 @@ orInstr a b = instr $ LLVM.AST.Or a b []
 andInstr :: Operand -> Operand -> Sems Operand
 andInstr a b = instr $ LLVM.AST.And a b []
 
---fcmp :: FP.FloatingPointPredicate -> Operand -> Operand -> Sems Operand
---fcmp cond a b = instr $ FCmp cond a b []
+fcmp :: FP.FloatingPointPredicate -> Operand -> Operand -> Sems Operand
+fcmp cond a b = instr $ FCmp cond a b []
 --
 icmp :: I.IntegerPredicate -> Operand -> Operand -> Sems Operand
 icmp cond a b = instr $ ICmp cond a b []
@@ -297,12 +297,12 @@ callVoid fn args = instrDo $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
 --
 alloca :: T.Type -> Sems Operand
 alloca ty = instr $ Alloca ty Nothing 0 []
---
---allocaNum :: Operand -> T.Type -> Sems Operand
---allocaNum oper ty = instr $ Alloca ty (Just oper) 0 []
---
---store :: Operand -> Operand -> Sems ()
---store ptr val = instrDo $ Store False ptr val Nothing 0 []
+
+allocaNum :: Operand -> T.Type -> Sems Operand
+allocaNum oper ty = instr $ Alloca ty (Just oper) 0 []
+
+store :: Operand -> Operand -> Sems ()
+store ptr val = instrDo $ Store False ptr val Nothing 0 []
 --
 --load :: Operand -> Sems Operand
 --load ptr = instr $ Load False ptr Nothing 0 []
@@ -315,10 +315,10 @@ alloca ty = instr $ Alloca ty Nothing 0 []
 --getElemPtrInBounds arrPtr ind =
 --  instr $ GetElementPtr True arrPtr [cons $ C.Int 16 $ toInteger 0,ind] []
 --
---getElemPtr' :: Operand -> Operand -> Sems Operand
---getElemPtr' arrPtr ind =
---  instr $ GetElementPtr False arrPtr [ind] []
---
+getElemPtr' :: Operand -> Operand -> Sems Operand
+getElemPtr' arrPtr ind =
+  instr $ GetElementPtr False arrPtr [ind] []
+
 --br :: Name -> Sems (Named Terminator)
 --br val = terminator $ Do $ Br val []
 --

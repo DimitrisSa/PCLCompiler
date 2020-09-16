@@ -16,6 +16,8 @@ import qualified LLVM.AST.Type as T
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Float as F
 import Data.String.Transform
+import Data.Char (ord)
+import Data.List.Index
 
 process :: IO ()
 process = sems'
@@ -161,17 +163,17 @@ callSems id exprs = searchCallableInSymTabs id >>= \case
 assignmentSems :: (Int,Int) -> LVal -> Expr -> Sems ()
 assignmentSems posn = \case
   StrLiteral str -> \_ -> errPos posn $ "Assignment to string literal: " ++ str
-  lVal           -> lValExprTypes lVal >=> notStrLiteralSems posn
+  lVal           -> lValExprTypeOpers lVal >=> notStrLiteralSems posn
 
 newSems :: (Int,Int) -> New -> LVal -> Sems ()
 newSems posn = \case
-  NewNoExpr -> lValType >=> newNoExprSems posn
+  NewNoExpr -> lValTypeOper >=> newNoExprSems posn
   NewExpr e -> exprLValTypes e >=> newExprSems posn
 
 disposeSems :: (Int,Int) -> DispType -> LVal -> Sems ()
 disposeSems posn = \case
-  Without -> lValType >=> dispWithoutSems posn
-  With    -> lValType >=> dispWithSems posn
+  Without -> lValTypeOper >=> dispWithoutSems posn
+  With    -> lValTypeOper >=> dispWithSems posn
 
 exprTypeOper :: Expr -> Sems (Type,AST.Operand)
 exprTypeOper = \case
@@ -180,12 +182,30 @@ exprTypeOper = \case
 
 lValTypeOper :: LVal -> Sems (Type,AST.Operand)
 lValTypeOper = \case
-  IdL         id             -> searchVarInSymTabs id
+  IdL         id             -> do
+    ty <- searchVarInSymTabs id
+    oper <- getvar $ idString id 
+    return (ty,oper)
   Result      posn           -> resultType posn
-  StrLiteral  str            -> right $ Array (Size $ length str + 1) CharT
-  Indexing    posn lVal expr -> lValExprTypes lVal expr >>= indexingCases posn
+  StrLiteral  str            -> strLiteralSemsIR str
+  Indexing    posn lVal expr -> lValExprTypeOpers lVal expr >>= indexingCases posn
   Dereference posn expr      -> exprTypeOper expr >>= dereferenceCases posn
-  ParenL      lVal           -> lValType lVal
+  ParenL      lVal           -> lValTypeOper lVal
+
+strLiteralSemsIR :: String -> Sems TyOper
+strLiteralSemsIR string = do
+  (_,num) <- rValTypeOper $ IntR $ length string + 1
+  strPtrOper <- alloca $ toTType $ Pointer CharT
+  strOper <- allocaNum num $ toTType CharT
+  mapM_ (cgenStrLitChar strOper) $ indexed $ string ++ ['\0']
+  store strPtrOper strOper
+  return (Array (Size $ length string + 1) CharT,strPtrOper)
+
+cgenStrLitChar :: AST.Operand -> (Int,Char) -> Sems ()
+cgenStrLitChar strOper (ind,char) = do
+  charPtr <- getElemPtr' strOper (cons $ C.Int 16 $ toInteger ind)
+  store charPtr $ cons $ C.Int 8 $ toInteger $ ord char
+
 
 exprLValTypeOpers expr lVal = do
   eto <- exprTypeOper expr
@@ -205,7 +225,7 @@ rValTypeOper = \case
   RealR   double     -> right (RealT,cons $ C.Float $ F.Double double) --X86_FP80
   CharR   char       -> right (CharT,cons $ C.Int 8 $ toInteger $ ord char)
   ParenR  rVal       -> rValTypeOper rVal
-  NilR               -> right (Nil,cons $ C.Null $ ptr VoidType)
+  NilR               -> right (Nil,cons $ C.Null $ T.ptr T.void)
   CallR   (id,exprs) -> callType id $ reverse exprs
   Papaki  lVal       -> lValTypeOper lVal >>= \(ty,op) -> right (Pointer ty,op)
   Not     posn expr  -> exprTypeOper expr >>= notCases posn

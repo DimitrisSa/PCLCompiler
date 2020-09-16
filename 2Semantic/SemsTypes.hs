@@ -9,6 +9,8 @@ import LLVM.AST.Type as T
 import Data.Bits.Extras
 import Data.String.Transform
 
+type TyOper = (P.Type,Operand)
+
 data Callable =
   Proc [Frml]            |
   Func [Frml] P.Type     |

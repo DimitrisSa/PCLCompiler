@@ -3,40 +3,87 @@ import Control.Monad.Trans.Either
 import Common
 import qualified LLVM.AST as AST
 import qualified LLVM.AST.IntegerPredicate as I
+import qualified LLVM.AST.FloatingPointPredicate as FP
 import SemsCodegen
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Float as F
 
-resultType :: (Int,Int) -> Sems Type
+resultType :: (Int,Int) -> Sems TyOper
 resultType posn = getEnv >>= \case
-  InFunc id ty _ -> setEnv (InFunc id ty True) >> return ty
+  InFunc id ty _ -> setEnv (InFunc id ty True) >> return (ty,undefined)
   InProc         -> errPos posn "Result in procedure"
 
-dereferenceCases :: (Int,Int) -> Type -> Sems Type
+dereferenceCases :: (Int,Int) -> TyOper -> Sems TyOper
 dereferenceCases posn = \case
-  Pointer t -> right t
-  Nil       -> errPos posn "dereferencing Nil pointer"
-  _         -> errPos posn "dereferencing non-pointer"
+  (Pointer t,op) -> right (t,undefined) -- GEP
+  (Nil,_ )       -> errPos posn "dereferencing Nil pointer"
+  _              -> errPos posn "dereferencing non-pointer"
 
-indexingCases :: (Int,Int) -> (Type,Type) -> Sems Type
+indexingCases :: (Int,Int) -> (TyOper,TyOper) -> Sems TyOper
 indexingCases posn = \case
-  (Array _ t,IntT) -> right t
-  (_        ,IntT) -> errPos posn "indexing non-array"
+  ((Array _ t,op1),(IntT,op2)) -> right (t,undefined)
+  (_        ,(IntT,_)) -> errPos posn "indexing non-array"
   _                -> errPos posn "non-integer index"
 
-comparisonCases :: (Int,Int) -> String -> [Type] -> Sems Type 
+comparisonCases :: (Int,Int) -> String -> [TyOper] -> Sems TyOper 
 comparisonCases posn a = \case
-  [IntT,IntT]           -> right BoolT
-  [IntT,RealT]          -> right BoolT
-  [RealT,IntT]          -> right BoolT
-  [RealT,RealT]         -> right BoolT
-  [BoolT,BoolT]         -> right BoolT
-  [CharT,CharT]         -> right BoolT
-  [Pointer _,Pointer _] -> right BoolT
-  [Pointer _,Nil]       -> right BoolT
-  [Nil,Pointer _]       -> right BoolT
-  [Nil,Nil]             -> right BoolT
-  _                     -> errPos posn $ "Incomparable types at: " ++ a
+  [(IntT,op1),(IntT,op2)] -> 
+    case a of
+      "'='"  -> do
+        eqOp <- icmp I.EQ op1 op2
+        right (BoolT,eqOp)
+      "'<>'" -> do
+        diffOp <- icmp I.NE op1 op2
+        right (BoolT,diffOp)
+  [(IntT,op1),(RealT,op2)] -> do 
+    op1' <- sitofp op1
+    case a of
+      "'='"  -> do
+        eqOp <- fcmp FP.OEQ op1' op2
+        right (BoolT,eqOp)
+      "'<>'" -> do
+        diffOp <- fcmp FP.ONE op1' op2
+        right (BoolT,diffOp)
+  [(RealT,op1),(IntT,op2)] -> do 
+    op2' <- sitofp op2
+    case a of
+      "'='"  -> do
+        eqOp <- fcmp FP.OEQ op1 op2'
+        right (BoolT,eqOp)
+      "'<>'" -> do
+        diffOp <- fcmp FP.ONE op1 op2'
+        right (BoolT,diffOp)
+  [(RealT,op1),(RealT,op2)] -> do 
+    case a of
+      "'='"  -> do
+        eqOp <- fcmp FP.OEQ op1 op2
+        right (BoolT,eqOp)
+      "'<>'" -> do
+        diffOp <- fcmp FP.ONE op1 op2
+        right (BoolT,diffOp)
+  [(BoolT,op1),(BoolT,op2)] ->
+    case a of
+      "'='"  -> do
+        eqOp <- icmp I.EQ op1 op2
+        right (BoolT,eqOp)
+      "'<>'" -> do
+        diffOp <- icmp I.NE op1 op2
+        right (BoolT,diffOp)
+  [(CharT,op1),(CharT,op2)] ->
+    case a of
+      "'='"  -> do
+        eqOp <- icmp I.EQ op1 op2
+        right (BoolT,eqOp)
+      "'<>'" -> do
+        diffOp <- icmp I.NE op1 op2
+        right (BoolT,diffOp)
+  [(Pointer t1,op1),(Pointer t2,op2)] -> case t1 == t2 of
+    True -> undefined
+    _    -> errPos posn $ "Incomparable types at: " ++ a
+  [(Pointer _,_),(Nil,_)] -> right (BoolT,cons $ C.Int 1 0)
+  [(Nil,_),(Pointer _,_)] -> right (BoolT,cons $ C.Int 1 0)
+  [(Nil,_),(Nil,_)]       -> right (BoolT,cons $ C.Int 1 1)
+  _                       -> errPos posn $ "Incomparable types at: " ++ a
 
 binOpBoolCases :: (Int,Int) -> String -> [TyOper] -> Sems TyOper
 binOpBoolCases posn a = \case
@@ -64,7 +111,6 @@ binOpIntCases posn a =  \case
   [(IntT,_),_]   -> errPos posn $ "Non-integer expression after: " ++ a
   _              -> errPos posn $ "Non-integer expression before: " ++ a
 
-type TyOper = (Type,AST.Operand)
 binOpNumCases :: (Int,Int) -> Type -> Type -> String -> [TyOper] -> Sems TyOper
 binOpNumCases posn intIntType restType a = \case
   [(IntT,op1),(IntT,op2)] -> 
@@ -83,6 +129,18 @@ binOpNumCases posn intIntType restType a = \case
         op2' <- sitofp op2
         opDiv <- fdiv op1' op2'
         right (intIntType,opDiv)
+      "'<'" -> do
+        opLess <- icmp I.SLT op1 op2
+        right (intIntType,opLess)
+      "'>'" -> do
+        opGreater <- icmp I.SGT op1 op2
+        right (intIntType,opGreater)
+      "'>='" -> do
+        opGreq <- icmp I.SGE op1 op2
+        right (intIntType,opGreq)
+      "'<='" -> do
+        opSmeq <- icmp I.SLE op1 op2
+        right (intIntType,opSmeq)
   [(IntT,op1),(RealT,op2)]  -> do
     op1' <- sitofp op1
     case a of
@@ -98,6 +156,18 @@ binOpNumCases posn intIntType restType a = \case
       "'/'" -> do
         opDiv <- fdiv op1' op2
         right (restType,opDiv)
+      "'<'" -> do
+        opLess <- fcmp FP.OLT op1' op2
+        right (restType,opLess)
+      "'>'" -> do
+        opGreater <- fcmp FP.OGT op1' op2
+        right (restType,opGreater)
+      "'>='" -> do
+        opGreq <- fcmp FP.OGE op1' op2
+        right (restType,opGreq)
+      "'<='" -> do
+        opSmeq <- fcmp FP.OLE op1' op2
+        right (restType,opSmeq)
   [(RealT,op1),(IntT,op2)]  -> do
     op2' <- sitofp op2
     case a of
@@ -112,7 +182,19 @@ binOpNumCases posn intIntType restType a = \case
         right (restType,opSub)
       "'/'" -> do
         opDiv <- fdiv op1 op2'
-        right (intIntType,opDiv)
+        right (restType,opDiv)
+      "'<'" -> do
+        opLess <- fcmp FP.OLT op1 op2'
+        right (restType,opLess)
+      "'>'" -> do
+        opGreater <- fcmp FP.OGT op1 op2'
+        right (restType,opGreater)
+      "'>='" -> do
+        opGreq <- fcmp FP.OGE op1 op2'
+        right (restType,opGreq)
+      "'<='" -> do
+        opSmeq <- fcmp FP.OLE op1 op2'
+        right (restType,opSmeq)
   [(RealT,op1),(RealT,op2)] -> 
     case a of
       "'+'" -> do
@@ -127,6 +209,18 @@ binOpNumCases posn intIntType restType a = \case
       "'/'" -> do
         opDiv <- fdiv op1 op2
         right (restType,opDiv)
+      "'<'" -> do
+        opLess <- fcmp FP.OLT op1 op2
+        right (restType,opLess)
+      "'>'" -> do
+        opGreater <- fcmp FP.OGT op1 op2
+        right (restType,opGreater)
+      "'>='" -> do
+        opGreq <- fcmp FP.OGE op1 op2
+        right (restType,opGreq)
+      "'<='" -> do
+        opSmeq <- fcmp FP.OLE op1 op2
+        right (restType,opSmeq)
   [(IntT,_),_]  -> errPos posn $ nonNumAfErr ++ a
   [(RealT,_),_] -> errPos posn $ nonNumAfErr ++ a
   _             -> errPos posn $ "Non-number expression before: " ++ a
