@@ -233,11 +233,11 @@ consGlobalRef ty name = ConstantOperand $ C.GlobalReference ty name
 printf :: Operand
 printf = consGlobalRef printfType "printf"
 
-writeReal :: Name -> Operand
-writeReal = ConstantOperand . C.GlobalReference writeRealType
+writeReal :: Operand
+writeReal = consGlobalRef writeRealType "writeReal"
 
-writeString :: Name -> Operand
-writeString = ConstantOperand . C.GlobalReference writeStringType
+writeString :: Operand
+writeString = consGlobalRef writeStringType "writeString"
 
 printfType = ptr $ FunctionType {
     resultType = i32

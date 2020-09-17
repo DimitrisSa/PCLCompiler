@@ -9,7 +9,7 @@ import ValTypes
 import StmtSems
 import LLVM.Context
 import LLVM.Module
-import Emit (codegen,codegen')
+import Emit (codegen)
 import SemsCodegen
 import qualified LLVM.AST as AST
 import qualified LLVM.AST.Type as T
@@ -18,9 +18,19 @@ import qualified LLVM.AST.Float as F
 import Data.String.Transform
 import Data.Char (ord)
 import Data.List.Index
+import System.Process
+import Data.ByteString.Char8 (unpack)
 
 process :: IO ()
 process = sems'
+
+codegen' :: AST.Module -> IO ()
+codegen' m =
+  withContext $ \context -> withModuleFromAST context m $ \m -> do
+    llstr <- moduleLLVMAssembly m
+    --putStrLn $ unpack llstr
+    writeFile "llvmhs.ll" $ unpack llstr
+    callCommand "./usefulHs.sh"
 
 sems' :: IO ()
 sems' = do
@@ -124,51 +134,99 @@ stmtsSems ss = mapM_ stmtSems ss
 
 stmtSems :: Stmt -> Sems ()
 stmtSems = \case
-  Empty                         -> return ()
-  Assignment posn lVal expr     -> do
-                                     assignmentSems posn lVal expr
-                                     cgenAssign lVal expr 
-  Block      stmts              -> stmtsSems $ reverse stmts
-  CallS      (id,exprs)         -> callSems id $ reverse exprs
-  IfThen     posn e s           -> do
-                                     (ty,op) <- exprTypeOper e
-                                     boolCases posn "if-then" ty
-                                     stmtSems s
-  IfThenElse posn e s1 s2       -> do
-                                     (ty,op) <- exprTypeOper e
-                                     boolCases posn "if-then-else" ty
-                                     stmtsSems [s1,s2]
-  While      posn e stmt        -> do
-                                     (ty,op) <- exprTypeOper e
-                                     boolCases posn "while" ty
-                                     stmtSems stmt
-  Label      lab stmt           -> lookupInLabelMap lab >>= labelCases lab >> stmtSems stmt
-  GoTo       lab                -> lookupInLabelMap lab >>= goToCases lab
-  Return                        -> return ()
-  New        posn new lVal      -> newSems posn new lVal
-  Dispose    posn disptype lVal -> disposeSems posn disptype lVal
+  Empty                      -> return ()
+  Assignment posn lVal expr  -> assignmentSems posn lVal expr
+  Block stmts                -> stmtsSems $ reverse stmts
+  CallS (id,exprs)           -> callSems id $ reverse exprs
+  IfThen posn e s            -> exprTypeOper e >>= boolCases posn "if-then" >>= 
+                                cgenIfThen s
+  IfThenElse posn e s1 s2    -> exprTypeOper e >>= boolCases posn "if-then-else" >>=
+                                cgenIfThenElse s1 s2
+  While posn e stmt          -> whileSemsIR posn e stmt
+  Label lab stmt             -> lookupInLabelMap lab >>= labelCases lab >> stmtSems stmt
+  GoTo lab                   -> lookupInLabelMap lab >>= goToCases lab
+  Return                     -> return ()
+  New posn new lVal          -> newSemsIR posn new lVal
+  Dispose posn disptype lVal -> disposeSems posn disptype lVal
 
-cgenAssign :: LVal -> Expr -> Sems ()
-cgenAssign lVal expr = do
-  (_,lValOper) <- lValTypeOper lVal
-  (_,exprOper) <- exprTypeOper expr
-  store lValOper exprOper
+whileSemsIR :: (Int,Int) -> Expr -> Stmt -> Sems ()
+whileSemsIR posn expr stmt = do
+  while     <- addBlock "while"
+  whileExit <- addBlock "while.exit"
+
+  cond <- exprTypeOper expr >>= boolCases posn "while"
+  cbr cond while whileExit
+
+  setBlock while
+  stmtSems stmt          
+  cond <- exprTypeOper expr >>= boolCases posn "while"
+  cbr cond while whileExit
+
+  setBlock whileExit
+
+
+cgenIfThenElse :: Stmt -> Stmt -> AST.Operand -> Sems ()
+cgenIfThenElse stmt1 stmt2 cond = do
+  ifthen <- addBlock "if.then"
+  ifelse <- addBlock "if.else"
+  ifexit <- addBlock "if.exit"
+
+  cbr cond ifthen ifelse
+
+  setBlock ifthen
+  stmtSems stmt1
+  br ifexit     
+
+  setBlock ifelse
+  stmtSems stmt2
+  br ifexit     
+
+  setBlock ifexit
+
+
+cgenIfThen :: Stmt -> AST.Operand -> Sems ()
+cgenIfThen stmt cond = do
+  ifthen <- addBlock "if.then"
+  ifexit <- addBlock "if.exit"
+
+  cbr cond ifthen ifexit
+
+  setBlock ifthen
+  stmtSems stmt          
+  br ifexit              
+
+  setBlock ifexit
 
 callSems :: Id -> [Expr] -> Sems ()
 callSems id exprs = searchCallableInSymTabs id >>= \case
-  ProcDclr fs -> formalsExprsMatch id fs exprs
-  Proc     fs -> formalsExprsMatch id fs exprs
+  ProcDclr fs -> formalsExprsMatch id fs exprs >> cgenCallStmt id exprs 
+  Proc     fs -> formalsExprsMatch id fs exprs >> cgenCallStmt id exprs 
   _           -> errAtId "Use of function in call statement: " id
+
+idToName :: Id -> AST.Name
+idToName = idString >>> toName
+
+cgenCallStmt :: Id -> [Expr] -> Sems ()
+cgenCallStmt id exprs = do
+  args <- mapM (exprTypeOper >=> snd >>> return) exprs
+  callVoid (idToFunOper id) args
+
+idToFunOper = idString >>> \case
+  "writeInteger" -> writeInteger
+  "writeChar"    -> writeChar 
+  "writeReal"    -> writeReal
+  "writeString"  -> writeString 
+  _ -> undefined
 
 assignmentSems :: (Int,Int) -> LVal -> Expr -> Sems ()
 assignmentSems posn = \case
   StrLiteral str -> \_ -> errPos posn $ "Assignment to string literal: " ++ str
   lVal           -> lValExprTypeOpers lVal >=> notStrLiteralSems posn
 
-newSems :: (Int,Int) -> New -> LVal -> Sems ()
-newSems posn = \case
-  NewNoExpr -> lValTypeOper >=> newNoExprSems posn
-  NewExpr e -> exprLValTypes e >=> newExprSems posn
+newSemsIR :: (Int,Int) -> New -> LVal -> Sems ()
+newSemsIR posn = \case
+  NewNoExpr -> lValTypeOper >=> newNoExprSemsIR posn
+  NewExpr e -> exprLValTypeOpers e >=> newExprSems posn
 
 disposeSems :: (Int,Int) -> DispType -> LVal -> Sems ()
 disposeSems posn = \case
@@ -177,7 +235,7 @@ disposeSems posn = \case
 
 exprTypeOper :: Expr -> Sems (Type,AST.Operand)
 exprTypeOper = \case
-  LVal lval -> lValTypeOper lval
+  LVal lval -> lValTypeOper lval >>= \(ty,op) -> load op >>= \op' -> return (ty,op')
   RVal rval -> rValTypeOper rval
 
 lValTypeOper :: LVal -> Sems (Type,AST.Operand)
@@ -203,9 +261,8 @@ strLiteralSemsIR string = do
 
 cgenStrLitChar :: AST.Operand -> (Int,Char) -> Sems ()
 cgenStrLitChar strOper (ind,char) = do
-  charPtr <- getElemPtr' strOper (cons $ C.Int 16 $ toInteger ind)
+  charPtr <- getElemPtr' strOper ind
   store charPtr $ cons $ C.Int 8 $ toInteger $ ord char
-
 
 exprLValTypeOpers expr lVal = do
   eto <- exprTypeOper expr
@@ -225,7 +282,7 @@ rValTypeOper = \case
   RealR   double     -> right (RealT,cons $ C.Float $ F.Double double) --X86_FP80
   CharR   char       -> right (CharT,cons $ C.Int 8 $ toInteger $ ord char)
   ParenR  rVal       -> rValTypeOper rVal
-  NilR               -> right (Nil,cons $ C.Null $ T.ptr T.void)
+  NilR               -> right (Nil,cons $ C.Int 1 0)
   CallR   (id,exprs) -> callType id $ reverse exprs
   Papaki  lVal       -> lValTypeOper lVal >>= \(ty,op) -> right (Pointer ty,op)
   Not     posn expr  -> exprTypeOper expr >>= notCases posn

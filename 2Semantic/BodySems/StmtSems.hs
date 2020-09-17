@@ -2,6 +2,9 @@ module StmtSems where
 import Prelude hiding (lookup)
 import Control.Monad.Trans.Either
 import Common
+import LLVM.AST
+import qualified LLVM.AST.Constant as C
+import SemsCodegen
 
 labelCases :: Id -> Maybe Bool -> Sems ()
 labelCases id = \case
@@ -14,32 +17,48 @@ goToCases id = \case
   Nothing -> errAtId "Goto undefined label: " id
   _       -> return ()
 
-boolCases :: (Int,Int) -> String -> TyOper -> Sems ()
+boolCases :: (Int,Int) -> String -> TyOper -> Sems Operand
 boolCases posn err = \case
-  (BoolT,_) -> return ()
-  _         -> errPos posn $ "Non-boolean expression in " ++ err
+  (BoolT,op) -> return op
+  _          -> errPos posn $ "Non-boolean expression in " ++ err
 
 pointerCases :: (Int,Int) -> String -> TyOper -> Sems TyOper
 pointerCases posn err = \case
-  (Pointer t,op) -> return (t,undefined)
+  (Pointer t,op) -> return (t,op)
   _              -> errPos posn err
 
 newPointerCases :: (Int,Int) -> TyOper -> Sems TyOper
 newPointerCases posn = pointerCases posn "non-pointer in new statement"
 
-caseFalseThrowErr :: (Int,Int) -> String -> Bool -> Sems ()
-caseFalseThrowErr posn err = \case
-  True -> return ()
-  _    -> errPos posn err
+newNoExprSemsIR :: (Int,Int) -> TyOper -> Sems ()
+newNoExprSemsIR posn = newPointerCases posn >=> \(ty,op) -> 
+  newNoExprSemsIR' posn newNoExprErr op (fullType ty)
 
-newNoExprSems :: (Int,Int) -> TyOper -> Sems ()
-newNoExprSems posn = newPointerCases posn >=> fst >>> fullType >>>
-  caseFalseThrowErr posn "new l statement: l must not be of type ^array of t"
+newNoExprErr :: String
+newNoExprErr = "new l statement: l must not be of type ^array of t"
+
+newNoExprSemsIR' :: (Int,Int) -> String -> Operand -> Bool -> Sems ()
+newNoExprSemsIR' posn err lValOp = \case
+  True ->  do
+    newPtr <- alloca $ case lValOp of
+      LocalReference ty name -> ty
+      _                      -> error "cgenNewNoExpr: should not happen"
+    store lValOp newPtr
+  _    -> errPos posn err
 
 newExprSems :: (Int,Int) -> (TyOper,TyOper) -> Sems ()
 newExprSems posn (eto,lto) =
   intCases posn eto >> newPointerCases posn lto >>= fst >>> fullType >>> not >>>
   caseFalseThrowErr posn "new [e] l statement: l must be of type ^array of t"
+
+intCases posn = \case
+  (IntT,op) -> return ()
+  _         -> errPos posn "new [e] l statement: e must be of type integer" 
+
+caseFalseThrowErr :: (Int,Int) -> String -> Bool -> Sems ()
+caseFalseThrowErr posn err = \case
+  True -> return ()
+  _    -> errPos posn err
 
 dispPointerCases :: (Int,Int) -> TyOper -> Sems TyOper
 dispPointerCases posn = pointerCases posn "non-pointer in dispose statement"
@@ -53,10 +72,12 @@ dispWithSems posn = dispPointerCases posn >=> fst >>> fullType >>> not >>>
   caseFalseThrowErr posn "dispose [] l statement: l must be of type ^array of t"
 
 notStrLiteralSems :: (Int,Int) -> (TyOper,TyOper) -> Sems ()
-notStrLiteralSems posn ((t1,_),(t2,_)) = 
-  caseFalseThrowErr posn ("type mismatch in assignment" ++ show t1 ++ show t2)
-      (symbatos (t1,t2))
-
-intCases posn = \case
-  (IntT,op) -> return ()
-  _         -> errPos posn "new [e] l statement: e must be of type integer" 
+notStrLiteralSems posn ((lt,lOp),(et,eOp)) = do
+  caseFalseThrowErr posn ("type mismatch in assignment -> " ++ show lt ++ " " ++ show et)
+      (symbatos (lt,et))
+  eOp' <- case (lt,et) of 
+          (RealT,IntT)    -> sitofp eOp
+          (Pointer t,Nil) -> return $ cons $ C.Null $ toTType $ Pointer t
+          (Pointer (Array NoSize t1),Pointer (Array (Size _) _)) -> getElemPtrInt eOp 0
+          _               -> return eOp
+  store lOp eOp'

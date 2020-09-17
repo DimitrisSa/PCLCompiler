@@ -149,8 +149,8 @@ cgenCallStmt :: Id -> [Expr] -> Codegen ()
 cgenCallStmt id exprs = do
   largs <- mapM cgenExpr exprs
   case idToName id of
-    "writeReal" -> callVoid (writeReal $ idToName id) largs
-    "writeString" -> callVoid (writeString $ idToName id) largs
+    "writeReal" -> callVoid writeReal largs
+    "writeString" -> callVoid writeString largs
     _ -> undefined
 
 cgenCallR :: Id -> [Expr] -> Codegen Operand

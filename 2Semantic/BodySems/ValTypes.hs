@@ -21,9 +21,11 @@ dereferenceCases posn = \case
 
 indexingCases :: (Int,Int) -> (TyOper,TyOper) -> Sems TyOper
 indexingCases posn = \case
-  ((Array _ t,op1),(IntT,op2)) -> right (t,undefined)
-  (_        ,(IntT,_)) -> errPos posn "indexing non-array"
-  _                -> errPos posn "non-integer index"
+  ((Array _ t,lOp),(IntT,eOp)) -> do
+    elemOp<- getElemPtr lOp eOp
+    right (t,elemOp)
+  ((Array _ _,_)  ,(_,_)     ) -> errPos posn "non-integer index"
+  _                            -> errPos posn "indexing non-array"
 
 comparisonCases :: (Int,Int) -> String -> [TyOper] -> Sems TyOper 
 comparisonCases posn a = \case

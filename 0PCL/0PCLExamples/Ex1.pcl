@@ -1,4 +1,10 @@
 program hello;
+var  a:real;b:integer;c:char;
 begin
-  writeString("Hello World!\n");
+  b := 1;
+  a := b;
+  c := 'c';
+  writeReal(a);
+  writeInteger(b);
+  writeChar(c);
 end.

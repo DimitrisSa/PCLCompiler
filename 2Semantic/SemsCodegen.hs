@@ -52,7 +52,7 @@ defineFun name retty frmls codegen = do
     , name = toName name
     , parameters =  (
         fmap (frmlToTy >>> tyToParam) $ indexed frmls
-      , False
+      , case name of "writeString" -> True; _ -> False
       )
     , basicBlocks = blocks
     } 
@@ -139,12 +139,12 @@ instrDo ins = do
   let i = stack blk
   modifyBlock (blk { stack = (Do ins) : i } )
 
---terminator :: Named Terminator -> Sems (Named Terminator)
---terminator trm = do
---  blk <- current
---  modifyBlock (blk { term = Just trm })
---  return trm
---
+terminator :: Named Terminator -> Sems (Named Terminator)
+terminator trm = do
+  blk <- current
+  modifyBlock (blk { term = Just trm })
+  return trm
+
 terminatorVoid :: Named Terminator -> Sems ()
 terminatorVoid trm = do
   blk <- current
@@ -166,10 +166,8 @@ addBlock bname = do
                    }
   return (toShortName qname)
 
-setBlock :: Name -> Sems Name
-setBlock bname = do
-  modifyCodegen $ \s -> s { currentBlock = bname }
-  return bname
+setBlock :: Name -> Sems ()
+setBlock bname = modifyCodegen $ \s -> s { currentBlock = bname }
 
 --getBlock :: Sems Name
 --getBlock = gets currentBlock
@@ -218,26 +216,42 @@ printfType = ptr $ FunctionType {
   , isVarArg = True
   }
 
---
---writeReal :: Name -> Operand
---writeReal = ConstantOperand . C.GlobalReference writeRealType
---
---writeString :: Name -> Operand
---writeString = ConstantOperand . C.GlobalReference writeStringType
---
---
---writeStringType = ptr $ FunctionType {
---    resultType = T.void
---  , argumentTypes = [ptr i8]
---  , isVarArg = True
---  }
---
---writeRealType = ptr $ FunctionType {
---    resultType = T.void
---  , argumentTypes = [double]
---  , isVarArg = False
---  }
---  
+writeInteger :: Operand
+writeInteger = consGlobalRef writeIntegerType "writeInteger"
+
+writeIntegerType = ptr $ FunctionType {
+    resultType = T.void
+  , argumentTypes = [i16]
+  , isVarArg = False
+  }
+  
+writeChar :: Operand
+writeChar = consGlobalRef writeCharType "writeChar"
+
+writeCharType = ptr $ FunctionType {
+    resultType = T.void
+  , argumentTypes = [i8]
+  , isVarArg = False
+  }
+  
+writeReal :: Operand
+writeReal = consGlobalRef writeRealType "writeReal"
+
+writeRealType = ptr $ FunctionType {
+    resultType = T.void
+  , argumentTypes = [double]
+  , isVarArg = False
+  }
+  
+writeString :: Operand
+writeString = consGlobalRef writeStringType "writeString"
+
+writeStringType = ptr $ FunctionType {
+    resultType = T.void
+  , argumentTypes = [ptr i8]
+  , isVarArg = True
+  }
+
 fadd :: Operand -> Operand -> Sems Operand
 fadd a b = instr $ FAdd noFastMathFlags a b []
 
@@ -294,7 +308,7 @@ toArgs = map (\x -> (x, []))
 --
 callVoid :: Operand -> [Operand] -> Sems ()
 callVoid fn args = instrDo $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
---
+
 alloca :: T.Type -> Sems Operand
 alloca ty = instr $ Alloca ty Nothing 0 []
 
@@ -303,28 +317,35 @@ allocaNum oper ty = instr $ Alloca ty (Just oper) 0 []
 
 store :: Operand -> Operand -> Sems ()
 store ptr val = instrDo $ Store False ptr val Nothing 0 []
---
---load :: Operand -> Sems Operand
---load ptr = instr $ Load False ptr Nothing 0 []
---
---getElemPtr :: Operand -> Operand -> Sems Operand
---getElemPtr arrPtr ind =
---  instr $ GetElementPtr False arrPtr [cons $ C.Int 16 $ toInteger 0,ind] []
---
---getElemPtrInBounds :: Operand -> Operand -> Sems Operand
---getElemPtrInBounds arrPtr ind =
---  instr $ GetElementPtr True arrPtr [cons $ C.Int 16 $ toInteger 0,ind] []
---
-getElemPtr' :: Operand -> Operand -> Sems Operand
-getElemPtr' arrPtr ind =
-  instr $ GetElementPtr False arrPtr [ind] []
 
---br :: Name -> Sems (Named Terminator)
---br val = terminator $ Do $ Br val []
---
---cbr :: Operand -> Name -> Name -> Sems (Named Terminator)
---cbr cond tr fl = terminator $ Do $ CondBr cond tr fl []
---
+load :: Operand -> Sems Operand
+load ptr = instr $ Load False ptr Nothing 0 []
+
+getElemPtr :: Operand -> Operand -> Sems Operand
+getElemPtr arrPtr ind =
+  instr $ GetElementPtr False arrPtr [toConsI16 0,ind] []
+
+getElemPtrInt :: Operand -> Int -> Sems Operand
+getElemPtrInt arrPtr ind =
+  instr $ GetElementPtr False arrPtr [toConsI16 0,toConsI16 ind] []
+
+getElemPtrInBounds :: Operand -> Int -> Sems Operand
+getElemPtrInBounds arrPtr ind =
+  instr $ GetElementPtr True arrPtr [toConsI16 0,toConsI16 ind] []
+
+getElemPtr' :: Operand -> Int -> Sems Operand
+getElemPtr' arrPtr ind =
+  instr $ GetElementPtr False arrPtr [toConsI16 ind] []
+
+toConsI16 :: Int -> Operand
+toConsI16 = cons . C.Int 16 . toInteger
+
+br :: Name -> Sems (Named Terminator)
+br val = terminator $ Do $ Br val []
+
+cbr :: Operand -> Name -> Name -> Sems (Named Terminator)
+cbr cond tr fl = terminator $ Do $ CondBr cond tr fl []
+
 --ret :: Operand -> Sems (Named Terminator)
 --ret val = terminator $ Do $ Ret (Just val) []
 --

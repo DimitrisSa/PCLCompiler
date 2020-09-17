@@ -4,6 +4,8 @@ import LLVM.AST
 import LLVM.AST.Global
 import LLVM.AST.Type as T
 import LLVM.AST.AddrSpace
+import qualified LLVM.AST.Constant as C
+import qualified LLVM.AST.Linkage as L
 import SemsCodegen
 
 initSymTab :: Sems ()
@@ -49,14 +51,38 @@ insertFuncToSymTabAndDefs name frmls retty = do
   defineFun name (toTType retty) frmls (codegenFromName name)
 
 codegenFromName = \case
-  "writeString" -> writeStringCodeGen
-  _             -> return ()
+  "writeInteger" -> writeCodeGen ".intStr" 100
+  "writeChar"    -> writeCodeGen ".charStr" 99
+  "writeReal"    -> writeCodeGen ".realStr" 102
+  "writeString"  -> writeStringCodeGen
+  _              -> return ()
 
 writeStringCodeGen :: Sems ()
 writeStringCodeGen = do 
   entry <- addBlock "entry"
   setBlock entry
   callVoid printf [ LocalReference (ptr i8) (UnName 0) ]
+  retVoid
+
+addGlobalStr :: String -> Integer -> Sems ()
+addGlobalStr strName asciiNum =
+  addGlobalDef globalVariableDefaults {
+    name = toName strName
+  , linkage = L.Private
+  , unnamedAddr = Just GlobalAddr
+  , isConstant = True
+  , LLVM.AST.Global.type' = ArrayType 4 i8 
+  , LLVM.AST.Global.alignment = 1
+  , initializer = Just $ C.Array i8 [C.Int 8 37, C.Int 8 asciiNum,C.Int 8 10, C.Int 8 0]
+  }
+
+writeCodeGen :: String -> Integer -> Sems ()
+writeCodeGen str num = do 
+  addGlobalStr str num
+  entry <- addBlock "entry"
+  setBlock entry
+  str <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 4 i8)) $ toName str) 0
+  callVoid printf [str,LocalReference double (UnName 0)]
   retVoid
 
 dummy :: String -> Id
