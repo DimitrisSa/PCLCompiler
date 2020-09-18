@@ -3,45 +3,22 @@
 
 module SemsCodegen where
 
---import Data.Word
---import Data.String
 import Data.List
 import Data.Function
---import Data.String.Transform
 import qualified Data.Map as Map
---
---import Control.Monad.State
---import Control.Applicative
---
 import LLVM.AST
 import LLVM.AST.Global
 import LLVM.AST.Type as T
---import qualified LLVM.AST as AST
---
---import qualified LLVM.AST.Linkage as L
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Attribute as A
 import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.FloatingPointPredicate as FP
 import qualified LLVM.AST.IntegerPredicate as I
---import LLVM.AST.AddrSpace
---
 import Parser as P
 import SemsTypes
 import Data.List.Index
 import Data.String.Transform
---
---type LLVM = State AST.Module
---
---define ::  T.Type -> String -> [(T.Type, Name)] -> [BasicBlock] -> Sems ()
---define retty label argtys body = do
---  
---  addGlobalDef functionDefaults {
---    name        = toShortName label
---  , parameters  = ([Parameter ty nm [] | (ty, nm) <- argtys], False)
---  , returnType  = retty
---  , basicBlocks = body
---  }
+
 defineFun :: String -> T.Type -> [Frml] -> Sems () -> Sems ()
 defineFun name retty frmls codegen = do
   modifyCodegen $ \_ -> emptyCodegen
@@ -68,39 +45,12 @@ frmlToTy (i,(by,_,ty)) = (fromIntegral i,case by of
 toName :: String -> Name
 toName = toShortByteString >>> Name
 
---
---writeRealDef :: [BasicBlock] -> LLVM ()
---writeRealDef blks = do
---  addDefn $ GlobalDefinition $ globalVariableDefaults {
---      name = Name ".str"
---    , linkage = L.Private
---    , unnamedAddr = Just GlobalAddr
---    , isConstant = True
---    , LLVM.AST.Global.type' = ArrayType 4 i8 
---    , LLVM.AST.Global.alignment = 1
---    , initializer = Just $ C.Array i8 [C.Int 8 37, C.Int 8 102,C.Int 8 10, C.Int 8 0]
---    }
---  addDefn $ GlobalDefinition $ functionDefaults {
---      returnType = T.void
---    , name = Name "writeReal"
---    , parameters = (
---        [ Parameter double (UnName 0) [] ]
---      , False
---      )
---    , basicBlocks = blks
---    } 
---
---type Names = Map.Map String Int
---
-
 uniqueName :: String -> Names -> (String, Names)
 uniqueName nm ns =
   case Map.lookup nm ns of
     Nothing -> (nm,  Map.insert nm 1 ns)
     Just ix -> (nm ++ show ix, Map.insert nm (ix+1) ns)
---
---type SymbolTable = [(String, Operand)]
---
+
 sortBlocks :: [(Name, BlockState)] -> [(Name, BlockState)]
 sortBlocks = sortBy (compare `on` (idx . snd))
 
@@ -124,14 +74,14 @@ fresh = do
   modifyCodegen $ \s -> s { count = 1 + i }
   return $ i + 1
 
-instr :: Instruction -> Sems Operand
-instr ins = do
+instr :: T.Type -> Instruction -> Sems Operand
+instr retty ins =  do
   n <- fresh
   let ref = (UnName n)
   blk <- current
   let i = stack blk
   modifyBlock (blk { stack = (ref := ins) : i } )
-  return $ local ref
+  return $ local retty ref
 
 instrDo :: Instruction -> Sems ()
 instrDo ins = do
@@ -150,9 +100,6 @@ terminatorVoid trm = do
   blk <- current
   modifyBlock (blk { term = Just trm })
 
---entry :: Sems Name
---entry = gets currentBlock
-
 addBlock :: String -> Sems Name
 addBlock bname = do
   bls <- getFromCodegen blocks
@@ -169,9 +116,9 @@ addBlock bname = do
 setBlock :: Name -> Sems ()
 setBlock bname = modifyCodegen $ \s -> s { currentBlock = bname }
 
---getBlock :: Sems Name
---getBlock = gets currentBlock
---
+getBlock :: Sems Name
+getBlock = getFromCodegen currentBlock
+
 modifyBlock :: BlockState -> Sems ()
 modifyBlock new = do
   active <- getFromCodegen currentBlock
@@ -197,12 +144,8 @@ getvar var = do
     Just x  -> return x
     Nothing -> error $ "Local variable not in scope: " ++ show var
 
-local ::  Name -> Operand
-local = LocalReference double
---
---global ::  Name -> C.Constant
---global = C.GlobalReference double
---
+local :: T.Type -> Name -> Operand
+local = LocalReference
 
 consGlobalRef :: T.Type -> Name -> Operand
 consGlobalRef ty name = ConstantOperand $ C.GlobalReference ty name
@@ -216,12 +159,30 @@ printfType = ptr $ FunctionType {
   , isVarArg = True
   }
 
+scanf :: Operand
+scanf = consGlobalRef scanfType "__isoc99_scanf"
+
+scanfType = ptr $ FunctionType {
+    resultType = i32
+  , argumentTypes = [ptr i8]
+  , isVarArg = True
+  }
+
 writeInteger :: Operand
 writeInteger = consGlobalRef writeIntegerType "writeInteger"
 
 writeIntegerType = ptr $ FunctionType {
     resultType = T.void
   , argumentTypes = [i16]
+  , isVarArg = False
+  }
+  
+writeBoolean :: Operand
+writeBoolean = consGlobalRef writeBooleanType "writeBoolean"
+
+writeBooleanType = ptr $ FunctionType {
+    resultType = T.void
+  , argumentTypes = [i1]
   , isVarArg = False
   }
   
@@ -252,93 +213,114 @@ writeStringType = ptr $ FunctionType {
   , isVarArg = True
   }
 
+readString :: Operand
+readString = consGlobalRef readStringType "readString"
+
+readStringType = ptr $ FunctionType {
+    resultType = T.void
+  , argumentTypes = [i16, ptr i8]
+  , isVarArg = False
+  }
+
 fadd :: Operand -> Operand -> Sems Operand
-fadd a b = instr $ FAdd noFastMathFlags a b []
+fadd a b = instr double $ FAdd noFastMathFlags a b []
 
 add :: Operand -> Operand -> Sems Operand
-add a b = instr $ Add False False a b []
+add a b = instr i16 $ Add False False a b []
 
 fsub :: Operand -> Operand -> Sems Operand
-fsub a b = instr $ FSub noFastMathFlags a b []
+fsub a b = instr double $ FSub noFastMathFlags a b []
 
 sub :: Operand -> Operand -> Sems Operand
-sub a b = instr $ Sub False False a b []
+sub a b = instr i16 $ Sub False False a b []
 
 fmul :: Operand -> Operand -> Sems Operand
-fmul a b = instr $ FMul noFastMathFlags a b []
+fmul a b = instr double $ FMul noFastMathFlags a b []
 
 mul :: Operand -> Operand -> Sems Operand
-mul a b = instr $ LLVM.AST.Mul False False a b []
+mul a b = instr i16 $ LLVM.AST.Mul False False a b []
 
 fdiv :: Operand -> Operand -> Sems Operand
-fdiv a b = instr $ FDiv noFastMathFlags a b []
+fdiv a b = instr double $ FDiv noFastMathFlags a b []
 
 sdiv :: Operand -> Operand -> Sems Operand
-sdiv a b = instr $ SDiv False a b []
+sdiv a b = instr i16 $ SDiv False a b []
 
 srem :: Operand -> Operand -> Sems Operand
-srem a b = instr $ SRem a b []
+srem a b = instr i16 $ SRem a b []
 
 orInstr :: Operand -> Operand -> Sems Operand
-orInstr a b = instr $ LLVM.AST.Or a b []
+orInstr a b = instr i1 $ LLVM.AST.Or a b []
 
 andInstr :: Operand -> Operand -> Sems Operand
-andInstr a b = instr $ LLVM.AST.And a b []
+andInstr a b = instr i1 $ LLVM.AST.And a b []
 
 fcmp :: FP.FloatingPointPredicate -> Operand -> Operand -> Sems Operand
-fcmp cond a b = instr $ FCmp cond a b []
---
-icmp :: I.IntegerPredicate -> Operand -> Operand -> Sems Operand
-icmp cond a b = instr $ ICmp cond a b []
+fcmp cond a b = instr i1 $ FCmp cond a b []
 
---phi :: AST.Type -> [(Operand, Name)] -> Sems ()
---phi ty incoming = instrDo $ Phi ty incoming []
---
+icmp :: I.IntegerPredicate -> Operand -> Operand -> Sems Operand
+icmp cond a b = instr i1 $ ICmp cond a b []
+
+phi :: T.Type -> [(Operand, Name)] -> Sems Operand
+phi ty incoming = instr ty $ Phi ty incoming []
+
 cons :: C.Constant -> Operand
 cons = ConstantOperand
---
+
 sitofp :: Operand -> Sems Operand
-sitofp a = instr $ SIToFP a double []
---
+sitofp a = instr double $ SIToFP a double []
+
 toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
 toArgs = map (\x -> (x, []))
---
+
 --call :: Operand -> [Operand] -> Sems Operand
 --call fn args = instr $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
---
+
 callVoid :: Operand -> [Operand] -> Sems ()
 callVoid fn args = instrDo $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
 
 alloca :: T.Type -> Sems Operand
-alloca ty = instr $ Alloca ty Nothing 0 []
+alloca ty = instr (ptr ty) $ Alloca ty Nothing 0 []
 
 allocaNum :: Operand -> T.Type -> Sems Operand
-allocaNum oper ty = instr $ Alloca ty (Just oper) 0 []
+allocaNum oper ty = instr (ptr ty) $ Alloca ty (Just oper) 0 []
 
 store :: Operand -> Operand -> Sems ()
 store ptr val = instrDo $ Store False ptr val Nothing 0 []
 
 load :: Operand -> Sems Operand
-load ptr = instr $ Load False ptr Nothing 0 []
+load ptr = instr (ptrToRetty ptr) $ Load False ptr Nothing 0 []
+
+ptrToRetty :: Operand -> T.Type
+ptrToRetty = \case
+  LocalReference (PointerType t _) _ -> t
+  ConstantOperand (C.GlobalReference (PointerType t _) _) -> t
+  t -> error $ "Not a pointer: " ++ show t
+  
 
 getElemPtr :: Operand -> Operand -> Sems Operand
 getElemPtr arrPtr ind =
-  instr $ GetElementPtr False arrPtr [toConsI16 0,ind] []
+  instr double $ GetElementPtr False arrPtr [toConsI16 0,ind] []
+
+getElemPtrDeep :: Operand -> Operand -> Sems Operand
+getElemPtrDeep arrPtr ind =
+  instr double $ GetElementPtr False arrPtr [toConsI16 0,toConsI16 0,ind] []
 
 getElemPtrInt :: Operand -> Int -> Sems Operand
 getElemPtrInt arrPtr ind =
-  instr $ GetElementPtr False arrPtr [toConsI16 0,toConsI16 ind] []
+  instr double $ GetElementPtr False arrPtr [toConsI16 0,toConsI16 ind] []
 
 getElemPtrInBounds :: Operand -> Int -> Sems Operand
 getElemPtrInBounds arrPtr ind =
-  instr $ GetElementPtr True arrPtr [toConsI16 0,toConsI16 ind] []
+  instr double $ GetElementPtr True arrPtr [toConsI16 0,toConsI16 ind] []
 
 getElemPtr' :: Operand -> Int -> Sems Operand
 getElemPtr' arrPtr ind =
-  instr $ GetElementPtr False arrPtr [toConsI16 ind] []
+  instr double $ GetElementPtr False arrPtr [toConsI16 ind] []
 
-toConsI16 :: Int -> Operand
-toConsI16 = cons . C.Int 16 . toInteger
+getElemPtrOp' :: Operand -> Operand -> Sems Operand
+getElemPtrOp' arrPtr ind =
+  instr double $ GetElementPtr False arrPtr [ind] []
 
 br :: Name -> Sems (Named Terminator)
 br val = terminator $ Do $ Br val []

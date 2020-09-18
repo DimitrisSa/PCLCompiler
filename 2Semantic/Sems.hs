@@ -9,7 +9,6 @@ import ValTypes
 import StmtSems
 import LLVM.Context
 import LLVM.Module
-import Emit (codegen)
 import SemsCodegen
 import qualified LLVM.AST as AST
 import qualified LLVM.AST.Type as T
@@ -22,54 +21,33 @@ import System.Process
 import Data.ByteString.Char8 (unpack)
 
 process :: IO ()
-process = sems'
+process = sems
 
-codegen' :: AST.Module -> IO ()
-codegen' m =
+codegen :: AST.Module -> IO ()
+codegen m =
   withContext $ \context -> withModuleFromAST context m $ \m -> do
     llstr <- moduleLLVMAssembly m
     --putStrLn $ unpack llstr
     writeFile "llvmhs.ll" $ unpack llstr
     callCommand "./usefulHs.sh"
 
-sems' :: IO ()
-sems' = do
-  c <- S.getContents
-  putStrLn c
-  parserCases' $ parser c
-
-parserCases' :: Either Error Program -> IO ()
-parserCases' = \case 
-  Left e    -> die e
-  Right ast -> astSems' ast
-
-astSems' :: Program -> IO ()
-astSems' ast =
-  let runProgramSems = programSems >>> runEitherT >>> runState
-  in case runProgramSems ast initState of
-    (Right _,(_,_,m,_)) -> codegen' m
-    (Left e,_)          -> die e
-
--- same name of fun inside of other fun?
-sems :: IO Program
+sems :: IO ()
 sems = do
   c <- S.getContents
-  putStrLn c
-  p <- parserCases $ parser c
-  --print p
-  return p
+  --putStrLn c
+  parserCases $ parser c
 
-parserCases :: Either Error Program -> IO Program
+parserCases :: Either Error Program -> IO ()
 parserCases = \case 
   Left e    -> die e
-  Right ast -> astSems ast
+  Right ast -> astSems ast -- >> print ast
 
-astSems :: Program -> IO Program
+astSems :: Program -> IO ()
 astSems ast =
   let runProgramSems = programSems >>> runEitherT >>> runState
   in case runProgramSems ast initState of
-    (Right _,_) -> return ast
-    (Left e,_)  -> die e
+    (Right _,(_,_,m,_)) -> codegen m
+    (Left e,_)          -> die e
 
 programSems :: Program -> Sems ()
 programSems (P id body) = do
@@ -117,7 +95,13 @@ cgenVars (ids,ty) = mapM_ (cgenVar ty) $ reverse ids
 cgenVar :: Type -> Id -> Sems ()
 cgenVar ty id = do 
   var <- alloca $ toTType ty
-  assign (idString id) var
+  var' <- case ty of 
+    Array _ _ -> do
+       var' <- alloca $ toTType $ Pointer ty
+       store var' var
+       return var'
+    _         -> return var
+  assign (idString id) var'
 
 headerBodySems :: Header -> Body -> Sems ()
 headerBodySems h b = do
@@ -208,14 +192,21 @@ idToName = idString >>> toName
 
 cgenCallStmt :: Id -> [Expr] -> Sems ()
 cgenCallStmt id exprs = do
-  args <- mapM (exprTypeOper >=> snd >>> return) exprs
+  args <- mapM (exprTypeOper >=> typeOperToArg) exprs
   callVoid (idToFunOper id) args
+
+typeOperToArg :: TyOper -> Sems AST.Operand
+typeOperToArg (ty,op) = case ty of
+  Array (Size _) _ -> getElemPtrInt op 0
+  _                -> return op
 
 idToFunOper = idString >>> \case
   "writeInteger" -> writeInteger
+  "writeBoolean" -> writeBoolean
   "writeChar"    -> writeChar 
   "writeReal"    -> writeReal
   "writeString"  -> writeString 
+  "readString"   -> readString
   _ -> undefined
 
 assignmentSems :: (Int,Int) -> LVal -> Expr -> Sems ()
@@ -253,11 +244,11 @@ lValTypeOper = \case
 strLiteralSemsIR :: String -> Sems TyOper
 strLiteralSemsIR string = do
   (_,num) <- rValTypeOper $ IntR $ length string + 1
-  strPtrOper <- alloca $ toTType $ Pointer CharT
+  strOperPtr <- alloca $ toTType $ Pointer CharT
   strOper <- allocaNum num $ toTType CharT
   mapM_ (cgenStrLitChar strOper) $ indexed $ string ++ ['\0']
-  store strPtrOper strOper
-  return (Array (Size $ length string + 1) CharT,strPtrOper)
+  store strOperPtr strOper 
+  return (Array NoSize CharT,strOperPtr)
 
 cgenStrLitChar :: AST.Operand -> (Int,Char) -> Sems ()
 cgenStrLitChar strOper (ind,char) = do

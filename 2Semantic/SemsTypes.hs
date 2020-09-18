@@ -6,6 +6,7 @@ import Control.Monad.Trans.Either
 import Data.Map (Map,empty,insert,lookup)
 import LLVM.AST
 import LLVM.AST.Type as T
+import LLVM.AST.Constant
 import Data.Bits.Extras
 import Data.String.Transform
 
@@ -152,10 +153,13 @@ toTType = \case
   RealT         -> double
   BoolT         -> i1
   CharT         -> i8
-  Array size ty -> arrayToTType ty size
+  P.Array size ty -> arrayToTType ty size
   Pointer ty    -> ptr $ toTType ty
 
 arrayToTType :: P.Type -> ArrSize -> T.Type
 arrayToTType ty = \case
   NoSize -> toTType ty -- is this right? what could the type be
   Size n -> ArrayType (w64 n) $ toTType ty
+
+toConsI16 :: Int -> Operand
+toConsI16 = ConstantOperand . Int 16 . toInteger

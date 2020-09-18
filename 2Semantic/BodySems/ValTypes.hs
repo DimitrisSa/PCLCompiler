@@ -22,7 +22,7 @@ dereferenceCases posn = \case
 indexingCases :: (Int,Int) -> (TyOper,TyOper) -> Sems TyOper
 indexingCases posn = \case
   ((Array _ t,lOp),(IntT,eOp)) -> do
-    elemOp<- getElemPtr lOp eOp
+    elemOp <- getElemPtrDeep lOp eOp
     right (t,elemOp)
   ((Array _ _,_)  ,(_,_)     ) -> errPos posn "non-integer index"
   _                            -> errPos posn "indexing non-array"
@@ -257,11 +257,18 @@ formalsExprsTypesMatch i id t1s t2s = case (t1s,t2s) of
 formalExprTypeMatch :: Int -> Id -> Type -> Type -> [(PassBy,Type)] -> [Type] -> Sems ()
 formalExprTypeMatch i id t1 t2 t1s t2s = case symbatos (t1,t2) of 
   True -> formalsExprsTypesMatch (i+1) id t1s t2s
-  _    -> errorAtArg i id
+  _    -> errorAtArg i id t1 t2
 
-errorAtArg :: Int -> Id -> Sems ()
-errorAtArg i (Id posn str) =
-  errPos posn $ concat ["Type mismatch at argument ",show i, " in call of: ", str]
+errorAtArg :: Int -> Id -> Type -> Type ->Sems ()
+errorAtArg i (Id posn str) t1 t2=
+  errPos posn $ concat ["Type mismatch at argument "
+                       ,show i
+                       ," in call of: "
+                       , str
+                       ," type 1: "
+                       , show t1
+                       ," type 2: "
+                       , show t2]
 
 nonNumAfErr :: String
 nonNumAfErr = "Non-number expression after: " 

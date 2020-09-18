@@ -1,10 +1,18 @@
 program hello;
-var  a:real;b:integer;c:char;
+var a:integer; b:real;c:boolean;d:char;e:array [10] of char;
 begin
-  b := 1;
-  a := b;
-  c := 'c';
-  writeReal(a);
-  writeInteger(b);
-  writeChar(c);
+  a := 1;
+  b := a;
+  c := true; 
+  d := 'c';
+  writeInteger(a);
+  writeReal(b);
+  writeBoolean(c);
+  writeChar(d);
+  writeString("Hello World\n");
+  readString(5,e);
+  e[2] := '1';
+  writeString(e);
+  readString(5,e);
+  writeString(e);
 end.
