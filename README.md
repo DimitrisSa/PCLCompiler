@@ -17,3 +17,5 @@ To Do:
 - dispose statement
 - find all the built-in functions in llvm and define them (like printf) ON THE WORKS
       -> then define the PCL equivalent (like writeString)
+
+ON THE WORKS = readBoolean,abs,pi,trunc,round,ord,chr left!
