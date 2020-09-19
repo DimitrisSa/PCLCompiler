@@ -1,4 +1,5 @@
 module Sems where
+import Prelude hiding (abs,cos,sin,tan,sqrt,exp)
 import Control.Monad.Trans.Either
 import System.IO as S
 import System.Exit
@@ -27,7 +28,7 @@ codegen :: AST.Module -> IO ()
 codegen m =
   withContext $ \context -> withModuleFromAST context m $ \m -> do
     llstr <- moduleLLVMAssembly m
-    --putStrLn $ unpack llstr
+    putStrLn $ unpack llstr
     writeFile "llvmhs.ll" $ unpack llstr
     callCommand "./usefulHs.sh"
 
@@ -207,7 +208,20 @@ idToFunOper = idString >>> \case
   "writeReal"    -> writeReal
   "writeString"  -> writeString 
   "readString"   -> readString
-  _ -> undefined
+  "readInteger"  -> readInteger
+  "readBoolean"  -> readBoolean
+  "readChar"     -> readChar
+  "readReal"     -> readReal
+  "abs"          -> abs
+  "fabs"         -> fabs
+  "sqrt"         -> sqrt
+  "sin"          -> sin
+  "cos"          -> cos
+  "tan"          -> tan
+  "arctan"       -> arctan
+  "exp"          -> exp
+  "ln"           -> ln
+  _              -> undefined
 
 assignmentSems :: (Int,Int) -> LVal -> Expr -> Sems ()
 assignmentSems posn = \case
@@ -297,12 +311,17 @@ rValTypeOper = \case
 exprsTypeOpers exp1 exp2 = mapM exprTypeOper [exp1,exp2]
 
 callType :: Id -> [Expr] -> Sems (Type,AST.Operand)
-callType id exprs = do
-  callable <- searchCallableInSymTabs id 
-  case callable of
-    FuncDclr fs t -> formalsExprsMatch id fs exprs >> right (t,undefined)
-    Func  fs t    -> formalsExprsMatch id fs exprs >> right (t,undefined)
-    _             -> errAtId "Use of procedure where a return value is required: " id
+callType id exprs = searchCallableInSymTabs id >>= \case
+  FuncDclr fs t -> callRSemsIR id fs exprs t 
+  Func  fs t    -> callRSemsIR id fs exprs t
+  _             -> errAtId "Use of procedure where a return value is required: " id
+
+callRSemsIR :: Id -> [Frml] -> [Expr] -> Type-> Sems TyOper
+callRSemsIR id fs exprs t = do
+  formalsExprsMatch id fs exprs
+  args <- mapM (exprTypeOper >=> typeOperToArg) exprs
+  op <- call (idToFunOper id) args
+  right (t,op)
 
 formalsExprsMatch :: Id -> [Frml] -> [Expr] -> Sems ()
 formalsExprsMatch id fs exprs = do

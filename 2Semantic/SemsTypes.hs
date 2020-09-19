@@ -163,3 +163,6 @@ arrayToTType ty = \case
 
 toConsI16 :: Int -> Operand
 toConsI16 = ConstantOperand . Int 16 . toInteger
+
+toConsI1 :: Int -> Operand
+toConsI1 = ConstantOperand . Int 1 . toInteger

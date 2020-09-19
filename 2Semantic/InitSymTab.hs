@@ -1,4 +1,5 @@
 module InitSymTab where
+import Prelude hiding (abs)
 import Common as P hiding (void) 
 import LLVM.AST
 import LLVM.AST.Global
@@ -55,12 +56,16 @@ insertFuncToSymTabAndDefs name frmls retty = do
   defineFun name (toTType retty) frmls (codegenFromName name)
 
 codegenFromName = \case
-  "writeInteger" -> writeCodeGen ".intStr" 'd'
+  "writeInteger" -> writeCodeGen ".intStr" "hi"
   "writeBoolean" -> writeBooleanCodeGen
-  "writeChar"    -> writeCodeGen ".charStr" 'c'
-  "writeReal"    -> writeCodeGen ".realStr" 'f'
+  "writeChar"    -> writeCodeGen ".charStr" "c"
+  "writeReal"    -> writeCodeGen ".realStr" "lf"
   "writeString"  -> writeStringCodeGen
   "readString"   -> readStringCodeGen
+  "readInteger"  -> readCodeGen ".scanInt" "hi"
+  --"readBoolean"  -> undefined
+  "readChar"     -> readCodeGen ".scanChar" "c"
+  "readReal"     -> readCodeGen ".scanReal" "lf"
   _              -> return ()
 
 addGlobalStr :: String -> Word64 -> String -> Sems ()
@@ -75,21 +80,22 @@ addGlobalStr strName strLen strVal =
   , initializer = Just $ C.Array i8 $ fmap toI8Cons $ strVal
   }
 
-writeCodeGen :: String -> Char -> Sems ()
-writeCodeGen str char = do 
-  addGlobalStr str 4 ['%',char,'\n','\0']
+writeCodeGen :: String -> String -> Sems ()
+writeCodeGen str1 str2 = do 
+  let len = fromIntegral $ 3 + length str2
+  addGlobalStr str1 len $ "%" ++ str2 ++ "\n\0"
   entry <- addBlock "entry"
   setBlock entry
-  str <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 4 i8)) $ toName str) 0
-  callVoid printf [str,LocalReference (typeFromChar char) (UnName 0)]
+  str1 <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType len i8)) $ toName str1) 0
+  callVoid printf [str1,LocalReference (typeFromStr str2) (UnName 0)]
   retVoid
 
-typeFromChar :: Char -> T.Type
-typeFromChar = \case
-  'c' -> i8
-  'd' -> i16
-  'f' -> double
-  c   -> error $ "typeFromChar: invalid char " ++ [c]
+typeFromStr :: String -> T.Type
+typeFromStr = \case
+  "c"  -> i8
+  "hi" -> i16
+  "lf"  -> double
+  s    -> error $ "typeFromStr: invalid str: " ++ s
 
 writeBooleanCodeGen :: Sems ()
 writeBooleanCodeGen = do 
@@ -126,37 +132,55 @@ writeStringCodeGen = do
   callVoid printf [ LocalReference (ptr i8) (UnName 0) ]
   retVoid
 
+readCodeGen :: String -> String -> Sems ()
+readCodeGen str1 str2 = do 
+  let len = fromIntegral $ 2 + length str2
+  addGlobalStr str1 len $ "%" ++ str2 ++ "\0"
+  entry <- addBlock "entry"
+  setBlock entry
+  str <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType len i8)) $ toName str1) 0
+  opPtr <- alloca $ typeFromStr str2
+  callVoid scanf [str,opPtr]
+  op <- load opPtr
+  str <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 3 i8)) $ toName "scanfChar") 0
+  charPtr <- alloca i8
+  callVoid scanf [str,charPtr] -- eat the newline
+  ret op
+
 readStringCodeGen :: Sems ()
 readStringCodeGen = do 
-  addGlobalStr "scanfStr" 3 "%c\0"
+  addGlobalStr "scanfChar" 3 "%c\0"
 
   fresh
   entry <- addBlock "entry"
   setBlock entry
   let intOp = LocalReference i16 (UnName 0)
   let strOp = LocalReference (ptr i8) (UnName 1)
-  str <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 3 i8)) $ toName "scanfStr") 0
+  str <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 3 i8)) $ toName "scanfChar") 0
 
-  while     <- addBlock "while"
+  while1    <- addBlock "while1"
+  while2    <- addBlock "while2"
   whileExit <- addBlock "while.exit"
 
   counter <- alloca i16
   store counter (toConsI16 0)
   intOpMinus1 <- sub intOp (toConsI16 1)
   cond <- icmp I.SLT (toConsI16 0) intOpMinus1 
-  cbr cond while whileExit
+  cbr cond while1 whileExit
 
-  setBlock while
+  setBlock while1
   counterVal <- load counter
   strOp' <- getElemPtrOp' strOp counterVal
   callVoid scanf [str,strOp']
   char <- load strOp'
   cond1 <- icmp I.NE char (cons $ toI8Cons '\n')
+  cbr cond1 while2 whileExit
+
+  setBlock while2
   counterVal' <- add counterVal (toConsI16 1)
   store counter counterVal'
   cond2 <- icmp I.SLT counterVal' intOpMinus1
-  cond' <- andInstr cond1 cond2
-  cbr cond' while whileExit
+  cbr cond2 while1 whileExit
 
   setBlock whileExit
   counterVal'' <- load counter

@@ -119,20 +119,20 @@ readString:                             # @readString
 	testw	%r14w, %r14w
 	jle	.LBB5_3
 	.p2align	4, 0x90
-.LBB5_1:                                # %while
+.LBB5_1:                                # %while1
                                         # =>This Inner Loop Header: Depth=1
 	movswq	14(%rsp), %rbp
 	leaq	(%rbx,%rbp), %rsi
-	movl	$.LscanfStr, %edi
+	movl	$.LscanfChar, %edi
 	xorl	%eax, %eax
 	callq	__isoc99_scanf
-	leal	1(%rbp), %eax
 	cmpb	$10, (%rbx,%rbp)
-	movw	%ax, 14(%rsp)
 	je	.LBB5_3
-# %bb.2:                                # %while
+# %bb.2:                                # %while2
                                         #   in Loop: Header=BB5_1 Depth=1
-	cmpw	%r14w, %ax
+	incl	%ebp
+	movw	%bp, 14(%rsp)
+	cmpw	%r14w, %bp
 	jl	.LBB5_1
 .LBB5_3:                                # %while.exit
 	movswq	14(%rsp), %rax
@@ -146,65 +146,162 @@ readString:                             # @readString
 	.size	readString, .Lfunc_end5-readString
 	.cfi_endproc
                                         # -- End function
+	.globl	readInteger             # -- Begin function readInteger
+	.p2align	4, 0x90
+	.type	readInteger,@function
+readInteger:                            # @readInteger
+	.cfi_startproc
+# %bb.0:                                # %entry
+	pushq	%rbx
+	.cfi_def_cfa_offset 16
+	subq	$16, %rsp
+	.cfi_def_cfa_offset 32
+	.cfi_offset %rbx, -16
+	leaq	12(%rsp), %rsi
+	movl	$.L.scanInt, %edi
+	xorl	%eax, %eax
+	callq	__isoc99_scanf
+	movzwl	12(%rsp), %ebx
+	leaq	15(%rsp), %rsi
+	movl	$.LscanfChar, %edi
+	xorl	%eax, %eax
+	callq	__isoc99_scanf
+	movl	%ebx, %eax
+	addq	$16, %rsp
+	popq	%rbx
+	retq
+.Lfunc_end6:
+	.size	readInteger, .Lfunc_end6-readInteger
+	.cfi_endproc
+                                        # -- End function
+	.globl	readChar                # -- Begin function readChar
+	.p2align	4, 0x90
+	.type	readChar,@function
+readChar:                               # @readChar
+	.cfi_startproc
+# %bb.0:                                # %entry
+	pushq	%rbx
+	.cfi_def_cfa_offset 16
+	subq	$16, %rsp
+	.cfi_def_cfa_offset 32
+	.cfi_offset %rbx, -16
+	leaq	14(%rsp), %rsi
+	movl	$.L.scanChar, %edi
+	xorl	%eax, %eax
+	callq	__isoc99_scanf
+	movb	14(%rsp), %bl
+	leaq	15(%rsp), %rsi
+	movl	$.LscanfChar, %edi
+	xorl	%eax, %eax
+	callq	__isoc99_scanf
+	movl	%ebx, %eax
+	addq	$16, %rsp
+	popq	%rbx
+	retq
+.Lfunc_end7:
+	.size	readChar, .Lfunc_end7-readChar
+	.cfi_endproc
+                                        # -- End function
+	.globl	readReal                # -- Begin function readReal
+	.p2align	4, 0x90
+	.type	readReal,@function
+readReal:                               # @readReal
+	.cfi_startproc
+# %bb.0:                                # %entry
+	subq	$24, %rsp
+	.cfi_def_cfa_offset 32
+	leaq	16(%rsp), %rsi
+	movl	$.L.scanReal, %edi
+	xorl	%eax, %eax
+	callq	__isoc99_scanf
+	movsd	16(%rsp), %xmm0         # xmm0 = mem[0],zero
+	movsd	%xmm0, 8(%rsp)          # 8-byte Spill
+	leaq	7(%rsp), %rsi
+	movl	$.LscanfChar, %edi
+	xorl	%eax, %eax
+	callq	__isoc99_scanf
+	movsd	8(%rsp), %xmm0          # 8-byte Reload
+                                        # xmm0 = mem[0],zero
+	addq	$24, %rsp
+	retq
+.Lfunc_end8:
+	.size	readReal, .Lfunc_end8-readReal
+	.cfi_endproc
+                                        # -- End function
 	.globl	main                    # -- Begin function main
 	.p2align	4, 0x90
 	.type	main,@function
 main:                                   # @main
 	.cfi_startproc
 # %bb.0:                                # %entry
-	subq	$88, %rsp
-	.cfi_def_cfa_offset 96
-	leaq	78(%rsp), %rax
-	movq	%rax, 8(%rsp)
-	movw	$1, 6(%rsp)
-	movabsq	$4607182418800017408, %rax # imm = 0x3FF0000000000000
-	movq	%rax, 48(%rsp)
-	movb	$1, 5(%rsp)
-	movb	$99, 4(%rsp)
-	movzwl	6(%rsp), %edi
+	subq	$24, %rsp
+	.cfi_def_cfa_offset 32
+	callq	readInteger
+	movw	%ax, 22(%rsp)
+	movzwl	22(%rsp), %edi
+	callq	abs
+	movw	%ax, 20(%rsp)
+	movzwl	20(%rsp), %edi
 	callq	writeInteger
-	movsd	48(%rsp), %xmm0         # xmm0 = mem[0],zero
+	callq	readReal
+	movsd	%xmm0, (%rsp)
+	callq	fabs
+	movsd	%xmm0, 8(%rsp)
 	callq	writeReal
-	movzbl	5(%rsp), %edi
-	callq	writeBoolean
-	movzbl	4(%rsp), %edi
-	callq	writeChar
-	movabsq	$8022916924116329800, %rax # imm = 0x6F57206F6C6C6548
-	movq	%rax, 35(%rsp)
-	movl	$174353522, 43(%rsp)    # imm = 0xA646C72
-	movb	$0, 47(%rsp)
-	leaq	35(%rsp), %rcx
-	movq	%rcx, 64(%rsp)
-	movq	%rax, 22(%rsp)
-	movl	$174353522, 30(%rsp)    # imm = 0xA646C72
-	movb	$0, 34(%rsp)
-	leaq	22(%rsp), %rdi
-	movq	%rdi, 56(%rsp)
-	xorl	%eax, %eax
-	callq	writeString
-	movq	8(%rsp), %rsi
-	movl	$5, %edi
-	callq	readString
-	movq	8(%rsp), %rdi
-	xorl	%eax, %eax
-	callq	writeString
-	movq	8(%rsp), %rsi
-	movl	$5, %edi
-	callq	readString
-	movq	8(%rsp), %rdi
-	xorl	%eax, %eax
-	callq	writeString
-	addq	$88, %rsp
+	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
+	xorps	%xmm1, %xmm1
+	ucomisd	%xmm1, %xmm0
+	jb	.LBB9_2
+# %bb.1:
+	sqrtsd	%xmm0, %xmm0
+	jmp	.LBB9_3
+.LBB9_2:                                # %call.sqrt
+	callq	sqrt
+.LBB9_3:                                # %entry.split
+	movsd	%xmm0, 8(%rsp)
+	callq	writeReal
+	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
+	callq	sin
+	movsd	%xmm0, 8(%rsp)
+	callq	writeReal
+	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
+	callq	cos
+	movsd	%xmm0, 8(%rsp)
+	callq	writeReal
+	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
+	callq	tan
+	movsd	%xmm0, 8(%rsp)
+	callq	writeReal
+	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
+	callq	atan
+	movsd	%xmm0, 8(%rsp)
+	callq	writeReal
+	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
+	callq	tan
+	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
+	callq	tan
+	callq	atan
+	movsd	%xmm0, 8(%rsp)
+	callq	writeReal
+	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
+	callq	exp
+	movsd	%xmm0, 8(%rsp)
+	callq	writeReal
+	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
+	callq	log
+	movsd	%xmm0, 8(%rsp)
+	callq	writeReal
+	addq	$24, %rsp
 	retq
-.Lfunc_end6:
-	.size	main, .Lfunc_end6-main
+.Lfunc_end9:
+	.size	main, .Lfunc_end9-main
 	.cfi_endproc
                                         # -- End function
 	.type	.L.intStr,@object       # @.intStr
 	.section	.rodata.str1.1,"aMS",@progbits,1
 .L.intStr:
-	.asciz	"%d\n"
-	.size	.L.intStr, 4
+	.asciz	"%hi\n"
+	.size	.L.intStr, 5
 
 	.type	.Ltrue,@object          # @true
 .Ltrue:
@@ -223,13 +320,28 @@ main:                                   # @main
 
 	.type	.L.realStr,@object      # @.realStr
 .L.realStr:
-	.asciz	"%f\n"
-	.size	.L.realStr, 4
+	.asciz	"%lf\n"
+	.size	.L.realStr, 5
 
-	.type	.LscanfStr,@object      # @scanfStr
-.LscanfStr:
+	.type	.LscanfChar,@object     # @scanfChar
+.LscanfChar:
 	.asciz	"%c"
-	.size	.LscanfStr, 3
+	.size	.LscanfChar, 3
+
+	.type	.L.scanInt,@object      # @.scanInt
+.L.scanInt:
+	.asciz	"%hi"
+	.size	.L.scanInt, 4
+
+	.type	.L.scanChar,@object     # @.scanChar
+.L.scanChar:
+	.asciz	"%c"
+	.size	.L.scanChar, 3
+
+	.type	.L.scanReal,@object     # @.scanReal
+.L.scanReal:
+	.asciz	"%lf"
+	.size	.L.scanReal, 4
 
 
 	.section	".note.GNU-stack","",@progbits

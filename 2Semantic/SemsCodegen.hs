@@ -9,6 +9,7 @@ import qualified Data.Map as Map
 import LLVM.AST
 import LLVM.AST.Global
 import LLVM.AST.Type as T
+import LLVM.AST.FunctionAttribute 
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Attribute as A
 import qualified LLVM.AST.CallingConvention as CC
@@ -26,12 +27,18 @@ defineFun name retty frmls codegen = do
   blocks <- createBlocks
   addGlobalDef functionDefaults {
       returnType = retty
-    , name = toName name
+    , name = toName $ case name of 
+                        "arctan" -> "atan"
+                        "ln"     -> "log"
+                        _        -> name
     , parameters =  (
-        fmap (frmlToTy >>> tyToParam) $ indexed frmls
+        (fmap (frmlToTy >>> tyToParam) $ indexed frmls) 
       , case name of "writeString" -> True; _ -> False
       )
     , basicBlocks = blocks
+--  , LLVM.AST.functionAttributes = case name of
+--      "abs" -> fmap Right [NoUnwind,ReadNone]
+--      _     -> []
     } 
 
 tyToParam :: (Word,T.Type) -> Parameter
@@ -89,11 +96,10 @@ instrDo ins = do
   let i = stack blk
   modifyBlock (blk { stack = (Do ins) : i } )
 
-terminator :: Named Terminator -> Sems (Named Terminator)
+terminator :: Named Terminator -> Sems ()
 terminator trm = do
   blk <- current
   modifyBlock (blk { term = Just trm })
-  return trm
 
 terminatorVoid :: Named Terminator -> Sems ()
 terminatorVoid trm = do
@@ -222,6 +228,82 @@ readStringType = ptr $ FunctionType {
   , isVarArg = False
   }
 
+readInteger :: Operand
+readInteger = consGlobalRef readIntegerType "readInteger"
+
+readIntegerType = ptr $ FunctionType {
+    resultType = i16
+  , argumentTypes = []
+  , isVarArg = False
+  }
+
+readBoolean :: Operand
+readBoolean = consGlobalRef readBooleanType "readBoolean"
+
+readBooleanType = ptr $ FunctionType {
+    resultType = i1
+  , argumentTypes = []
+  , isVarArg = False
+  }
+
+readChar :: Operand
+readChar = consGlobalRef readCharType "readChar"
+
+readCharType = ptr $ FunctionType {
+    resultType = i8
+  , argumentTypes = []
+  , isVarArg = False
+  }
+
+readReal :: Operand
+readReal = consGlobalRef readRealType "readReal"
+
+readRealType = ptr $ FunctionType {
+    resultType = double
+  , argumentTypes = []
+  , isVarArg = False
+  }
+
+abs :: Operand
+abs = consGlobalRef absType "abs"
+
+absType = ptr $ FunctionType {
+    resultType = i16
+  , argumentTypes = [i16]
+  , isVarArg = False
+  }
+
+fabs :: Operand
+fabs = consGlobalRef mathType "fabs"
+
+sqrt :: Operand
+sqrt = consGlobalRef mathType "sqrt"
+
+sin :: Operand
+sin = consGlobalRef mathType "sin"
+
+cos :: Operand
+cos = consGlobalRef mathType "cos"
+
+tan :: Operand
+tan = consGlobalRef mathType "tan"
+
+arctan :: Operand
+arctan = consGlobalRef mathType "atan"
+
+exp :: Operand
+exp = consGlobalRef mathType "exp"
+
+ln :: Operand
+ln = consGlobalRef mathType "log"
+
+mathType = ptr $ FunctionType {
+    resultType = double
+  , argumentTypes = [double]
+  , isVarArg = False
+  }
+
+
 fadd :: Operand -> Operand -> Sems Operand
 fadd a b = instr double $ FAdd noFastMathFlags a b []
 
@@ -273,8 +355,12 @@ sitofp a = instr double $ SIToFP a double []
 toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
 toArgs = map (\x -> (x, []))
 
---call :: Operand -> [Operand] -> Sems Operand
---call fn args = instr $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
+call :: Operand -> [Operand] -> Sems Operand
+call fn args = case fn of
+  ConstantOperand (C.GlobalReference ty _) ->
+    instr (resultType ty) $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
+  _ -> undefined
+
 
 callVoid :: Operand -> [Operand] -> Sems ()
 callVoid fn args = instrDo $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
@@ -302,10 +388,6 @@ getElemPtr :: Operand -> Operand -> Sems Operand
 getElemPtr arrPtr ind =
   instr double $ GetElementPtr False arrPtr [toConsI16 0,ind] []
 
-getElemPtrDeep :: Operand -> Operand -> Sems Operand
-getElemPtrDeep arrPtr ind =
-  instr double $ GetElementPtr False arrPtr [toConsI16 0,toConsI16 0,ind] []
-
 getElemPtrInt :: Operand -> Int -> Sems Operand
 getElemPtrInt arrPtr ind =
   instr double $ GetElementPtr False arrPtr [toConsI16 0,toConsI16 ind] []
@@ -322,14 +404,14 @@ getElemPtrOp' :: Operand -> Operand -> Sems Operand
 getElemPtrOp' arrPtr ind =
   instr double $ GetElementPtr False arrPtr [ind] []
 
-br :: Name -> Sems (Named Terminator)
+br :: Name -> Sems ()
 br val = terminator $ Do $ Br val []
 
-cbr :: Operand -> Name -> Name -> Sems (Named Terminator)
+cbr :: Operand -> Name -> Name -> Sems ()
 cbr cond tr fl = terminator $ Do $ CondBr cond tr fl []
 
---ret :: Operand -> Sems (Named Terminator)
---ret val = terminator $ Do $ Ret (Just val) []
---
+ret :: Operand -> Sems ()
+ret val = terminator $ Do $ Ret (Just val) []
+
 retVoid :: Sems ()
 retVoid = terminatorVoid $ Do $ Ret Nothing []

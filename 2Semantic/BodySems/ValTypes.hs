@@ -22,7 +22,8 @@ dereferenceCases posn = \case
 indexingCases :: (Int,Int) -> (TyOper,TyOper) -> Sems TyOper
 indexingCases posn = \case
   ((Array _ t,lOp),(IntT,eOp)) -> do
-    elemOp <- getElemPtrDeep lOp eOp
+    lOp' <- load lOp
+    elemOp <- getElemPtr lOp' eOp
     right (t,elemOp)
   ((Array _ _,_)  ,(_,_)     ) -> errPos posn "non-integer index"
   _                            -> errPos posn "indexing non-array"

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-llc llvmhs.ll
+llc llvmhs.ll 
 ##cat llvmhs.ll
-gcc -no-pie llvmhs.s
+gcc -no-pie llvmhs.s -lm
 ./a.out
