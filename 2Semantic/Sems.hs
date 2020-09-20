@@ -1,5 +1,5 @@
 module Sems where
-import Prelude hiding (abs,cos,sin,tan,sqrt,exp)
+import Prelude hiding (abs,cos,sin,tan,sqrt,exp,pi,round)
 import Control.Monad.Trans.Either
 import System.IO as S
 import System.Exit
@@ -221,6 +221,11 @@ idToFunOper = idString >>> \case
   "arctan"       -> arctan
   "exp"          -> exp
   "ln"           -> ln
+  "pi"           -> pi
+  "trunc"        -> trunc
+  "round"        -> round
+  "ord"          -> ordOp
+  "chr"          -> chr
   _              -> undefined
 
 assignmentSems :: (Int,Int) -> LVal -> Expr -> Sems ()

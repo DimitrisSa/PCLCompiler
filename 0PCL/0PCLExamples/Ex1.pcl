@@ -1,26 +1,7 @@
 program hello;
-var a,b:real;c,d:integer;
+var b:char;a:integer;
 begin
-  c := readInteger();
-  d := abs(c);
-  writeInteger(d);
-  a := readReal();
-  b := fabs(a);
-  writeReal(b);
-  b := sqrt(a);
-  writeReal(b);
-  b := sin(a);
-  writeReal(b);
-  b := cos(a);
-  writeReal(b);
-  b := tan(a);
-  writeReal(b);
-  b := arctan(a);
-  writeReal(b);
-  b := arctan(tan(a));
-  writeReal(b);
-  b := exp(a);
-  writeReal(b);
-  b := ln(a);
-  writeReal(b);
+  a := readInteger();
+  b := chr(a);
+  writeChar(b);
 end.

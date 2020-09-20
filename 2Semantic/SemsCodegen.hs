@@ -297,9 +297,51 @@ exp = consGlobalRef mathType "exp"
 ln :: Operand
 ln = consGlobalRef mathType "log"
 
+acos :: Operand
+acos = consGlobalRef mathType "acos"
+
 mathType = ptr $ FunctionType {
     resultType = double
   , argumentTypes = [double]
+  , isVarArg = False
+  }
+
+pi :: Operand
+pi = consGlobalRef piType "pi"
+
+piType = ptr $ FunctionType {
+    resultType = double
+  , argumentTypes = []
+  , isVarArg = False
+  }
+
+trunc :: Operand
+trunc = consGlobalRef truncRoundType "trunc"
+
+round :: Operand
+round = consGlobalRef truncRoundType "round"
+
+truncRoundType = ptr $ FunctionType {
+    resultType = i16
+  , argumentTypes = [double]
+  , isVarArg = False
+  }
+
+ordOp :: Operand
+ordOp = consGlobalRef ordType "ord"
+
+ordType = ptr $ FunctionType {
+    resultType = i16
+  , argumentTypes = [i8]
+  , isVarArg = False
+  }
+
+chr :: Operand
+chr = consGlobalRef chrType "chr"
+
+chrType = ptr $ FunctionType {
+    resultType = i8
+  , argumentTypes = [i16]
   , isVarArg = False
   }
 
@@ -352,6 +394,9 @@ cons = ConstantOperand
 sitofp :: Operand -> Sems Operand
 sitofp a = instr double $ SIToFP a double []
 
+fptosi :: Operand -> Sems Operand
+fptosi a = instr i16 $ FPToSI a i16 []
+
 toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
 toArgs = map (\x -> (x, []))
 
@@ -376,6 +421,12 @@ store ptr val = instrDo $ Store False ptr val Nothing 0 []
 
 load :: Operand -> Sems Operand
 load ptr = instr (ptrToRetty ptr) $ Load False ptr Nothing 0 []
+
+zext :: Operand -> Sems Operand
+zext op = instr i16 $ ZExt op i16 []
+
+truncTo :: Operand -> Sems Operand
+truncTo op = instr i8 $ Trunc op i8 []
 
 ptrToRetty :: Operand -> T.Type
 ptrToRetty = \case

@@ -15,6 +15,8 @@ declare i32 @printf(i8*, ...)
 
 declare i32 @__isoc99_scanf(i8*, ...)
 
+declare double @acos(double)
+
 define void @writeInteger(i16) {
 entry:
   %1 = getelementptr inbounds [5 x i8], [5 x i8]* @.intStr, i16 0, i16 0
@@ -146,99 +148,79 @@ declare double @exp(double)
 
 declare double @log(double)
 
-declare double @pi()
+define double @pi() {
+entry:
+  %0 = call double @acos(double -1.000000e+00)
+  ret double %0
+}
 
-declare i16 @trunc(double)
+define i16 @trunc(double) {
+entry:
+  %1 = fptosi double %0 to i16
+  ret i16 %1
+}
 
-declare i16 @round(double)
+define i16 @round(double) {
+entry:
+  %1 = fptosi double %0 to i16
+  %2 = sitofp i16 %1 to double
+  %3 = fsub double %0, %2
+  %4 = fcmp olt double %0, 0.000000e+00
+  br i1 %4, label %neg, label %pos
 
-declare i16 @ord(i8)
+pos:                                              ; preds = %entry
+  %5 = fcmp oge double %3, 5.000000e-01
+  br i1 %5, label %posUp, label %posDown
 
-declare i8 @chr(i16)
+posUp:                                            ; preds = %pos
+  %6 = add i16 %1, 1
+  br label %exit
+
+posDown:                                          ; preds = %pos
+  %7 = add i16 %1, 0
+  br label %exit
+
+neg:                                              ; preds = %entry
+  %8 = fcmp ogt double %3, -5.000000e-01
+  br i1 %8, label %negUp, label %negDown
+
+negUp:                                            ; preds = %neg
+  %9 = add i16 %1, 0
+  br label %exit
+
+negDown:                                          ; preds = %neg
+  %10 = add i16 %1, -1
+  br label %exit
+
+exit:                                             ; preds = %negDown, %negUp, %posDown, %posUp
+  %11 = phi i16 [ %9, %negUp ], [ %10, %negDown ], [ %6, %posUp ], [ %7, %posDown ]
+  ret i16 %11
+}
+
+define i16 @ord(i8) {
+entry:
+  %1 = zext i8 %0 to i16
+  ret i16 %1
+}
+
+define i8 @chr(i16) {
+entry:
+  %1 = trunc i16 %0 to i8
+  ret i8 %1
+}
 
 define void @main() {
 entry:
-  %0 = alloca double
-  %1 = alloca double
-  %2 = alloca i16
-  %3 = alloca i16
-  %4 = call i16 @readInteger()
-  store i16 %4, i16* %2
-  %5 = load i16, i16* %2
-  %6 = load i16, i16* %2
-  %7 = call i16 @abs(i16 %6)
-  store i16 %7, i16* %3
-  %8 = load i16, i16* %3
-  %9 = load i16, i16* %3
-  call void @writeInteger(i16 %9)
-  %10 = call double @readReal()
-  store double %10, double* %0
-  %11 = load double, double* %0
-  %12 = load double, double* %0
-  %13 = call double @fabs(double %12)
-  store double %13, double* %1
-  %14 = load double, double* %1
-  %15 = load double, double* %1
-  call void @writeReal(double %15)
-  %16 = load double, double* %0
-  %17 = load double, double* %0
-  %18 = call double @sqrt(double %17)
-  store double %18, double* %1
-  %19 = load double, double* %1
-  %20 = load double, double* %1
-  call void @writeReal(double %20)
-  %21 = load double, double* %0
-  %22 = load double, double* %0
-  %23 = call double @sin(double %22)
-  store double %23, double* %1
-  %24 = load double, double* %1
-  %25 = load double, double* %1
-  call void @writeReal(double %25)
-  %26 = load double, double* %0
-  %27 = load double, double* %0
-  %28 = call double @cos(double %27)
-  store double %28, double* %1
-  %29 = load double, double* %1
-  %30 = load double, double* %1
-  call void @writeReal(double %30)
-  %31 = load double, double* %0
-  %32 = load double, double* %0
-  %33 = call double @tan(double %32)
-  store double %33, double* %1
-  %34 = load double, double* %1
-  %35 = load double, double* %1
-  call void @writeReal(double %35)
-  %36 = load double, double* %0
-  %37 = load double, double* %0
-  %38 = call double @atan(double %37)
-  store double %38, double* %1
-  %39 = load double, double* %1
-  %40 = load double, double* %1
-  call void @writeReal(double %40)
-  %41 = load double, double* %0
-  %42 = load double, double* %0
-  %43 = call double @tan(double %42)
-  %44 = load double, double* %0
-  %45 = load double, double* %0
-  %46 = call double @tan(double %45)
-  %47 = call double @atan(double %46)
-  store double %47, double* %1
-  %48 = load double, double* %1
-  %49 = load double, double* %1
-  call void @writeReal(double %49)
-  %50 = load double, double* %0
-  %51 = load double, double* %0
-  %52 = call double @exp(double %51)
-  store double %52, double* %1
-  %53 = load double, double* %1
-  %54 = load double, double* %1
-  call void @writeReal(double %54)
-  %55 = load double, double* %0
-  %56 = load double, double* %0
-  %57 = call double @log(double %56)
-  store double %57, double* %1
-  %58 = load double, double* %1
-  %59 = load double, double* %1
-  call void @writeReal(double %59)
+  %0 = alloca i8
+  %1 = alloca i16
+  %2 = call i16 @readInteger()
+  store i16 %2, i16* %1
+  %3 = load i16, i16* %1
+  %4 = load i16, i16* %1
+  %5 = call i8 @chr(i16 %4)
+  store i8 %5, i8* %0
+  %6 = load i8, i8* %0
+  %7 = load i8, i8* %0
+  call void @writeChar(i8 %7)
   ret void
 }

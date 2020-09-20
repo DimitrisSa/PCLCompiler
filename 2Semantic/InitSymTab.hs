@@ -1,13 +1,15 @@
 module InitSymTab where
-import Prelude hiding (abs)
+import Prelude hiding (abs,acos)
 import Common as P hiding (void) 
 import LLVM.AST
 import LLVM.AST.Global
 import LLVM.AST.Type as T
 import LLVM.AST.AddrSpace
+import LLVM.AST.Float
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Linkage as L
 import qualified LLVM.AST.IntegerPredicate as I
+import qualified LLVM.AST.FloatingPointPredicate as FP
 import Data.Char (ord)
 import Data.Word
 import SemsCodegen
@@ -16,6 +18,7 @@ initSymTab :: Sems ()
 initSymTab = do
   printfDef
   scanfDef
+  acosDef
   insertProcToSymTabAndDefs "writeInteger" [(Value,[dummy "n"],IntT)]
   insertProcToSymTabAndDefs "writeBoolean" [(Value,[dummy "b"],BoolT)]
   insertProcToSymTabAndDefs "writeChar" [(Value,[dummy "c"],CharT)]
@@ -66,6 +69,11 @@ codegenFromName = \case
   --"readBoolean"  -> undefined
   "readChar"     -> readCodeGen ".scanChar" "c"
   "readReal"     -> readCodeGen ".scanReal" "lf"
+  "pi"           -> piCodeGen
+  "trunc"        -> truncCodeGen
+  "round"        -> roundCodeGen
+  "ord"          -> ordCodeGen
+  "chr"          -> chrCodeGen
   _              -> return ()
 
 addGlobalStr :: String -> Word64 -> String -> Sems ()
@@ -79,6 +87,81 @@ addGlobalStr strName strLen strVal =
   , LLVM.AST.Global.alignment = 1
   , initializer = Just $ C.Array i8 $ fmap toI8Cons $ strVal
   }
+
+chrCodeGen :: Sems ()
+chrCodeGen = do
+  entry <- addBlock "entry"
+  setBlock entry
+  int <- truncTo $ LocalReference i16 (UnName 0)
+  ret int
+
+ordCodeGen :: Sems ()
+ordCodeGen = do
+  entry <- addBlock "entry"
+  setBlock entry
+  int <- zext $ LocalReference i8 (UnName 0)
+  ret int
+
+truncCodeGen :: Sems ()
+truncCodeGen = do
+  entry <- addBlock "entry"
+  setBlock entry
+  int <- fptosi $ LocalReference double (UnName 0)
+  ret int
+
+roundCodeGen :: Sems ()
+roundCodeGen = do
+  let arg = LocalReference double (UnName 0)
+  entry   <- addBlock "entry"
+  pos     <- addBlock "pos"
+  posUp   <- addBlock "posUp"
+  posDown <- addBlock "posDown"
+  neg     <- addBlock "neg"
+  negUp   <- addBlock "negUp"
+  negDown <- addBlock "negDown"
+  exit    <- addBlock "exit"
+
+  setBlock entry
+  int <- fptosi arg
+  intDouble <- sitofp int
+  diff <- fsub arg intDouble
+  cond1 <- fcmp FP.OLT arg $ cons $ C.Float $ Double 0
+  cbr cond1 neg pos
+
+  setBlock neg
+  cond2 <- fcmp FP.OGT diff $ cons $ C.Float $ Double (-0.5)
+  cbr cond2 negUp negDown
+
+  setBlock negUp
+  int1 <- add int $ toConsI16 0
+  br exit
+
+  setBlock negDown
+  int2 <- add int $ toConsI16 (-1)
+  br exit
+
+  setBlock pos
+  cond3 <- fcmp FP.OGE diff $ cons $ C.Float $ Double 0.5
+  cbr cond3 posUp posDown
+
+  setBlock posUp
+  int3 <- add int $ toConsI16 1
+  br exit
+
+  setBlock posDown
+  int4 <- add int $ toConsI16 0
+  br exit
+
+  setBlock exit
+  int' <- phi i16 [(int1,negUp),(int2,negDown),(int3,posUp),(int4,posDown)]
+  ret int'
+
+piCodeGen :: Sems ()
+piCodeGen = do
+  entry <- addBlock "entry"
+  setBlock entry
+  pi <- call acos [cons $ C.Float $ Double (-1)]
+  ret pi
 
 writeCodeGen :: String -> String -> Sems ()
 writeCodeGen str1 str2 = do 
@@ -205,6 +288,16 @@ scanfDef = addGlobalDef functionDefaults {
   , parameters = (
       [ Parameter (ptr i8) (UnName 0) [] ]
     , True
+    )
+  } 
+
+acosDef :: Sems ()
+acosDef = addGlobalDef functionDefaults {
+    returnType = double
+  , name = toName "acos"
+  , parameters = (
+      [ Parameter double (UnName 0) [] ]
+    , False
     )
   } 
 

@@ -228,73 +228,124 @@ readReal:                               # @readReal
 	.size	readReal, .Lfunc_end8-readReal
 	.cfi_endproc
                                         # -- End function
+	.section	.rodata.cst8,"aM",@progbits,8
+	.p2align	3               # -- Begin function pi
+.LCPI9_0:
+	.quad	-4616189618054758400    # double -1
+	.text
+	.globl	pi
+	.p2align	4, 0x90
+	.type	pi,@function
+pi:                                     # @pi
+	.cfi_startproc
+# %bb.0:                                # %entry
+	pushq	%rax
+	.cfi_def_cfa_offset 16
+	movsd	.LCPI9_0(%rip), %xmm0   # xmm0 = mem[0],zero
+	callq	acos
+	popq	%rax
+	retq
+.Lfunc_end9:
+	.size	pi, .Lfunc_end9-pi
+	.cfi_endproc
+                                        # -- End function
+	.globl	trunc                   # -- Begin function trunc
+	.p2align	4, 0x90
+	.type	trunc,@function
+trunc:                                  # @trunc
+	.cfi_startproc
+# %bb.0:                                # %entry
+	cvttsd2si	%xmm0, %eax
+                                        # kill: def %ax killed %ax killed %eax
+	retq
+.Lfunc_end10:
+	.size	trunc, .Lfunc_end10-trunc
+	.cfi_endproc
+                                        # -- End function
+	.section	.rodata.cst8,"aM",@progbits,8
+	.p2align	3               # -- Begin function round
+.LCPI11_0:
+	.quad	4602678819172646912     # double 0.5
+.LCPI11_1:
+	.quad	-4620693217682128896    # double -0.5
+	.text
+	.globl	round
+	.p2align	4, 0x90
+	.type	round,@function
+round:                                  # @round
+	.cfi_startproc
+# %bb.0:                                # %entry
+	cvttsd2si	%xmm0, %eax
+	movswl	%ax, %ecx
+	cvtsi2sdl	%ecx, %xmm1
+	xorps	%xmm2, %xmm2
+	ucomisd	%xmm0, %xmm2
+	subsd	%xmm1, %xmm0
+	jbe	.LBB11_1
+# %bb.3:                                # %neg
+	ucomisd	.LCPI11_1(%rip), %xmm0
+	ja	.LBB11_5
+# %bb.4:                                # %negDown
+	decl	%eax
+	jmp	.LBB11_5
+.LBB11_1:                               # %pos
+	ucomisd	.LCPI11_0(%rip), %xmm0
+	jb	.LBB11_5
+# %bb.2:                                # %posUp
+	incl	%eax
+                                        # kill: def %ax killed %ax killed %eax
+	retq
+.LBB11_5:                               # %exit
+                                        # kill: def %ax killed %ax killed %eax
+	retq
+.Lfunc_end11:
+	.size	round, .Lfunc_end11-round
+	.cfi_endproc
+                                        # -- End function
+	.globl	ord                     # -- Begin function ord
+	.p2align	4, 0x90
+	.type	ord,@function
+ord:                                    # @ord
+	.cfi_startproc
+# %bb.0:                                # %entry
+	movzbl	%dil, %eax
+                                        # kill: def %ax killed %ax killed %eax
+	retq
+.Lfunc_end12:
+	.size	ord, .Lfunc_end12-ord
+	.cfi_endproc
+                                        # -- End function
+	.globl	chr                     # -- Begin function chr
+	.p2align	4, 0x90
+	.type	chr,@function
+chr:                                    # @chr
+	.cfi_startproc
+# %bb.0:                                # %entry
+	movl	%edi, %eax
+	retq
+.Lfunc_end13:
+	.size	chr, .Lfunc_end13-chr
+	.cfi_endproc
+                                        # -- End function
 	.globl	main                    # -- Begin function main
 	.p2align	4, 0x90
 	.type	main,@function
 main:                                   # @main
 	.cfi_startproc
 # %bb.0:                                # %entry
-	subq	$24, %rsp
-	.cfi_def_cfa_offset 32
+	pushq	%rax
+	.cfi_def_cfa_offset 16
 	callq	readInteger
-	movw	%ax, 22(%rsp)
-	movzwl	22(%rsp), %edi
-	callq	abs
-	movw	%ax, 20(%rsp)
-	movzwl	20(%rsp), %edi
-	callq	writeInteger
-	callq	readReal
-	movsd	%xmm0, (%rsp)
-	callq	fabs
-	movsd	%xmm0, 8(%rsp)
-	callq	writeReal
-	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
-	xorps	%xmm1, %xmm1
-	ucomisd	%xmm1, %xmm0
-	jb	.LBB9_2
-# %bb.1:
-	sqrtsd	%xmm0, %xmm0
-	jmp	.LBB9_3
-.LBB9_2:                                # %call.sqrt
-	callq	sqrt
-.LBB9_3:                                # %entry.split
-	movsd	%xmm0, 8(%rsp)
-	callq	writeReal
-	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
-	callq	sin
-	movsd	%xmm0, 8(%rsp)
-	callq	writeReal
-	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
-	callq	cos
-	movsd	%xmm0, 8(%rsp)
-	callq	writeReal
-	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
-	callq	tan
-	movsd	%xmm0, 8(%rsp)
-	callq	writeReal
-	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
-	callq	atan
-	movsd	%xmm0, 8(%rsp)
-	callq	writeReal
-	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
-	callq	tan
-	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
-	callq	tan
-	callq	atan
-	movsd	%xmm0, 8(%rsp)
-	callq	writeReal
-	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
-	callq	exp
-	movsd	%xmm0, 8(%rsp)
-	callq	writeReal
-	movsd	(%rsp), %xmm0           # xmm0 = mem[0],zero
-	callq	log
-	movsd	%xmm0, 8(%rsp)
-	callq	writeReal
-	addq	$24, %rsp
+	movw	%ax, 6(%rsp)
+	movzwl	6(%rsp), %edi
+	callq	chr
+	movb	%al, 5(%rsp)
+	movzbl	5(%rsp), %edi
+	callq	writeChar
+	popq	%rax
 	retq
-.Lfunc_end9:
-	.size	main, .Lfunc_end9-main
+.Lfunc_end14:
+	.size	main, .Lfunc_end14-main
 	.cfi_endproc
                                         # -- End function
 	.type	.L.intStr,@object       # @.intStr
