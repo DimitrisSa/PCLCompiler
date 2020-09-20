@@ -1,6 +1,9 @@
 program hello;
 var a:boolean;
+label hi;
 begin
+hi:
   a := readBoolean();
   writeBoolean(a);
+goto hi;
 end.

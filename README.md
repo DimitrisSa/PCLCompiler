@@ -10,11 +10,12 @@ To Do:
 - operations for integers also (possibly by merging ir with sems) DONE
 - HeaderBody Local
 - Forward Local
-- Label statement
-- goto statement
+- Label statement DONE
+- goto statement DONE
 - return statement
 - result lval
 - dispose statement
+- new statement
 - find all the built-in functions in llvm and define them (like printf) DONE
       -> then define the PCL equivalent (like writeString)
 

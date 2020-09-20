@@ -1,5 +1,5 @@
 module Sems where
-import Prelude hiding (abs,cos,sin,tan,sqrt,exp,pi,round)
+import Prelude hiding (abs,cos,sin,tan,sqrt,exp,pi,round,lookup)
 import Control.Monad.Trans.Either
 import System.IO as S
 import System.Exit
@@ -128,11 +128,30 @@ stmtSems = \case
   IfThenElse posn e s1 s2    -> exprTypeOper e >>= boolCases posn "if-then-else" >>=
                                 cgenIfThenElse s1 s2
   While posn e stmt          -> whileSemsIR posn e stmt
-  Label lab stmt             -> lookupInLabelMap lab >>= labelCases lab >> stmtSems stmt
-  GoTo lab                   -> lookupInLabelMap lab >>= goToCases lab
+  Label id stmt              -> labelSemsIR id stmt
+  GoTo id                    -> gotoSemsIR id
   Return                     -> return ()
   New posn new lVal          -> newSemsIR posn new lVal
   Dispose posn disptype lVal -> disposeSems posn disptype lVal
+
+gotoSemsIR :: Id -> Sems ()
+gotoSemsIR id = do
+  bool <- lookupInLabelMap id 
+  goToCases id bool
+  br $ toName $ idString id
+  i <- fresh
+  nextBlock <- addBlock $ "next" ++ show i
+  setBlock nextBlock
+
+labelSemsIR :: Id -> Stmt -> Sems ()
+labelSemsIR id stmt = do
+  bool <- lookupInLabelMap id
+  labelCases id bool
+  label <- addBlock $ idString id
+  br label 
+  
+  setBlock label
+  stmtSems stmt
 
 whileSemsIR :: (Int,Int) -> Expr -> Stmt -> Sems ()
 whileSemsIR posn expr stmt = do

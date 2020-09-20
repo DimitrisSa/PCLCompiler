@@ -268,10 +268,16 @@ entry:
 define void @main() {
 entry:
   %0 = alloca i1
+  br label %hi
+
+hi:                                               ; preds = %hi, %entry
   %1 = call i1 @readBoolean()
   store i1 %1, i1* %0
   %2 = load i1, i1* %0
   %3 = load i1, i1* %0
   call void @writeBoolean(i1 %3)
+  br label %hi
+
+next5:                                            ; No predecessors!
   ret void
 }

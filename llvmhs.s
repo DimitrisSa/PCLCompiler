@@ -410,13 +410,15 @@ main:                                   # @main
 # %bb.0:                                # %entry
 	pushq	%rax
 	.cfi_def_cfa_offset 16
+	.p2align	4, 0x90
+.LBB16_1:                               # %hi
+                                        # =>This Inner Loop Header: Depth=1
 	callq	readBoolean
 	andb	$1, %al
 	movb	%al, 7(%rsp)
 	movzbl	7(%rsp), %edi
 	callq	writeBoolean
-	popq	%rax
-	retq
+	jmp	.LBB16_1
 .Lfunc_end16:
 	.size	main, .Lfunc_end16-main
 	.cfi_endproc
