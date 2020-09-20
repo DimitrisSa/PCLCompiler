@@ -174,6 +174,64 @@ readInteger:                            # @readInteger
 	.size	readInteger, .Lfunc_end6-readInteger
 	.cfi_endproc
                                         # -- End function
+	.globl	readBoolean             # -- Begin function readBoolean
+	.p2align	4, 0x90
+	.type	readBoolean,@function
+readBoolean:                            # @readBoolean
+	.cfi_startproc
+# %bb.0:                                # %entry
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	.cfi_offset %rbp, -16
+	movq	%rsp, %rbp
+	.cfi_def_cfa_register %rbp
+	pushq	%rbx
+	pushq	%rax
+	.cfi_offset %rbx, -24
+	jmp	.LBB7_1
+	.p2align	4, 0x90
+.LBB7_6:                                # %while.error
+                                        #   in Loop: Header=BB7_1 Depth=1
+	movl	$.LprintStr, %edi
+	movl	$.LnotBool, %esi
+	xorl	%eax, %eax
+	callq	printf
+.LBB7_1:                                # %while.true
+                                        # =>This Inner Loop Header: Depth=1
+	movq	%rsp, %rbx
+	addq	$-112, %rbx
+	movq	%rbx, %rsp
+	movl	$.LscanfStr, %edi
+	xorl	%eax, %eax
+	movq	%rbx, %rsi
+	callq	__isoc99_scanf
+	movl	$.LreadBoolTrue, %esi
+	movq	%rbx, %rdi
+	callq	strcmp
+	testl	%eax, %eax
+	je	.LBB7_2
+# %bb.3:                                # %while.false
+                                        #   in Loop: Header=BB7_1 Depth=1
+	movl	$.LreadBoolFalse, %esi
+	movq	%rbx, %rdi
+	callq	strcmp
+	testl	%eax, %eax
+	jne	.LBB7_6
+# %bb.4:
+	xorl	%eax, %eax
+	jmp	.LBB7_5
+.LBB7_2:
+	movb	$1, %al
+.LBB7_5:                                # %while.exit
+                                        # kill: def %al killed %al killed %eax
+	leaq	-8(%rbp), %rsp
+	popq	%rbx
+	popq	%rbp
+	retq
+.Lfunc_end7:
+	.size	readBoolean, .Lfunc_end7-readBoolean
+	.cfi_endproc
+                                        # -- End function
 	.globl	readChar                # -- Begin function readChar
 	.p2align	4, 0x90
 	.type	readChar,@function
@@ -198,8 +256,8 @@ readChar:                               # @readChar
 	addq	$16, %rsp
 	popq	%rbx
 	retq
-.Lfunc_end7:
-	.size	readChar, .Lfunc_end7-readChar
+.Lfunc_end8:
+	.size	readChar, .Lfunc_end8-readChar
 	.cfi_endproc
                                         # -- End function
 	.globl	readReal                # -- Begin function readReal
@@ -224,13 +282,30 @@ readReal:                               # @readReal
                                         # xmm0 = mem[0],zero
 	addq	$24, %rsp
 	retq
-.Lfunc_end8:
-	.size	readReal, .Lfunc_end8-readReal
+.Lfunc_end9:
+	.size	readReal, .Lfunc_end9-readReal
+	.cfi_endproc
+                                        # -- End function
+	.globl	abs                     # -- Begin function abs
+	.p2align	4, 0x90
+	.type	abs,@function
+abs:                                    # @abs
+	.cfi_startproc
+# %bb.0:                                # %entry
+	testw	%di, %di
+	jns	.LBB10_2
+# %bb.1:                                # %neg
+	negl	%edi
+.LBB10_2:                               # %exit
+	movl	%edi, %eax
+	retq
+.Lfunc_end10:
+	.size	abs, .Lfunc_end10-abs
 	.cfi_endproc
                                         # -- End function
 	.section	.rodata.cst8,"aM",@progbits,8
 	.p2align	3               # -- Begin function pi
-.LCPI9_0:
+.LCPI11_0:
 	.quad	-4616189618054758400    # double -1
 	.text
 	.globl	pi
@@ -241,12 +316,12 @@ pi:                                     # @pi
 # %bb.0:                                # %entry
 	pushq	%rax
 	.cfi_def_cfa_offset 16
-	movsd	.LCPI9_0(%rip), %xmm0   # xmm0 = mem[0],zero
+	movsd	.LCPI11_0(%rip), %xmm0  # xmm0 = mem[0],zero
 	callq	acos
 	popq	%rax
 	retq
-.Lfunc_end9:
-	.size	pi, .Lfunc_end9-pi
+.Lfunc_end11:
+	.size	pi, .Lfunc_end11-pi
 	.cfi_endproc
                                         # -- End function
 	.globl	trunc                   # -- Begin function trunc
@@ -258,15 +333,15 @@ trunc:                                  # @trunc
 	cvttsd2si	%xmm0, %eax
                                         # kill: def %ax killed %ax killed %eax
 	retq
-.Lfunc_end10:
-	.size	trunc, .Lfunc_end10-trunc
+.Lfunc_end12:
+	.size	trunc, .Lfunc_end12-trunc
 	.cfi_endproc
                                         # -- End function
 	.section	.rodata.cst8,"aM",@progbits,8
 	.p2align	3               # -- Begin function round
-.LCPI11_0:
+.LCPI13_0:
 	.quad	4602678819172646912     # double 0.5
-.LCPI11_1:
+.LCPI13_1:
 	.quad	-4620693217682128896    # double -0.5
 	.text
 	.globl	round
@@ -281,25 +356,25 @@ round:                                  # @round
 	xorps	%xmm2, %xmm2
 	ucomisd	%xmm0, %xmm2
 	subsd	%xmm1, %xmm0
-	jbe	.LBB11_1
+	jbe	.LBB13_1
 # %bb.3:                                # %neg
-	ucomisd	.LCPI11_1(%rip), %xmm0
-	ja	.LBB11_5
+	ucomisd	.LCPI13_1(%rip), %xmm0
+	ja	.LBB13_5
 # %bb.4:                                # %negDown
 	decl	%eax
-	jmp	.LBB11_5
-.LBB11_1:                               # %pos
-	ucomisd	.LCPI11_0(%rip), %xmm0
-	jb	.LBB11_5
+	jmp	.LBB13_5
+.LBB13_1:                               # %pos
+	ucomisd	.LCPI13_0(%rip), %xmm0
+	jb	.LBB13_5
 # %bb.2:                                # %posUp
 	incl	%eax
                                         # kill: def %ax killed %ax killed %eax
 	retq
-.LBB11_5:                               # %exit
+.LBB13_5:                               # %exit
                                         # kill: def %ax killed %ax killed %eax
 	retq
-.Lfunc_end11:
-	.size	round, .Lfunc_end11-round
+.Lfunc_end13:
+	.size	round, .Lfunc_end13-round
 	.cfi_endproc
                                         # -- End function
 	.globl	ord                     # -- Begin function ord
@@ -311,8 +386,8 @@ ord:                                    # @ord
 	movzbl	%dil, %eax
                                         # kill: def %ax killed %ax killed %eax
 	retq
-.Lfunc_end12:
-	.size	ord, .Lfunc_end12-ord
+.Lfunc_end14:
+	.size	ord, .Lfunc_end14-ord
 	.cfi_endproc
                                         # -- End function
 	.globl	chr                     # -- Begin function chr
@@ -323,8 +398,8 @@ chr:                                    # @chr
 # %bb.0:                                # %entry
 	movl	%edi, %eax
 	retq
-.Lfunc_end13:
-	.size	chr, .Lfunc_end13-chr
+.Lfunc_end15:
+	.size	chr, .Lfunc_end15-chr
 	.cfi_endproc
                                         # -- End function
 	.globl	main                    # -- Begin function main
@@ -335,17 +410,15 @@ main:                                   # @main
 # %bb.0:                                # %entry
 	pushq	%rax
 	.cfi_def_cfa_offset 16
-	callq	readInteger
-	movw	%ax, 6(%rsp)
-	movzwl	6(%rsp), %edi
-	callq	chr
-	movb	%al, 5(%rsp)
-	movzbl	5(%rsp), %edi
-	callq	writeChar
+	callq	readBoolean
+	andb	$1, %al
+	movb	%al, 7(%rsp)
+	movzbl	7(%rsp), %edi
+	callq	writeBoolean
 	popq	%rax
 	retq
-.Lfunc_end14:
-	.size	main, .Lfunc_end14-main
+.Lfunc_end16:
+	.size	main, .Lfunc_end16-main
 	.cfi_endproc
                                         # -- End function
 	.type	.L.intStr,@object       # @.intStr
@@ -383,6 +456,33 @@ main:                                   # @main
 .L.scanInt:
 	.asciz	"%hi"
 	.size	.L.scanInt, 4
+
+	.type	.LscanfStr,@object      # @scanfStr
+	.section	.rodata,"a",@progbits
+.LscanfStr:
+	.ascii	"%s"
+	.size	.LscanfStr, 2
+
+	.type	.LprintStr,@object      # @printStr
+	.section	.rodata.str1.1,"aMS",@progbits,1
+.LprintStr:
+	.asciz	"%s\n"
+	.size	.LprintStr, 4
+
+	.type	.LnotBool,@object       # @notBool
+.LnotBool:
+	.asciz	"Not a boolean value"
+	.size	.LnotBool, 20
+
+	.type	.LreadBoolTrue,@object  # @readBoolTrue
+.LreadBoolTrue:
+	.asciz	"true"
+	.size	.LreadBoolTrue, 5
+
+	.type	.LreadBoolFalse,@object # @readBoolFalse
+.LreadBoolFalse:
+	.asciz	"false"
+	.size	.LreadBoolFalse, 6
 
 	.type	.L.scanChar,@object     # @.scanChar
 .L.scanChar:

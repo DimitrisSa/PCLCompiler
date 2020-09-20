@@ -36,9 +36,6 @@ defineFun name retty frmls codegen = do
       , case name of "writeString" -> True; _ -> False
       )
     , basicBlocks = blocks
---  , LLVM.AST.functionAttributes = case name of
---      "abs" -> fmap Right [NoUnwind,ReadNone]
---      _     -> []
     } 
 
 tyToParam :: (Word,T.Type) -> Parameter
@@ -345,6 +342,14 @@ chrType = ptr $ FunctionType {
   , isVarArg = False
   }
 
+strcmp :: Operand
+strcmp = consGlobalRef strcmpType "strcmp"
+
+strcmpType = ptr $ FunctionType {
+    resultType = i32
+  , argumentTypes = [ptr i8,ptr i8]
+  , isVarArg = False
+  }
 
 fadd :: Operand -> Operand -> Sems Operand
 fadd a b = instr double $ FAdd noFastMathFlags a b []

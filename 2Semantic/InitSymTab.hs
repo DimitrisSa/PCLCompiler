@@ -19,6 +19,7 @@ initSymTab = do
   printfDef
   scanfDef
   acosDef
+  strcmpDef
   insertProcToSymTabAndDefs "writeInteger" [(Value,[dummy "n"],IntT)]
   insertProcToSymTabAndDefs "writeBoolean" [(Value,[dummy "b"],BoolT)]
   insertProcToSymTabAndDefs "writeChar" [(Value,[dummy "c"],CharT)]
@@ -66,9 +67,10 @@ codegenFromName = \case
   "writeString"  -> writeStringCodeGen
   "readString"   -> readStringCodeGen
   "readInteger"  -> readCodeGen ".scanInt" "hi"
-  --"readBoolean"  -> undefined
+  "readBoolean"  -> readBooleanCodeGen
   "readChar"     -> readCodeGen ".scanChar" "c"
   "readReal"     -> readCodeGen ".scanReal" "lf"
+  "abs"          -> absCodeGen
   "pi"           -> piCodeGen
   "trunc"        -> truncCodeGen
   "round"        -> roundCodeGen
@@ -87,6 +89,29 @@ addGlobalStr strName strLen strVal =
   , LLVM.AST.Global.alignment = 1
   , initializer = Just $ C.Array i8 $ fmap toI8Cons $ strVal
   }
+
+absCodeGen :: Sems ()
+absCodeGen = do
+  let intIn = LocalReference i16 (UnName 0)
+  entry <- addBlock "entry"
+  pos   <- addBlock "pos"
+  neg   <- addBlock "neg"
+  exit  <- addBlock "exit"
+  setBlock entry
+  cond <- icmp I.SGE intIn $ toConsI16 0
+  cbr cond pos neg
+  
+  setBlock pos
+  int1 <- add intIn $ toConsI16 0
+  br exit
+
+  setBlock neg
+  int2 <- sub (toConsI16 0) intIn
+  br exit
+
+  setBlock exit
+  intOut <- phi i16 [(int1,pos),(int2,neg)]
+  ret intOut
 
 chrCodeGen :: Sems ()
 chrCodeGen = do
@@ -271,6 +296,57 @@ readStringCodeGen = do
   store strOp'' (cons $ toI8Cons '\0')
   retVoid
 
+readBooleanCodeGen :: Sems ()
+readBooleanCodeGen = do 
+  addGlobalStr "scanfStr" 2 "%s"
+  addGlobalStr "printStr" 4 "%s\n\0"
+  addGlobalStr "notBool" 20 "Not a boolean value\0"
+  addGlobalStr "readBoolTrue" 5 "true\0"
+  addGlobalStr "readBoolFalse" 6 "false\0"
+
+  entry      <- addBlock "entry"
+  entry'     <- addBlock "entry."
+  whileTrue  <- addBlock "while.true"
+  whileFalse <- addBlock "while.false"
+  whileError <- addBlock "while.error"
+  whileExit  <- addBlock "while.exit"
+
+  setBlock entry
+  str <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 2 i8)) $ toName "scanfStr") 0
+  str' <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 4 i8)) $ toName "printStr") 0
+  notBool <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 20 i8))
+                                  $ toName "notBool") 0
+  readBoolTrue <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 5 i8))
+                                      $ toName "readBoolTrue") 0
+  readBoolFalse <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 6 i8))
+                                      $ toName "readBoolFalse") 0
+  br entry'
+
+  setBlock entry'
+  inputStartChar <- allocaNum (toConsI16 100) i8
+  callVoid scanf [str,inputStartChar]
+  br whileTrue
+
+  setBlock whileTrue
+  intTrue <- call strcmp [inputStartChar,readBoolTrue]
+  cond21 <- icmp I.EQ intTrue $ toConsI32 0
+  true <- add (toConsI1 0) (toConsI1 1)
+  cbr cond21 whileExit whileFalse
+
+  setBlock whileFalse
+  intFalse <- call strcmp [inputStartChar,readBoolFalse]
+  cond22 <- icmp I.EQ intFalse $ toConsI32 0
+  false <- add (toConsI1 0) (toConsI1 0)
+  cbr cond22 whileExit whileError
+
+  setBlock whileError
+  callVoid printf [str',notBool]
+  br entry'
+
+  setBlock whileExit
+  boolVal <- phi i1 [(true,whileTrue),(false,whileFalse)]
+  ret boolVal
+
 printfDef :: Sems ()
 printfDef = addGlobalDef functionDefaults {
     returnType = i32
@@ -297,6 +373,17 @@ acosDef = addGlobalDef functionDefaults {
   , name = toName "acos"
   , parameters = (
       [ Parameter double (UnName 0) [] ]
+    , False
+    )
+  } 
+
+strcmpDef :: Sems ()
+strcmpDef = addGlobalDef functionDefaults {
+    returnType = i32
+  , name = toName "strcmp"
+  , parameters = (
+      [ Parameter (ptr i8) (UnName 0) []
+      , Parameter (ptr i8) (UnName 1) [] ]
     , False
     )
   } 

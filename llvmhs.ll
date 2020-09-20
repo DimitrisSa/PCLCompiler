@@ -8,6 +8,11 @@ source_filename = "<string>"
 @.realStr = private unnamed_addr constant [5 x i8] c"%lf\0A\00", align 1
 @scanfChar = private unnamed_addr constant [3 x i8] c"%c\00", align 1
 @.scanInt = private unnamed_addr constant [4 x i8] c"%hi\00", align 1
+@scanfStr = private unnamed_addr constant [2 x i8] c"%s", align 1
+@printStr = private unnamed_addr constant [4 x i8] c"%s\0A\00", align 1
+@notBool = private unnamed_addr constant [20 x i8] c"Not a boolean value\00", align 1
+@readBoolTrue = private unnamed_addr constant [5 x i8] c"true\00", align 1
+@readBoolFalse = private unnamed_addr constant [6 x i8] c"false\00", align 1
 @.scanChar = private unnamed_addr constant [3 x i8] c"%c\00", align 1
 @.scanReal = private unnamed_addr constant [4 x i8] c"%lf\00", align 1
 
@@ -16,6 +21,8 @@ declare i32 @printf(i8*, ...)
 declare i32 @__isoc99_scanf(i8*, ...)
 
 declare double @acos(double)
+
+declare i32 @strcmp(i8*, i8*)
 
 define void @writeInteger(i16) {
 entry:
@@ -104,7 +111,40 @@ entry:
   ret i16 %3
 }
 
-declare i1 @readBoolean()
+define i1 @readBoolean() {
+entry:
+  %0 = getelementptr inbounds [2 x i8], [2 x i8]* @scanfStr, i16 0, i16 0
+  %1 = getelementptr inbounds [4 x i8], [4 x i8]* @printStr, i16 0, i16 0
+  %2 = getelementptr inbounds [20 x i8], [20 x i8]* @notBool, i16 0, i16 0
+  %3 = getelementptr inbounds [5 x i8], [5 x i8]* @readBoolTrue, i16 0, i16 0
+  %4 = getelementptr inbounds [6 x i8], [6 x i8]* @readBoolFalse, i16 0, i16 0
+  br label %entry.
+
+entry.:                                           ; preds = %while.error, %entry
+  %5 = alloca i8, i16 100
+  %6 = call i32 (i8*, ...) @__isoc99_scanf(i8* %0, i8* %5)
+  br label %while.true
+
+while.true:                                       ; preds = %entry.
+  %7 = call i32 @strcmp(i8* %5, i8* %3)
+  %8 = icmp eq i32 %7, 0
+  %9 = add i1 false, true
+  br i1 %8, label %while.exit, label %while.false
+
+while.false:                                      ; preds = %while.true
+  %10 = call i32 @strcmp(i8* %5, i8* %4)
+  %11 = icmp eq i32 %10, 0
+  %12 = add i1 false, false
+  br i1 %11, label %while.exit, label %while.error
+
+while.error:                                      ; preds = %while.false
+  %13 = call i32 (i8*, ...) @printf(i8* %1, i8* %2)
+  br label %entry.
+
+while.exit:                                       ; preds = %while.false, %while.true
+  %14 = phi i1 [ %9, %while.true ], [ %12, %while.false ]
+  ret i1 %14
+}
 
 define i8 @readChar() {
 entry:
@@ -130,7 +170,23 @@ entry:
   ret double %3
 }
 
-declare i16 @abs(i16)
+define i16 @abs(i16) {
+entry:
+  %1 = icmp sge i16 %0, 0
+  br i1 %1, label %pos, label %neg
+
+pos:                                              ; preds = %entry
+  %2 = add i16 %0, 0
+  br label %exit
+
+neg:                                              ; preds = %entry
+  %3 = sub i16 0, %0
+  br label %exit
+
+exit:                                             ; preds = %neg, %pos
+  %4 = phi i16 [ %2, %pos ], [ %3, %neg ]
+  ret i16 %4
+}
 
 declare double @fabs(double)
 
@@ -211,16 +267,11 @@ entry:
 
 define void @main() {
 entry:
-  %0 = alloca i8
-  %1 = alloca i16
-  %2 = call i16 @readInteger()
-  store i16 %2, i16* %1
-  %3 = load i16, i16* %1
-  %4 = load i16, i16* %1
-  %5 = call i8 @chr(i16 %4)
-  store i8 %5, i8* %0
-  %6 = load i8, i8* %0
-  %7 = load i8, i8* %0
-  call void @writeChar(i8 %7)
+  %0 = alloca i1
+  %1 = call i1 @readBoolean()
+  store i1 %1, i1* %0
+  %2 = load i1, i1* %0
+  %3 = load i1, i1* %0
+  call void @writeBoolean(i1 %3)
   ret void
 }

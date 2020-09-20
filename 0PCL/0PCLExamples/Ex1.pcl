@@ -1,7 +1,6 @@
 program hello;
-var b:char;a:integer;
+var a:boolean;
 begin
-  a := readInteger();
-  b := chr(a);
-  writeChar(b);
+  a := readBoolean();
+  writeBoolean(a);
 end.

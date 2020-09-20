@@ -15,7 +15,6 @@ To Do:
 - return statement
 - result lval
 - dispose statement
-- find all the built-in functions in llvm and define them (like printf) ON THE WORKS
+- find all the built-in functions in llvm and define them (like printf) DONE
       -> then define the PCL equivalent (like writeString)
 
-ON THE WORKS = readBoolean,abs left!
