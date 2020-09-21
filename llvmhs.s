@@ -408,17 +408,24 @@ chr:                                    # @chr
 main:                                   # @main
 	.cfi_startproc
 # %bb.0:                                # %entry
-	pushq	%rax
-	.cfi_def_cfa_offset 16
-	.p2align	4, 0x90
-.LBB16_1:                               # %hi
-                                        # =>This Inner Loop Header: Depth=1
-	callq	readBoolean
-	andb	$1, %al
+	subq	$40, %rsp
+	.cfi_def_cfa_offset 48
+	leaq	7(%rsp), %rax
+	movq	%rax, 8(%rsp)
+	callq	readChar
 	movb	%al, 7(%rsp)
-	movzbl	7(%rsp), %edi
-	callq	writeBoolean
-	jmp	.LBB16_1
+	movq	8(%rsp), %rax
+	movzbl	(%rax), %edi
+	callq	writeChar
+	leaq	30(%rsp), %rsi
+	movq	%rsi, 16(%rsp)
+	movl	$10, %edi
+	callq	readString
+	movq	16(%rsp), %rdi
+	xorl	%eax, %eax
+	callq	writeString
+	addq	$40, %rsp
+	retq
 .Lfunc_end16:
 	.size	main, .Lfunc_end16-main
 	.cfi_endproc

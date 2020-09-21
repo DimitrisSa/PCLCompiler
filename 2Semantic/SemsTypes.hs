@@ -158,7 +158,7 @@ toTType = \case
 
 arrayToTType :: P.Type -> ArrSize -> T.Type
 arrayToTType ty = \case
-  NoSize -> toTType ty -- is this right? what could the type be
+  NoSize -> toTType ty 
   Size n -> ArrayType (w64 n) $ toTType ty
 
 toConsI16 :: Int -> Operand

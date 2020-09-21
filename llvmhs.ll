@@ -267,17 +267,25 @@ entry:
 
 define void @main() {
 entry:
-  %0 = alloca i1
-  br label %hi
-
-hi:                                               ; preds = %hi, %entry
-  %1 = call i1 @readBoolean()
-  store i1 %1, i1* %0
-  %2 = load i1, i1* %0
-  %3 = load i1, i1* %0
-  call void @writeBoolean(i1 %3)
-  br label %hi
-
-next5:                                            ; No predecessors!
+  %0 = alloca i8*
+  %1 = alloca i8*
+  %2 = alloca i8
+  store i8* %2, i8** %1
+  %3 = load i8*, i8** %1
+  %4 = call i8 @readChar()
+  store i8 %4, i8* %3
+  %5 = load i8*, i8** %1
+  %6 = load i8, i8* %5
+  %7 = load i8*, i8** %1
+  %8 = load i8, i8* %7
+  call void @writeChar(i8 %8)
+  %9 = alloca i8, i16 10
+  store i8* %9, i8** %0
+  %10 = load i8*, i8** %0
+  %11 = load i8*, i8** %0
+  call void @readString(i16 10, i8* %11)
+  %12 = load i8*, i8** %0
+  %13 = load i8*, i8** %0
+  call void (i8*, ...) @writeString(i8* %13)
   ret void
 }

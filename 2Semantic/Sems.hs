@@ -264,7 +264,12 @@ disposeSems posn = \case
 
 exprTypeOper :: Expr -> Sems (Type,AST.Operand)
 exprTypeOper = \case
-  LVal lval -> lValTypeOper lval >>= \(ty,op) -> load op >>= \op' -> return (ty,op')
+  LVal lval -> do
+    (ty,op) <- lValTypeOper lval
+    op' <- case ty of
+      Array NoSize _ -> return op
+      _              -> load op 
+    return (ty,op')
   RVal rval -> rValTypeOper rval
 
 lValTypeOper :: LVal -> Sems (Type,AST.Operand)

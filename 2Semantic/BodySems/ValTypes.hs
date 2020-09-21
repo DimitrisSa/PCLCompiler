@@ -15,7 +15,7 @@ resultType posn = getEnv >>= \case
 
 dereferenceCases :: (Int,Int) -> TyOper -> Sems TyOper
 dereferenceCases posn = \case
-  (Pointer t,op) -> right (t,undefined) -- GEP
+  (Pointer t,op) -> right (t,op)
   (Nil,_ )       -> errPos posn "dereferencing Nil pointer"
   _              -> errPos posn "dereferencing non-pointer"
 
@@ -250,25 +250,27 @@ notCases posn = \case
 
 formalsExprsTypesMatch :: Int -> Id -> [(PassBy,Type)] -> [Type] -> Sems ()
 formalsExprsTypesMatch i id t1s t2s = case (t1s,t2s) of
-  ((Value,t1):t1s,t2:t2s)     -> formalExprTypeMatch i id t1 t2 t1s t2s
-  ((Reference,t1):t1s,t2:t2s) -> formalExprTypeMatch i id (Pointer t1) (Pointer t2) t1s t2s
+  ((Value,t1):t1s,t2:t2s)     -> formalExprTypeMatch i id t1 t2 t1s t2s $ symbatos (t1,t2)
+  ((Reference,t1):t1s,t2:t2s) -> formalExprTypeMatch i id t1 t2 t1s t2s $
+                                   symbatos (Pointer t1, Pointer t2)
   ([],[])                     -> return ()
   _                           -> errAtId "Wrong number of arguments in call of: " id
 
-formalExprTypeMatch :: Int -> Id -> Type -> Type -> [(PassBy,Type)] -> [Type] -> Sems ()
-formalExprTypeMatch i id t1 t2 t1s t2s = case symbatos (t1,t2) of 
+type ByTy = (PassBy,Type)
+formalExprTypeMatch :: Int -> Id -> Type -> Type -> [ByTy] -> [Type] -> Bool -> Sems ()
+formalExprTypeMatch i id t1 t2 t1s t2s = \case 
   True -> formalsExprsTypesMatch (i+1) id t1s t2s
   _    -> errorAtArg i id t1 t2
 
 errorAtArg :: Int -> Id -> Type -> Type ->Sems ()
-errorAtArg i (Id posn str) t1 t2=
+errorAtArg i (Id posn str) t1 t2 =
   errPos posn $ concat ["Type mismatch at argument "
                        ,show i
                        ," in call of: "
                        , str
-                       ," type 1: "
+                       ," expected type: "
                        , show t1
-                       ," type 2: "
+                       ," given type: "
                        , show t2]
 
 nonNumAfErr :: String

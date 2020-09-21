@@ -31,29 +31,28 @@ newPointerCases :: (Int,Int) -> TyOper -> Sems TyOper
 newPointerCases posn = pointerCases posn "non-pointer in new statement"
 
 newNoExprSemsIR :: (Int,Int) -> TyOper -> Sems ()
-newNoExprSemsIR posn = newPointerCases posn >=> \(ty,op) -> 
-  newNoExprSemsIR' posn newNoExprErr op (fullType ty)
-
-newNoExprErr :: String
-newNoExprErr = "new l statement: l must not be of type ^array of t"
-
-newNoExprSemsIR' :: (Int,Int) -> String -> Operand -> Bool -> Sems ()
-newNoExprSemsIR' posn err lValOp = \case
-  True ->  do
-    newPtr <- alloca $ case lValOp of
-      LocalReference ty name -> ty
-      _                      -> error "cgenNewNoExpr: should not happen"
-    store lValOp newPtr
-  _    -> errPos posn err
+newNoExprSemsIR posn (lt,lOp) = do
+  (lt,lOp) <- newPointerCases posn (lt,lOp)
+  caseFalseThrowErr posn "new l statement: l must not be of type ^array of t" $ fullType lt
+  newPtr <- alloca $ case lOp of
+    LocalReference (PointerType (PointerType ty _) _) _ -> ty
+    _                      -> error "newNoExprSemsIR: should not happen"
+  store lOp newPtr
 
 newExprSems :: (Int,Int) -> (TyOper,TyOper) -> Sems ()
-newExprSems posn (eto,lto) =
-  intCases posn eto >> newPointerCases posn lto >>= fst >>> fullType >>> not >>>
-  caseFalseThrowErr posn "new [e] l statement: l must be of type ^array of t"
+newExprSems posn ((et,eOp),(lt,lOp)) = do
+  intCases posn et 
+  (lt,lOp) <- newPointerCases posn (lt,lOp)
+  let bool = not $ fullType lt
+  caseFalseThrowErr posn "new [e] l statement: l must be of type ^array of t" bool
+  newPtr <- allocaNum eOp $ case lOp of
+    LocalReference (PointerType (PointerType ty _) _) _ -> ty
+    _                      -> error "newExprSems : should not happen"
+  store lOp newPtr
 
 intCases posn = \case
-  (IntT,op) -> return ()
-  _         -> errPos posn "new [e] l statement: e must be of type integer" 
+  IntT -> return ()
+  _    -> errPos posn "new [e] l statement: e must be of type integer" 
 
 caseFalseThrowErr :: (Int,Int) -> String -> Bool -> Sems ()
 caseFalseThrowErr posn err = \case
