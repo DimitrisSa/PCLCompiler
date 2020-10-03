@@ -63,13 +63,6 @@
   (major1) == 9 && (major2) <  0 || \
   (major1) == 9 && (major2) == 0 && (minor) <= 1)
 
-/* package llvm-hs-pretty-0.9.0.0 */
-#define VERSION_llvm_hs_pretty "0.9.0.0"
-#define MIN_VERSION_llvm_hs_pretty(major1,major2,minor) (\
-  (major1) <  0 || \
-  (major1) == 0 && (major2) <  9 || \
-  (major1) == 0 && (major2) == 9 && (minor) <= 0)
-
 /* package llvm-hs-pure-9.0.0 */
 #define VERSION_llvm_hs_pure "9.0.0"
 #define MIN_VERSION_llvm_hs_pure(major1,major2,minor) (\

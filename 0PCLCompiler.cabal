@@ -20,7 +20,7 @@ executable 0PCLCompiler
   --other-modules:       SemsTypes.hs
   default-extensions:  LambdaCase,FlexibleInstances 
   build-depends:       base >=4.9 && <4.10,llvm-hs-pure,containers,transformers-either,
-                       mtl,ghc,array,string-transform,bits,text,llvm-hs-pretty,llvm-hs,
+                       mtl,ghc,array,string-transform,bits,text,llvm-hs,
                        bytestring,process,ilist
-  hs-source-dirs:      .,1LexerParser,2Semantic,2Semantic/BodySems,3IR
+  hs-source-dirs:      .,1LexerParser,2Semantic,2Semantic/BodySems
   default-language:    Haskell2010
