@@ -1,12 +1,12 @@
 program hello;
-var a:^array of char;(*b:array [10] of char;*)c: ^char;
+var a:integer;b:boolean;c:char;d:real;
 begin
-  new c;
-  c^ := readChar();
-  writeChar(c^);
-  new [10] a;
-  readString(10,a^);
-  writeString(a^);
-  (*readString(10,b);
-  writeString(b);*)
+  c := readChar();
+  a := readInteger();
+  b := readBoolean();
+  d := readReal();
+  writeInteger(a);
+  writeBoolean(b);
+  writeChar(c);
+  writeReal(d);
 end.

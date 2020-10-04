@@ -20,11 +20,12 @@ import SemsTypes
 import Data.List.Index
 import Data.String.Transform
 
+-- Add function definition to Module in state
 defineFun :: String -> T.Type -> [Frml] -> Sems () -> Sems ()
 defineFun name retty frmls codegen = do
-  modifyCodegen $ \_ -> emptyCodegen
-  codegen
-  blocks <- createBlocks
+  modifyCodegen $ \_ -> emptyCodegen -- flush previous codegen state
+  codegen                            -- modify codegen state 
+  blocks <- createBlocks             -- create blocks based on the new codegen state
   addGlobalDef functionDefaults {
       returnType = retty
     , name = toName $ case name of 
@@ -32,36 +33,23 @@ defineFun name retty frmls codegen = do
                         "ln"     -> "log"
                         _        -> name
     , parameters =  (
-        (fmap (frmlToTy >>> tyToParam) $ indexed frmls) 
+        fmap (frmlToTy >>> tyToParam) $ indexed frmls
       , case name of "writeString" -> True; _ -> False
       )
     , basicBlocks = blocks
     } 
 
-tyToParam :: (Word,T.Type) -> Parameter
-tyToParam (i,ty) = Parameter ty (UnName i) []
-
-frmlToTy :: (Int,Frml) -> (Word,T.Type)
-frmlToTy (i,(by,_,ty)) = (fromIntegral i,case by of
-  Value -> toTType ty 
-  _     -> toTType $ Pointer ty)
-
 toName :: String -> Name
 toName = toShortByteString >>> Name
 
-uniqueName :: String -> Names -> (String, Names)
-uniqueName nm ns =
-  case Map.lookup nm ns of
-    Nothing -> (nm,  Map.insert nm 1 ns)
-    Just ix -> (nm ++ show ix, Map.insert nm (ix+1) ns)
+-- Create Basic Blocks from Codegen State
+createBlocks :: Sems [BasicBlock]
+createBlocks = do
+  codegenState <- getFromCodegen id
+  return $ map makeBlock $ sortBlocks $ Map.toList $ blocks codegenState
 
 sortBlocks :: [(Name, BlockState)] -> [(Name, BlockState)]
 sortBlocks = sortBy (compare `on` (idx . snd))
-
-createBlocks :: Sems [BasicBlock]
-createBlocks = do
-  m <- getFromCodegen id
-  return $ map makeBlock $ sortBlocks $ Map.toList (blocks m)
 
 makeBlock :: (Name, BlockState) -> BasicBlock
 makeBlock (l, (BlockState _ s t)) = BasicBlock l (reverse s) (maketerm t)
@@ -69,15 +57,23 @@ makeBlock (l, (BlockState _ s t)) = BasicBlock l (reverse s) (maketerm t)
     maketerm (Just x) = x
     maketerm Nothing = error $ "Block has no terminator: " ++ (show l)
 
-emptyBlock :: Int -> BlockState
-emptyBlock i = BlockState i [] Nothing
+-- Create Parameter from Formal
+frmlToTy :: (Int,Frml) -> (Word,T.Type)
+frmlToTy (i,(by,_,ty)) = (fromIntegral i,case by of
+  Value -> toTType ty 
+  _     -> toTType $ Pointer ty)
 
+tyToParam :: (Word,T.Type) -> Parameter
+tyToParam (i,ty) = Parameter ty (UnName i) []
+
+-- fresh number for Unnamed Operands
 fresh :: Sems Word
 fresh = do
   i <- getFromCodegen count
   modifyCodegen $ \s -> s { count = 1 + i }
   return $ i + 1
 
+-- add instruction to block, with or without reference. If with ref, return ref. 
 instr :: T.Type -> Instruction -> Sems Operand
 instr retty ins =  do
   n <- fresh
@@ -85,7 +81,7 @@ instr retty ins =  do
   blk <- current
   let i = stack blk
   modifyBlock (blk { stack = (ref := ins) : i } )
-  return $ local retty ref
+  return $ LocalReference retty ref
 
 instrDo :: Instruction -> Sems ()
 instrDo ins = do
@@ -93,16 +89,13 @@ instrDo ins = do
   let i = stack blk
   modifyBlock (blk { stack = (Do ins) : i } )
 
+-- Add terminator to block
 terminator :: Named Terminator -> Sems ()
 terminator trm = do
   blk <- current
   modifyBlock (blk { term = Just trm })
 
-terminatorVoid :: Named Terminator -> Sems ()
-terminatorVoid trm = do
-  blk <- current
-  modifyBlock (blk { term = Just trm })
-
+-- Add Block to codegen state
 addBlock :: String -> Sems Name
 addBlock bname = do
   bls <- getFromCodegen blocks
@@ -111,11 +104,21 @@ addBlock bname = do
   let new = emptyBlock ix
       (qname, supply) = uniqueName bname nms
   modifyCodegen $ \s -> s { blocks = Map.insert (toShortName qname) new bls
-                   , blockCount = ix + 1
-                   , names = supply
-                   }
+                          , blockCount = ix + 1
+                          , names = supply
+                          }
   return (toShortName qname)
 
+emptyBlock :: Int -> BlockState
+emptyBlock i = BlockState i [] Nothing
+
+uniqueName :: String -> Names -> (String, Names)
+uniqueName nm ns =
+  case Map.lookup nm ns of
+    Nothing -> (nm,  Map.insert nm 1 ns)
+    Just ix -> (nm ++ show ix, Map.insert nm (ix+1) ns)
+
+-- Other Block operations
 setBlock :: Name -> Sems ()
 setBlock bname = modifyCodegen $ \s -> s { currentBlock = bname }
 
@@ -135,6 +138,7 @@ current = do
     Just x -> return x
     Nothing -> error $ "No such block: " ++ show c
 
+-- Symtab operations
 assign :: String -> Operand -> Sems ()
 assign var x = do
   lcls <- getFromCodegen symtab
@@ -147,66 +151,38 @@ getvar var = do
     Just x  -> return x
     Nothing -> error $ "Local variable not in scope: " ++ show var
 
-local :: T.Type -> Name -> Operand
-local = LocalReference
-
+-- Constant Global References
 consGlobalRef :: T.Type -> Name -> Operand
 consGlobalRef ty name = ConstantOperand $ C.GlobalReference ty name
 
 printf :: Operand
-printf = consGlobalRef printfType "printf"
-
-printfType = ptr $ FunctionType {
-    resultType = i32
-  , argumentTypes = [ptr i8]
-  , isVarArg = True
-  }
+printf = consGlobalRef printfScanfType "printf"
 
 scanf :: Operand
-scanf = consGlobalRef scanfType "__isoc99_scanf"
+scanf = consGlobalRef printfScanfType "__isoc99_scanf"
 
-scanfType = ptr $ FunctionType {
+printfScanfType = ptr $ FunctionType {
     resultType = i32
   , argumentTypes = [ptr i8]
   , isVarArg = True
   }
 
-writeInteger :: Operand
-writeInteger = consGlobalRef writeIntegerType "writeInteger"
+writeGlobalRef :: (T.Type,Name) -> Operand
+writeGlobalRef (argType,name) = consGlobalRef (writeType argType) name
 
-writeIntegerType = ptr $ FunctionType {
+writeType argType = ptr $ FunctionType {
     resultType = T.void
-  , argumentTypes = [i16]
+  , argumentTypes = [argType]
   , isVarArg = False
   }
-  
-writeBoolean :: Operand
-writeBoolean = consGlobalRef writeBooleanType "writeBoolean"
 
-writeBooleanType = ptr $ FunctionType {
-    resultType = T.void
-  , argumentTypes = [i1]
-  , isVarArg = False
-  }
-  
-writeChar :: Operand
-writeChar = consGlobalRef writeCharType "writeChar"
+[writeInteger, writeBoolean, writeChar, writeReal] =
+  map writeGlobalRef [(i16,"writeInteger")
+                     ,(i1,"writeBoolean")
+                     ,(i8,"writeChar")
+                     ,(double,"writeReal")
+                     ]
 
-writeCharType = ptr $ FunctionType {
-    resultType = T.void
-  , argumentTypes = [i8]
-  , isVarArg = False
-  }
-  
-writeReal :: Operand
-writeReal = consGlobalRef writeRealType "writeReal"
-
-writeRealType = ptr $ FunctionType {
-    resultType = T.void
-  , argumentTypes = [double]
-  , isVarArg = False
-  }
-  
 writeString :: Operand
 writeString = consGlobalRef writeStringType "writeString"
 
@@ -225,41 +201,21 @@ readStringType = ptr $ FunctionType {
   , isVarArg = False
   }
 
-readInteger :: Operand
-readInteger = consGlobalRef readIntegerType "readInteger"
+readGlobalRef :: (T.Type,Name) -> Operand
+readGlobalRef (resType,name) = consGlobalRef (readType resType) name
 
-readIntegerType = ptr $ FunctionType {
-    resultType = i16
+readType resType = ptr $ FunctionType {
+    resultType = resType
   , argumentTypes = []
   , isVarArg = False
   }
 
-readBoolean :: Operand
-readBoolean = consGlobalRef readBooleanType "readBoolean"
-
-readBooleanType = ptr $ FunctionType {
-    resultType = i1
-  , argumentTypes = []
-  , isVarArg = False
-  }
-
-readChar :: Operand
-readChar = consGlobalRef readCharType "readChar"
-
-readCharType = ptr $ FunctionType {
-    resultType = i8
-  , argumentTypes = []
-  , isVarArg = False
-  }
-
-readReal :: Operand
-readReal = consGlobalRef readRealType "readReal"
-
-readRealType = ptr $ FunctionType {
-    resultType = double
-  , argumentTypes = []
-  , isVarArg = False
-  }
+[readInteger, readBoolean, readChar, readReal] =
+  map readGlobalRef [(i16,"readInteger")
+                     ,(i1,"readBoolean")
+                     ,(i8,"readChar")
+                     ,(double,"readReal")
+                     ]
 
 abs :: Operand
 abs = consGlobalRef absType "abs"
@@ -270,32 +226,8 @@ absType = ptr $ FunctionType {
   , isVarArg = False
   }
 
-fabs :: Operand
-fabs = consGlobalRef mathType "fabs"
-
-sqrt :: Operand
-sqrt = consGlobalRef mathType "sqrt"
-
-sin :: Operand
-sin = consGlobalRef mathType "sin"
-
-cos :: Operand
-cos = consGlobalRef mathType "cos"
-
-tan :: Operand
-tan = consGlobalRef mathType "tan"
-
-arctan :: Operand
-arctan = consGlobalRef mathType "atan"
-
-exp :: Operand
-exp = consGlobalRef mathType "exp"
-
-ln :: Operand
-ln = consGlobalRef mathType "log"
-
-acos :: Operand
-acos = consGlobalRef mathType "acos"
+[fabs,sqrt,sin,cos,tan,arctan,exp,ln,acos] =
+  map (consGlobalRef mathType) ["fabs","sqrt","sin","cos","tan","arctan","exp","ln","acos"]
 
 mathType = ptr $ FunctionType {
     resultType = double
@@ -351,6 +283,7 @@ strcmpType = ptr $ FunctionType {
   , isVarArg = False
   }
 
+-- Instructions
 fadd :: Operand -> Operand -> Sems Operand
 fadd a b = instr double $ FAdd noFastMathFlags a b []
 
@@ -393,17 +326,11 @@ icmp cond a b = instr i1 $ ICmp cond a b []
 phi :: T.Type -> [(Operand, Name)] -> Sems Operand
 phi ty incoming = instr ty $ Phi ty incoming []
 
-cons :: C.Constant -> Operand
-cons = ConstantOperand
-
 sitofp :: Operand -> Sems Operand
 sitofp a = instr double $ SIToFP a double []
 
 fptosi :: Operand -> Sems Operand
 fptosi a = instr i16 $ FPToSI a i16 []
-
-toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
-toArgs = map (\x -> (x, []))
 
 call :: Operand -> [Operand] -> Sems Operand
 call fn args = case fn of
@@ -414,6 +341,9 @@ call fn args = case fn of
 
 callVoid :: Operand -> [Operand] -> Sems ()
 callVoid fn args = instrDo $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
+
+toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
+toArgs = map (\x -> (x, []))
 
 alloca :: T.Type -> Sems Operand
 alloca ty = instr (ptr ty) $ Alloca ty Nothing 0 []
@@ -439,7 +369,6 @@ ptrToRetty = \case
   ConstantOperand (C.GlobalReference (PointerType t _) _) -> t
   t -> error $ "Not a pointer: " ++ show t
   
-
 getElemPtr :: Operand -> Operand -> Sems Operand
 getElemPtr arrPtr ind =
   instr double $ GetElementPtr False arrPtr [toConsI16 0,ind] []
@@ -460,6 +389,7 @@ getElemPtrOp' :: Operand -> Operand -> Sems Operand
 getElemPtrOp' arrPtr ind =
   instr double $ GetElementPtr False arrPtr [ind] []
 
+-- Terminators
 br :: Name -> Sems ()
 br val = terminator $ Do $ Br val []
 
@@ -470,4 +400,7 @@ ret :: Operand -> Sems ()
 ret val = terminator $ Do $ Ret (Just val) []
 
 retVoid :: Sems ()
-retVoid = terminatorVoid $ Do $ Ret Nothing []
+retVoid = terminator $ Do $ Ret Nothing []
+
+cons :: C.Constant -> Operand
+cons = ConstantOperand

@@ -10,20 +10,8 @@ import LLVM.AST.Constant
 import Data.Bits.Extras
 import Data.String.Transform
 
-type TyOper = (P.Type,Operand)
-
-data Callable =
-  Proc [Frml]            |
-  Func [Frml] P.Type     |
-  ProcDclr [Frml]        |
-  FuncDclr [Frml] P.Type
-  deriving(Show,Eq)
-
-data SymbolTable = SymbolTable {
-   variableMap :: VariableMap
-  ,labelMap    :: LabelMap
-  ,callableMap :: CallableMap
-  }
+-- Codegen State
+type Names = Map String Int
 
 data CodegenState
   = CodegenState {
@@ -35,8 +23,6 @@ data CodegenState
   , names        :: Names
   } deriving Show
 
-type Names = Map String Int
-
 data BlockState
   = BlockState {
     idx   :: Int                            
@@ -44,31 +30,57 @@ data BlockState
   , term  :: Maybe (Named Terminator)       
   } deriving Show
 
+-- Semantics State
 data Env = InProc | InFunc Id P.Type Bool
+
+data Callable =
+  Proc [Frml]            |
+  Func [Frml] P.Type     |
+  ProcDclr [Frml]        |
+  FuncDclr [Frml] P.Type
+  deriving(Show,Eq)
 
 type VariableMap = Map Id P.Type
 type LabelMap    = Map Id Bool
 type CallableMap = Map Id Callable
-type Error       = String
-type Sems        = EitherT Error (State (Env,[SymbolTable],Module,CodegenState))
 
+data SymbolTable = SymbolTable {
+   variableMap :: VariableMap
+  ,labelMap    :: LabelMap
+  ,callableMap :: CallableMap
+  }
+
+type TyOper = (P.Type,Operand)
+type Error = String
+
+-- All of the state (Semantics,Module,Codegen)
+type Sems  = EitherT Error (State (Env,[SymbolTable],Module,CodegenState))
+
+-- Initial state
+emptyCodegen :: CodegenState
+emptyCodegen = CodegenState (toShortName "entry") empty [] 1 0 empty
+
+emptySymbolTable :: SymbolTable
 emptySymbolTable = SymbolTable empty empty empty
+
+initState :: (Env,[SymbolTable],Module,CodegenState)
 initState = (InProc,[emptySymbolTable],defaultModule,emptyCodegen)
 
+-- Composition with arguments in a more logical order
 infixl 9 >>>
 (>>>) = (flip (.))
 
+-- Codegen State operations
 modifyCodegen :: (CodegenState -> CodegenState) -> Sems ()
 modifyCodegen f = modify $ \(env,sts,m,cgen) -> (env,sts,m,f cgen)
 
 getFromCodegen :: (CodegenState -> a) -> Sems a
 getFromCodegen f = get >>= (\(_,_,_,x) -> f x) >>> return
 
-emptyCodegen :: CodegenState
-emptyCodegen = CodegenState (toShortName "entry") empty [] 1 0 empty
-
+toShortName :: String -> Name
 toShortName = toShortByteString >>> Name
 
+-- Module State operations
 getDefs :: Sems [Definition]
 getDefs = get >>= (\(_,_,x,_) -> moduleDefinitions x) >>> return
 
@@ -81,12 +93,14 @@ addGlobalDef = GlobalDefinition >>> addDef
 modifyMod :: (Module -> Module) -> Sems ()
 modifyMod f = modify $ \(env,sts,m,cgen) -> (env,sts,f m,cgen)
 
+-- Environment State operations
 getEnv :: Sems Env
 getEnv = get >>= (\(x,_,_,_) -> x) >>> return
 
 setEnv :: Env -> Sems ()
 setEnv env = modify $ \(_,sts,m,cgen) -> (env,sts,m,cgen)
 
+-- Symbol Tables State operations
 getSymTabs :: Sems [SymbolTable]
 getSymTabs = get >>= (\(_,x,_,_) -> x) >>> return
 
@@ -141,31 +155,34 @@ searchInSymTabs map id err = \case
     Nothing  -> searchInSymTabs map id err sts
   []     -> errAtId err id
 
+-- Printing errors
 errAtId :: String -> Id -> Sems a
 errAtId err (Id posn str) = errPos posn $ err ++ str
 
 errPos (li,co) err = left $ concat [show li,":",show co,": ",err] 
 
+-- Parser Type to LLVM.AST.Type
 toTType :: P.Type -> T.Type
 toTType = \case
-  Nil           -> undefined
-  IntT          -> i16
-  RealT         -> double
-  BoolT         -> i1
-  CharT         -> i8
+  Nil             -> undefined
+  IntT            -> i16
+  RealT           -> double
+  BoolT           -> i1
+  CharT           -> i8
   P.Array size ty -> arrayToTType ty size
-  Pointer ty    -> ptr $ toTType ty
+  Pointer ty      -> ptr $ toTType ty
 
 arrayToTType :: P.Type -> ArrSize -> T.Type
 arrayToTType ty = \case
   NoSize -> toTType ty 
   Size n -> ArrayType (w64 n) $ toTType ty
 
+-- Int to constant operant with bit size variations
+toConsI1 :: Int -> Operand
+toConsI1 = ConstantOperand . Int 1 . toInteger
+
 toConsI16 :: Int -> Operand
 toConsI16 = ConstantOperand . Int 16 . toInteger
 
 toConsI32 :: Int -> Operand
 toConsI32 = ConstantOperand . Int 32 . toInteger
-
-toConsI1 :: Int -> Operand
-toConsI1 = ConstantOperand . Int 1 . toInteger

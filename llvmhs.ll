@@ -267,25 +267,29 @@ entry:
 
 define void @main() {
 entry:
-  %0 = alloca i8*
-  %1 = alloca i8*
+  %0 = alloca i16
+  %1 = alloca i1
   %2 = alloca i8
-  store i8* %2, i8** %1
-  %3 = load i8*, i8** %1
+  %3 = alloca double
   %4 = call i8 @readChar()
-  store i8 %4, i8* %3
-  %5 = load i8*, i8** %1
-  %6 = load i8, i8* %5
-  %7 = load i8*, i8** %1
-  %8 = load i8, i8* %7
-  call void @writeChar(i8 %8)
-  %9 = alloca i8, i16 10
-  store i8* %9, i8** %0
-  %10 = load i8*, i8** %0
-  %11 = load i8*, i8** %0
-  call void @readString(i16 10, i8* %11)
-  %12 = load i8*, i8** %0
-  %13 = load i8*, i8** %0
-  call void (i8*, ...) @writeString(i8* %13)
+  store i8 %4, i8* %2
+  %5 = call i16 @readInteger()
+  store i16 %5, i16* %0
+  %6 = call i1 @readBoolean()
+  store i1 %6, i1* %1
+  %7 = call double @readReal()
+  store double %7, double* %3
+  %8 = load i16, i16* %0
+  %9 = load i16, i16* %0
+  call void @writeInteger(i16 %9)
+  %10 = load i1, i1* %1
+  %11 = load i1, i1* %1
+  call void @writeBoolean(i1 %11)
+  %12 = load i8, i8* %2
+  %13 = load i8, i8* %2
+  call void @writeChar(i8 %13)
+  %14 = load double, double* %3
+  %15 = load double, double* %3
+  call void @writeReal(double %15)
   ret void
 }

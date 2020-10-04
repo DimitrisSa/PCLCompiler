@@ -408,23 +408,26 @@ chr:                                    # @chr
 main:                                   # @main
 	.cfi_startproc
 # %bb.0:                                # %entry
-	subq	$40, %rsp
-	.cfi_def_cfa_offset 48
-	leaq	7(%rsp), %rax
-	movq	%rax, 8(%rsp)
+	subq	$24, %rsp
+	.cfi_def_cfa_offset 32
 	callq	readChar
-	movb	%al, 7(%rsp)
-	movq	8(%rsp), %rax
-	movzbl	(%rax), %edi
+	movb	%al, 12(%rsp)
+	callq	readInteger
+	movw	%ax, 14(%rsp)
+	callq	readBoolean
+	andb	$1, %al
+	movb	%al, 13(%rsp)
+	callq	readReal
+	movsd	%xmm0, 16(%rsp)
+	movzwl	14(%rsp), %edi
+	callq	writeInteger
+	movzbl	13(%rsp), %edi
+	callq	writeBoolean
+	movzbl	12(%rsp), %edi
 	callq	writeChar
-	leaq	30(%rsp), %rsi
-	movq	%rsi, 16(%rsp)
-	movl	$10, %edi
-	callq	readString
-	movq	16(%rsp), %rdi
-	xorl	%eax, %eax
-	callq	writeString
-	addq	$40, %rsp
+	movsd	16(%rsp), %xmm0         # xmm0 = mem[0],zero
+	callq	writeReal
+	addq	$24, %rsp
 	retq
 .Lfunc_end16:
 	.size	main, .Lfunc_end16-main
