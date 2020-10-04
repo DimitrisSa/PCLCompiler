@@ -49,6 +49,7 @@ initSymTab = do
 --getDefs >>= error . ("\n"++). concat . fmap
 --  ((++"\n").show.(\(GlobalDefinition x)-> (name x,parameters x,returnType x)))
 
+-- insert Procedures/Functions to the Symbol Table and the Module
 insertProcToSymTabAndDefs :: String -> [Frml] -> Sems ()
 insertProcToSymTabAndDefs name frmls = do
   insToCallableMap (dummy name) (Proc frmls)
@@ -59,6 +60,7 @@ insertFuncToSymTabAndDefs name frmls retty = do
   insToCallableMap (dummy name) (Func frmls retty)
   defineFun name (toTType retty) frmls (codegenFromName name)
 
+-- Get Code Generation Function from name
 codegenFromName = \case
   "writeInteger" -> writeCodeGen ".intStr" "hi"
   "writeBoolean" -> writeBooleanCodeGen
@@ -78,6 +80,7 @@ codegenFromName = \case
   "chr"          -> chrCodeGen
   _              -> return ()
 
+-- Add Global String Variable and initialize it
 addGlobalStr :: String -> Word64 -> String -> Sems ()
 addGlobalStr strName strLen strVal =
   addGlobalDef globalVariableDefaults {
@@ -90,6 +93,7 @@ addGlobalStr strName strLen strVal =
   , initializer = Just $ C.Array i8 $ fmap toI8Cons $ strVal
   }
 
+-- Code Generaton Functions
 absCodeGen :: Sems ()
 absCodeGen = do
   let intIn = LocalReference i16 (UnName 0)
@@ -347,6 +351,7 @@ readBooleanCodeGen = do
   boolVal <- phi i1 [(true,whileTrue),(false,whileFalse)]
   ret boolVal
 
+-- Built-in function declarations
 printfDef :: Sems ()
 printfDef = addGlobalDef functionDefaults {
     returnType = i32
@@ -388,6 +393,7 @@ strcmpDef = addGlobalDef functionDefaults {
     )
   } 
 
+-- Helpers
 toI8Cons :: Char -> C.Constant
 toI8Cons = ord >>> toInteger >>> C.Int 8
 

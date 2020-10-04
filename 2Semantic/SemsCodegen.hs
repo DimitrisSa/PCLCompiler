@@ -73,7 +73,7 @@ fresh = do
   modifyCodegen $ \s -> s { count = 1 + i }
   return $ i + 1
 
--- add instruction to block, with or without reference. If with ref, return ref. 
+-- add instruction to block, with or without a local reference
 instr :: T.Type -> Instruction -> Sems Operand
 instr retty ins =  do
   n <- fresh
