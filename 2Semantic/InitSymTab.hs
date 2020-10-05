@@ -20,6 +20,7 @@ initSymTab = do
   scanfDef
   acosDef
   strcmpDef
+  freeDef
   insertProcToSymTabAndDefs "writeInteger" [(Value,[dummy "n"],IntT)]
   insertProcToSymTabAndDefs "writeBoolean" [(Value,[dummy "b"],BoolT)]
   insertProcToSymTabAndDefs "writeChar" [(Value,[dummy "c"],CharT)]
@@ -53,7 +54,7 @@ initSymTab = do
 insertProcToSymTabAndDefs :: String -> [Frml] -> Sems ()
 insertProcToSymTabAndDefs name frmls = do
   insToCallableMap (dummy name) (Proc frmls)
-  defineFun name T.void frmls (codegenFromName name)
+  defineFun name void frmls (codegenFromName name)
 
 insertFuncToSymTabAndDefs :: String -> [Frml] -> P.Type -> Sems ()
 insertFuncToSymTabAndDefs name frmls retty = do
@@ -369,6 +370,16 @@ scanfDef = addGlobalDef functionDefaults {
   , parameters = (
       [ Parameter (ptr i8) (UnName 0) [] ]
     , True
+    )
+  } 
+
+freeDef :: Sems ()
+freeDef = addGlobalDef functionDefaults {
+    returnType = void
+  , name = toName "free"
+  , parameters = (
+      [ Parameter (ptr i8) (UnName 0) [] ]
+    , False
     )
   } 
 

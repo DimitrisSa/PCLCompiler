@@ -167,6 +167,15 @@ printfScanfType = ptr $ FunctionType {
   , isVarArg = True
   }
 
+free :: Operand
+free = consGlobalRef freeType "free"
+
+freeType = ptr $ FunctionType {
+    resultType = T.void
+  , argumentTypes = [ptr i8]
+  , isVarArg = False
+  }
+
 writeGlobalRef :: (T.Type,Name) -> Operand
 writeGlobalRef (argType,name) = consGlobalRef (writeType argType) name
 
