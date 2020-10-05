@@ -16,6 +16,8 @@ To Do:
 - result lval
 - dispose statement
 - new statement
+- double to X86_FP80 
+- size of pointers?
 - find all the built-in functions in llvm and define them (like printf) DONE
       -> then define the PCL equivalent (like writeString)
 

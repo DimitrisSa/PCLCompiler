@@ -186,3 +186,6 @@ toConsI16 = ConstantOperand . Int 16 . toInteger
 
 toConsI32 :: Int -> Operand
 toConsI32 = ConstantOperand . Int 32 . toInteger
+
+toConsI64 :: Int -> Operand
+toConsI64 = ConstantOperand . Int 64 . toInteger

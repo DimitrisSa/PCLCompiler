@@ -21,6 +21,7 @@ initSymTab = do
   acosDef
   strcmpDef
   freeDef
+  mallocDef
   insertProcToSymTabAndDefs "writeInteger" [(Value,[dummy "n"],IntT)]
   insertProcToSymTabAndDefs "writeBoolean" [(Value,[dummy "b"],BoolT)]
   insertProcToSymTabAndDefs "writeChar" [(Value,[dummy "c"],CharT)]
@@ -102,6 +103,7 @@ absCodeGen = do
   pos   <- addBlock "pos"
   neg   <- addBlock "neg"
   exit  <- addBlock "exit"
+
   setBlock entry
   cond <- icmp I.SGE intIn $ toConsI16 0
   cbr cond pos neg
@@ -400,6 +402,16 @@ strcmpDef = addGlobalDef functionDefaults {
   , parameters = (
       [ Parameter (ptr i8) (UnName 0) []
       , Parameter (ptr i8) (UnName 1) [] ]
+    , False
+    )
+  } 
+
+mallocDef :: Sems ()
+mallocDef = addGlobalDef functionDefaults {
+    returnType = ptr i8 
+  , name = toName "malloc"
+  , parameters = (
+      [ Parameter i64 (UnName 0) [] ]
     , False
     )
   } 

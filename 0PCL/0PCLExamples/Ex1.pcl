@@ -1,12 +1,5 @@
 program hello;
-var a:integer;b:boolean;c:char;d:real;
+var a:^array [5] of real;
 begin
-  c := readChar();
-  a := readInteger();
-  b := readBoolean();
-  d := readReal();
-  writeInteger(a);
-  writeBoolean(b);
-  writeChar(c);
-  writeReal(d);
+  new a;
 end.

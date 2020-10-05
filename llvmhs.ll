@@ -24,6 +24,10 @@ declare double @acos(double)
 
 declare i32 @strcmp(i8*, i8*)
 
+declare void @free(i8*)
+
+declare i8* @malloc(i64)
+
 define void @writeInteger(i16) {
 entry:
   %1 = getelementptr inbounds [5 x i8], [5 x i8]* @.intStr, i16 0, i16 0
@@ -267,29 +271,9 @@ entry:
 
 define void @main() {
 entry:
-  %0 = alloca i16
-  %1 = alloca i1
-  %2 = alloca i8
-  %3 = alloca double
-  %4 = call i8 @readChar()
-  store i8 %4, i8* %2
-  %5 = call i16 @readInteger()
-  store i16 %5, i16* %0
-  %6 = call i1 @readBoolean()
-  store i1 %6, i1* %1
-  %7 = call double @readReal()
-  store double %7, double* %3
-  %8 = load i16, i16* %0
-  %9 = load i16, i16* %0
-  call void @writeInteger(i16 %9)
-  %10 = load i1, i1* %1
-  %11 = load i1, i1* %1
-  call void @writeBoolean(i1 %11)
-  %12 = load i8, i8* %2
-  %13 = load i8, i8* %2
-  call void @writeChar(i8 %13)
-  %14 = load double, double* %3
-  %15 = load double, double* %3
-  call void @writeReal(double %15)
+  %0 = alloca [5 x double]*
+  %1 = call i8* @malloc(i64 40)
+  %2 = bitcast i8* %1 to [5 x double]*
+  store [5 x double]* %2, [5 x double]** %0
   ret void
 }

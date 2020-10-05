@@ -7,11 +7,18 @@ target triple = "x86_64-pc-linux-gnu"
 define i32 @main() #0 {
   %1 = alloca i32, align 4
   %2 = alloca i8*, align 8
+  %3 = alloca i32**, align 8
   store i32 0, i32* %1, align 4
-  %3 = call noalias i8* @malloc(i64 1) #2
-  store i8* %3, i8** %2, align 8
-  %4 = load i8*, i8** %2, align 8
-  call void @free(i8* %4) #2
+  %4 = call noalias i8* @malloc(i64 1) #2
+  store i8* %4, i8** %2, align 8
+  %5 = call noalias i8* @malloc(i64 8) #2
+  %6 = bitcast i8* %5 to i32**
+  store i32** %6, i32*** %3, align 8
+  %7 = load i8*, i8** %2, align 8
+  call void @free(i8* %7) #2
+  %8 = load i32**, i32*** %3, align 8
+  %9 = bitcast i32** %8 to i8*
+  call void @free(i8* %9) #2
   ret i32 0
 }
 

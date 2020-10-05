@@ -25,12 +25,11 @@ process :: IO ()
 process = sems
 
 codegen :: AST.Module -> IO ()
-codegen m =
-  withContext $ \context -> withModuleFromAST context m $ \m -> do
-    llstr <- moduleLLVMAssembly m
-    putStrLn $ unpack llstr
-    writeFile "llvmhs.ll" $ unpack llstr
-    callCommand "./usefulHs.sh"
+codegen m = withContext $ \context -> withModuleFromAST context m $ \m -> do
+  llstr <- moduleLLVMAssembly m
+  putStrLn $ unpack llstr
+  writeFile "llvmhs.ll" $ unpack llstr
+  callCommand "./usefulHs.sh"
 
 sems :: IO ()
 sems = do

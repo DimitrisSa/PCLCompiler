@@ -30,13 +30,24 @@ pointerCases posn err = \case
 newPointerCases :: (Int,Int) -> TyOper -> Sems TyOper
 newPointerCases posn = pointerCases posn "non-pointer in new statement"
 
+mallocBytes :: Common.Type -> Int
+mallocBytes = \case
+  IntT  -> 2
+  CharT -> 1
+  RealT -> 8
+  BoolT -> 1
+  Array (Size n) ty -> n * mallocBytes ty
+  Pointer ty -> 8
+  Array _ _  -> error "Shouldn't happen"
+
+mallocBytesOper = mallocBytes >>> toConsI64
+  
 newNoExprSemsIR :: (Int,Int) -> TyOper -> Sems ()
 newNoExprSemsIR posn (lt,lOp) = do
   (lt,lOp) <- newPointerCases posn (lt,lOp)
   caseFalseThrowErr posn "new l statement: l must not be of type ^array of t" $ fullType lt
-  newPtr <- alloca $ case lOp of
-    LocalReference (PointerType (PointerType ty _) _) _ -> ty
-    _                      -> error "newNoExprSemsIR: should not happen"
+  i8ptr <- call malloc [mallocBytesOper lt]
+  newPtr <- bitcast i8ptr $ toTType lt
   store lOp newPtr
 
 newExprSems :: (Int,Int) -> (TyOper,TyOper) -> Sems ()

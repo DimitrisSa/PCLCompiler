@@ -167,6 +167,15 @@ printfScanfType = ptr $ FunctionType {
   , isVarArg = True
   }
 
+malloc :: Operand
+malloc = consGlobalRef mallocType "malloc"
+
+mallocType = ptr $ FunctionType {
+    resultType = ptr i8
+  , argumentTypes = [i64]
+  , isVarArg = False
+  }
+
 free :: Operand
 free = consGlobalRef freeType "free"
 
@@ -371,6 +380,9 @@ zext op = instr i16 $ ZExt op i16 []
 
 truncTo :: Operand -> Sems Operand
 truncTo op = instr i8 $ Trunc op i8 []
+
+bitcast :: Operand -> T.Type -> Sems Operand
+bitcast op ty = instr (ptr ty) $ BitCast op (ptr ty) []
 
 ptrToRetty :: Operand -> T.Type
 ptrToRetty = \case

@@ -2,7 +2,9 @@
 #include<stdlib.h>
 
 int main(){
-  char *str = (char *) malloc(1);
-  free(str);
+  char *c = (char *) malloc(1);
+  int **i = (int **) malloc(sizeof(int*));
+  free(c);
+  free(i);
   return 0;
 }
