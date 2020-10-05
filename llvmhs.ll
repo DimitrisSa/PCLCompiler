@@ -271,9 +271,22 @@ entry:
 
 define void @main() {
 entry:
-  %0 = alloca [5 x double]*
-  %1 = call i8* @malloc(i64 40)
-  %2 = bitcast i8* %1 to [5 x double]*
-  store [5 x double]* %2, [5 x double]** %0
+  %0 = alloca [2 x [2 x double]*]*
+  %1 = load [2 x [2 x double]*]*, [2 x [2 x double]*]** %0
+  %2 = getelementptr [2 x [2 x double]*], [2 x [2 x double]*]* %1, i16 0, i16 0
+  %3 = load [2 x double]*, [2 x double]** %2
+  %4 = getelementptr [2 x double], [2 x double]* %3, i16 0, i16 0
+  %5 = sitofp i16 2 to double
+  store double %5, double* %4
+  %6 = load [2 x [2 x double]*]*, [2 x [2 x double]*]** %0
+  %7 = getelementptr [2 x [2 x double]*], [2 x [2 x double]*]* %6, i16 0, i16 0
+  %8 = load [2 x double]*, [2 x double]** %7
+  %9 = getelementptr [2 x double], [2 x double]* %8, i16 0, i16 1
+  %10 = load [2 x [2 x double]*]*, [2 x [2 x double]*]** %0
+  %11 = getelementptr [2 x [2 x double]*], [2 x [2 x double]*]* %10, i16 0, i16 0
+  %12 = load [2 x double]*, [2 x double]** %11
+  %13 = getelementptr [2 x double], [2 x double]* %12, i16 0, i16 0
+  %14 = load double, double* %13
+  store double %14, double* %9
   ret void
 }

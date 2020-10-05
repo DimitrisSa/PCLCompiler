@@ -1,5 +1,11 @@
 program hello;
-var a:^array [5] of real;
+var (*a:^array [2] of real;b:array [2] of real;*)c:array [2] of array [2] of real;
 begin
-  new a;
+  c[0][0] := 2;
+  c[0][1] := c[0][0];
+  (*new a;
+  b := a^;
+  a^ := 2.41234;
+  b := a^[0];
+  writeReal(b);*)
 end.

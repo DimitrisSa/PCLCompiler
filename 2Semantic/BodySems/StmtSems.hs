@@ -3,6 +3,7 @@ import Prelude hiding (lookup)
 import Control.Monad.Trans.Either
 import Common
 import LLVM.AST
+import LLVM.AST.Type
 import qualified LLVM.AST.Constant as C
 import SemsCodegen
 
@@ -38,7 +39,7 @@ mallocBytes = \case
   BoolT -> 1
   Array (Size n) ty -> n * mallocBytes ty
   Pointer ty -> 8
-  Array _ _  -> error "Shouldn't happen"
+  Array _ ty -> mallocBytes ty
 
 mallocBytesOper = mallocBytes >>> toConsI64
   
@@ -50,15 +51,16 @@ newNoExprSemsIR posn (lt,lOp) = do
   newPtr <- bitcast i8ptr $ toTType lt
   store lOp newPtr
 
-newExprSems :: (Int,Int) -> (TyOper,TyOper) -> Sems ()
-newExprSems posn ((et,eOp),(lt,lOp)) = do
+newExprSemsIR :: (Int,Int) -> (TyOper,TyOper) -> Sems ()
+newExprSemsIR posn ((et,eOp),(lt,lOp)) = do
   intCases posn et 
   (lt,lOp) <- newPointerCases posn (lt,lOp)
   let bool = not $ fullType lt
   caseFalseThrowErr posn "new [e] l statement: l must be of type ^array of t" bool
-  newPtr <- allocaNum eOp $ case lOp of
-    LocalReference (PointerType (PointerType ty _) _) _ -> ty
-    _                      -> error "newExprSems : should not happen"
+  eOp' <- zext64 eOp
+  numOfBytesOper <- mul eOp' $ mallocBytesOper lt
+  i8ptr <- call malloc [numOfBytesOper]
+  newPtr <- bitcast i8ptr $ toTType lt
   store lOp newPtr
 
 intCases posn = \case
@@ -74,12 +76,24 @@ dispPointerCases :: (Int,Int) -> TyOper -> Sems TyOper
 dispPointerCases posn = pointerCases posn "non-pointer in dispose statement"
 
 dispWithoutSems :: (Int,Int) -> TyOper -> Sems ()
-dispWithoutSems posn = dispPointerCases posn >=> fst >>> fullType >>>
-  caseFalseThrowErr posn "dispose l statement: l must not be of type ^array of t"
+dispWithoutSems posn (lt,lOp) = do
+  (lt,lOp) <- dispPointerCases posn (lt,lOp)
+  let bool = fullType lt
+  caseFalseThrowErr posn "dispose l statement: l must not be of type ^array of t" bool
+  lOp' <- load lOp
+  newPtr <- bitcast lOp' i8
+  callVoid free [newPtr]
+  store lOp $ cons $ C.Null $ toTType $ Pointer lt
 
 dispWithSems :: (Int,Int) -> TyOper -> Sems ()
-dispWithSems posn = dispPointerCases posn >=> fst >>> fullType >>> not >>>
-  caseFalseThrowErr posn "dispose [] l statement: l must be of type ^array of t"
+dispWithSems posn (lt,lOp) = do
+  (lt,lOp) <- dispPointerCases posn (lt,lOp)
+  let bool = not $ fullType lt
+  caseFalseThrowErr posn "dispose [] l statement: l must be of type ^array of t" bool
+  lOp' <- load lOp
+  newPtr <- bitcast lOp' i8
+  callVoid free [newPtr]
+  store lOp $ cons $ C.Null $ toTType $ Pointer lt
 
 notStrLiteralSems :: (Int,Int) -> (TyOper,TyOper) -> Sems ()
 notStrLiteralSems posn ((lt,lOp),(et,eOp)) = do

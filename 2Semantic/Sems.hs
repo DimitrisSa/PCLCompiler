@@ -254,7 +254,7 @@ assignmentSems posn = \case
 newSemsIR :: (Int,Int) -> New -> LVal -> Sems ()
 newSemsIR posn = \case
   NewNoExpr -> lValTypeOper >=> newNoExprSemsIR posn
-  NewExpr e -> exprLValTypeOpers e >=> newExprSems posn
+  NewExpr e -> exprLValTypeOpers e >=> newExprSemsIR posn
 
 disposeSems :: (Int,Int) -> DispType -> LVal -> Sems ()
 disposeSems posn = \case

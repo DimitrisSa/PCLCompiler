@@ -21,7 +21,7 @@ dereferenceCases posn = \case
 
 indexingCases :: (Int,Int) -> (TyOper,TyOper) -> Sems TyOper
 indexingCases posn = \case
-  ((Array _ t,lOp),(IntT,eOp)) -> do
+  ((Array (Size _) t,lOp),(IntT,eOp)) -> do
     lOp' <- load lOp
     elemOp <- getElemPtr lOp' eOp
     right (t,elemOp)

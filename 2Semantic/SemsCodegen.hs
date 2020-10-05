@@ -378,6 +378,9 @@ load ptr = instr (ptrToRetty ptr) $ Load False ptr Nothing 0 []
 zext :: Operand -> Sems Operand
 zext op = instr i16 $ ZExt op i16 []
 
+zext64 :: Operand -> Sems Operand
+zext64 op = instr i64 $ ZExt op i64 []
+
 truncTo :: Operand -> Sems Operand
 truncTo op = instr i8 $ Trunc op i8 []
 

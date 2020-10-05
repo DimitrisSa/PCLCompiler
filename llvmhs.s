@@ -408,12 +408,14 @@ chr:                                    # @chr
 main:                                   # @main
 	.cfi_startproc
 # %bb.0:                                # %entry
-	pushq	%rax
-	.cfi_def_cfa_offset 16
-	movl	$40, %edi
-	callq	malloc
-	movq	%rax, (%rsp)
-	popq	%rax
+	movq	-8(%rsp), %rax
+	movq	(%rax), %rax
+	movabsq	$4611686018427387904, %rcx # imm = 0x4000000000000000
+	movq	%rcx, (%rax)
+	movq	-8(%rsp), %rax
+	movq	(%rax), %rax
+	movsd	(%rax), %xmm0           # xmm0 = mem[0],zero
+	movsd	%xmm0, 8(%rax)
 	retq
 .Lfunc_end16:
 	.size	main, .Lfunc_end16-main
