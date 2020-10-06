@@ -1,8 +1,6 @@
 program hello;
 var a:array [3] of char;
 begin
-  a[0] := 'a';
-  a[1] := '\n';
-  a[2] := '\0';
+  readString(3,a);
   writeString(a);
 end.

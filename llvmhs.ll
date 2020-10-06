@@ -73,6 +73,36 @@ entry:
   ret void
 }
 
+define void @readString(i16, i8*) {
+entry:
+  %2 = getelementptr inbounds [3 x i8], [3 x i8]* @scanfChar, i16 0, i16 0
+  %3 = alloca i16
+  store i16 0, i16* %3
+  %4 = sub i16 %0, 1
+  %5 = icmp slt i16 0, %4
+  br i1 %5, label %while1, label %while.exit
+
+while1:                                           ; preds = %while2, %entry
+  %6 = load i16, i16* %3
+  %7 = getelementptr i8, i8* %1, i16 %6
+  %8 = call i32 (i8*, ...) @__isoc99_scanf(i8* %2, i8* %7)
+  %9 = load i8, i8* %7
+  %10 = icmp ne i8 %9, 10
+  br i1 %10, label %while2, label %while.exit
+
+while2:                                           ; preds = %while1
+  %11 = add i16 %6, 1
+  store i16 %11, i16* %3
+  %12 = icmp slt i16 %11, %4
+  br i1 %12, label %while1, label %while.exit
+
+while.exit:                                       ; preds = %while2, %while1, %entry
+  %13 = load i16, i16* %3
+  %14 = getelementptr i8, i8* %1, i16 %13
+  store i8 0, i8* %14
+  ret void
+}
+
 define i16 @readInteger() {
 entry:
   %0 = getelementptr inbounds [4 x i8], [4 x i8]* @.scanInt, i16 0, i16 0
@@ -243,12 +273,8 @@ define void @main() {
 entry:
   %0 = alloca [3 x i8]
   %1 = getelementptr inbounds [3 x i8], [3 x i8]* %0, i16 0, i16 0
-  store i8 97, i8* %1
-  %2 = getelementptr inbounds [3 x i8], [3 x i8]* %0, i16 0, i16 1
-  store i8 10, i8* %2
-  %3 = getelementptr inbounds [3 x i8], [3 x i8]* %0, i16 0, i16 2
-  store i8 0, i8* %3
-  %4 = getelementptr inbounds [3 x i8], [3 x i8]* %0, i16 0, i16 0
-  call void (i8*, ...) @writeString(i8* %4)
+  call void @readString(i16 3, i8* %1)
+  %2 = getelementptr inbounds [3 x i8], [3 x i8]* %0, i16 0, i16 0
+  call void (i8*, ...) @writeString(i8* %2)
   ret void
 }
