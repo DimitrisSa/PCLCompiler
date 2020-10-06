@@ -14,8 +14,8 @@ To Do:
 - goto statement DONE
 - return statement
 - result lval
-- dispose statement
-- new statement
+- dispose statement DONE
+- new statement DONE
 - double to X86_FP80 
 - size of pointers?
 - find all the built-in functions in llvm and define them (like printf) DONE

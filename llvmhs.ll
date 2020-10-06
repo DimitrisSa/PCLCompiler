@@ -271,10 +271,10 @@ entry:
 
 define void @main() {
 entry:
-  %0 = alloca [3 x i8]
-  %1 = getelementptr inbounds [3 x i8], [3 x i8]* %0, i16 0, i16 0
-  call void @readString(i16 3, i8* %1)
-  %2 = getelementptr inbounds [3 x i8], [3 x i8]* %0, i16 0, i16 0
+  %0 = alloca [10 x i8]
+  %1 = getelementptr inbounds [10 x i8], [10 x i8]* %0, i16 0, i16 0
+  call void @readString(i16 10, i8* %1)
+  %2 = getelementptr inbounds [10 x i8], [10 x i8]* %0, i16 0, i16 0
   call void (i8*, ...) @writeString(i8* %2)
   ret void
 }

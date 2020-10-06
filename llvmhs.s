@@ -413,8 +413,8 @@ main:                                   # @main
 	subq	$16, %rsp
 	.cfi_def_cfa_offset 32
 	.cfi_offset %rbx, -16
-	leaq	13(%rsp), %rbx
-	movl	$3, %edi
+	leaq	6(%rsp), %rbx
+	movl	$10, %edi
 	movq	%rbx, %rsi
 	callq	readString
 	xorl	%eax, %eax
