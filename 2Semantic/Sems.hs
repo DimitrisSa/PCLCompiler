@@ -95,13 +95,13 @@ cgenVars (ids,ty) = mapM_ (cgenVar ty) $ reverse ids
 cgenVar :: Type -> Id -> Sems ()
 cgenVar ty id = do 
   var <- alloca $ toTType ty
-  var' <- case ty of 
-    Array _ _ -> do
-       var' <- alloca $ toTType $ Pointer ty
-       store var' var
-       return var'
-    _         -> return var
-  assign (idString id) var'
+  --var' <- case ty of 
+  --  Array _ _ -> do
+  --     var' <- alloca $ toTType $ Pointer ty
+  --     store var' var
+  --     return var'
+  --  _         -> return var
+  assign (idString id) var
 
 headerBodySems :: Header -> Body -> Sems ()
 headerBodySems h b = do
@@ -216,7 +216,7 @@ cgenCallStmt id exprs = do
 
 typeOperToArg :: TyOper -> Sems AST.Operand
 typeOperToArg (ty,op) = case ty of
-  Array (Size _) _ -> getElemPtrInt op 0
+  Array (Size _) t -> getElemPtrInBounds op 0
   _                -> return op
 
 idToFunOper = idString >>> \case
@@ -266,8 +266,8 @@ exprTypeOper = \case
   LVal lval -> do
     (ty,op) <- lValTypeOper lval
     op' <- case ty of
-      Array NoSize _ -> return op
-      _              -> load op 
+      Array _ _ -> return op
+      _         -> load op 
     return (ty,op')
   RVal rval -> rValTypeOper rval
 
@@ -286,11 +286,9 @@ lValTypeOper = \case
 strLiteralSemsIR :: String -> Sems TyOper
 strLiteralSemsIR string = do
   (_,num) <- rValTypeOper $ IntR $ length string + 1
-  strOperPtr <- alloca $ toTType $ Pointer CharT
   strOper <- allocaNum num $ toTType CharT
   mapM_ (cgenStrLitChar strOper) $ indexed $ string ++ ['\0']
-  store strOperPtr strOper 
-  return (Array NoSize CharT,strOperPtr)
+  return (Array NoSize CharT,strOper)
 
 cgenStrLitChar :: AST.Operand -> (Int,Char) -> Sems ()
 cgenStrLitChar strOper (ind,char) = do

@@ -1,11 +1,12 @@
 #include<stdio.h>
 #include<stdlib.h>
 
+void foo(double *a){
+  printf("hello");
+}
+
 int main(){
-  double **a = &malloc(2*sizeof(double));
-  double b;
-  *a[0] = 2.1234;
-  b = *a[0];
-  printf("%lf",b);
+  double a[2];
+  foo(a);
   return 0;
 }

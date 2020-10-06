@@ -1,12 +1,12 @@
 ; ModuleID = 'hello'
 source_filename = "<string>"
 
+@scanfChar = private unnamed_addr constant [3 x i8] c"%c\00", align 1
 @.intStr = private unnamed_addr constant [5 x i8] c"%hi\0A\00", align 1
 @true = private unnamed_addr constant [6 x i8] c"true\0A\00", align 1
 @false = private unnamed_addr constant [7 x i8] c"false\0A\00", align 1
 @.charStr = private unnamed_addr constant [4 x i8] c"%c\0A\00", align 1
 @.realStr = private unnamed_addr constant [5 x i8] c"%lf\0A\00", align 1
-@scanfChar = private unnamed_addr constant [3 x i8] c"%c\00", align 1
 @.scanInt = private unnamed_addr constant [4 x i8] c"%hi\00", align 1
 @scanfStr = private unnamed_addr constant [2 x i8] c"%s", align 1
 @printStr = private unnamed_addr constant [4 x i8] c"%s\0A\00", align 1
@@ -70,36 +70,6 @@ entry:
 define void @writeString(i8*, ...) {
 entry:
   %1 = call i32 (i8*, ...) @printf(i8* %0)
-  ret void
-}
-
-define void @readString(i16, i8*) {
-entry:
-  %2 = getelementptr inbounds [3 x i8], [3 x i8]* @scanfChar, i16 0, i16 0
-  %3 = alloca i16
-  store i16 0, i16* %3
-  %4 = sub i16 %0, 1
-  %5 = icmp slt i16 0, %4
-  br i1 %5, label %while1, label %while.exit
-
-while1:                                           ; preds = %while2, %entry
-  %6 = load i16, i16* %3
-  %7 = getelementptr i8, i8* %1, i16 %6
-  %8 = call i32 (i8*, ...) @__isoc99_scanf(i8* %2, i8* %7)
-  %9 = load i8, i8* %7
-  %10 = icmp ne i8 %9, 10
-  br i1 %10, label %while2, label %while.exit
-
-while2:                                           ; preds = %while1
-  %11 = add i16 %6, 1
-  store i16 %11, i16* %3
-  %12 = icmp slt i16 %11, %4
-  br i1 %12, label %while1, label %while.exit
-
-while.exit:                                       ; preds = %while2, %while1, %entry
-  %13 = load i16, i16* %3
-  %14 = getelementptr i8, i8* %1, i16 %13
-  store i8 0, i8* %14
   ret void
 }
 
@@ -271,22 +241,14 @@ entry:
 
 define void @main() {
 entry:
-  %0 = alloca [2 x [2 x double]*]*
-  %1 = load [2 x [2 x double]*]*, [2 x [2 x double]*]** %0
-  %2 = getelementptr [2 x [2 x double]*], [2 x [2 x double]*]* %1, i16 0, i16 0
-  %3 = load [2 x double]*, [2 x double]** %2
-  %4 = getelementptr [2 x double], [2 x double]* %3, i16 0, i16 0
-  %5 = sitofp i16 2 to double
-  store double %5, double* %4
-  %6 = load [2 x [2 x double]*]*, [2 x [2 x double]*]** %0
-  %7 = getelementptr [2 x [2 x double]*], [2 x [2 x double]*]* %6, i16 0, i16 0
-  %8 = load [2 x double]*, [2 x double]** %7
-  %9 = getelementptr [2 x double], [2 x double]* %8, i16 0, i16 1
-  %10 = load [2 x [2 x double]*]*, [2 x [2 x double]*]** %0
-  %11 = getelementptr [2 x [2 x double]*], [2 x [2 x double]*]* %10, i16 0, i16 0
-  %12 = load [2 x double]*, [2 x double]** %11
-  %13 = getelementptr [2 x double], [2 x double]* %12, i16 0, i16 0
-  %14 = load double, double* %13
-  store double %14, double* %9
+  %0 = alloca [3 x i8]
+  %1 = getelementptr inbounds [3 x i8], [3 x i8]* %0, i16 0, i16 0
+  store i8 97, i8* %1
+  %2 = getelementptr inbounds [3 x i8], [3 x i8]* %0, i16 0, i16 1
+  store i8 10, i8* %2
+  %3 = getelementptr inbounds [3 x i8], [3 x i8]* %0, i16 0, i16 2
+  store i8 0, i8* %3
+  %4 = getelementptr inbounds [3 x i8], [3 x i8]* %0, i16 0, i16 0
+  call void (i8*, ...) @writeString(i8* %4)
   ret void
 }

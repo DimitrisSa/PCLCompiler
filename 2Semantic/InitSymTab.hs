@@ -16,6 +16,7 @@ import SemsCodegen
 
 initSymTab :: Sems ()
 initSymTab = do
+  addGlobalStr "scanfChar" 3 "%c\0"
   printfDef
   scanfDef
   acosDef
@@ -27,9 +28,9 @@ initSymTab = do
   insertProcToSymTabAndDefs "writeChar" [(Value,[dummy "c"],CharT)]
   insertProcToSymTabAndDefs "writeReal" [(Value,[dummy "r"],RealT)]
   insertProcToSymTabAndDefs "writeString" [(Reference, [dummy "s"],Array NoSize CharT)]
-  insertProcToSymTabAndDefs "readString" [(Value,[dummy "size"],IntT)
-                                         ,(Reference,[dummy "s"],Array NoSize CharT)
-                                         ]
+  --insertProcToSymTabAndDefs "readString" [(Value,[dummy "size"],IntT)
+  --                                       ,(Reference,[dummy "s"],Array NoSize CharT)
+  --                                       ]
   insertFuncToSymTabAndDefs "readInteger" [] IntT
   insertFuncToSymTabAndDefs "readBoolean" [] BoolT
   insertFuncToSymTabAndDefs "readChar" [] CharT
@@ -69,7 +70,7 @@ codegenFromName = \case
   "writeChar"    -> writeCodeGen ".charStr" "c"
   "writeReal"    -> writeCodeGen ".realStr" "lf"
   "writeString"  -> writeStringCodeGen
-  "readString"   -> readStringCodeGen
+  --"readString"   -> readStringCodeGen
   "readInteger"  -> readCodeGen ".scanInt" "hi"
   "readBoolean"  -> readBooleanCodeGen
   "readChar"     -> readCodeGen ".scanChar" "c"
@@ -264,7 +265,6 @@ readCodeGen str1 str2 = do
 
 readStringCodeGen :: Sems ()
 readStringCodeGen = do 
-  addGlobalStr "scanfChar" 3 "%c\0"
 
   fresh
   entry <- addBlock "entry"

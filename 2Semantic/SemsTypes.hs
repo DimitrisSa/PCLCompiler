@@ -174,26 +174,8 @@ toTType = \case
 
 arrayToTType :: P.Type -> ArrSize -> T.Type
 arrayToTType ty = \case
-  NoSize -> toTType ty 
+  NoSize -> ptr $ toTType ty 
   Size n -> ArrayType (w64 n) $ toTType ty
-
---toTType' :: P.Type -> Sems T.Type
---toTType' = \case
---  Nil             -> return undefined
---  IntT            -> return i16
---  RealT           -> return double
---  BoolT           -> return i1
---  CharT           -> return i8
---  P.Array size ty -> do
---    var' <- alloca $ toTType' $ Pointer ty
---    store var' var
---    return var'
---  Pointer ty      -> return $ ptr $ toTType' ty
---
---arrayToTType' :: P.Type -> ArrSize -> T.Type
---arrayToTType' ty = \case
---  NoSize -> toTType' ty 
---  Size n -> ArrayType (w64 n) $ toTType' ty
 
 -- Int to constant operant with bit size variations
 toConsI1 :: Int -> Operand

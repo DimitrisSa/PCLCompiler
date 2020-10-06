@@ -61,7 +61,9 @@ makeBlock (l, (BlockState _ s t)) = BasicBlock l (reverse s) (maketerm t)
 frmlToTy :: (Int,Frml) -> (Word,T.Type)
 frmlToTy (i,(by,_,ty)) = (fromIntegral i,case by of
   Value -> toTType ty 
-  _     -> toTType $ Pointer ty)
+  _     -> case ty of
+    Array NoSize _ -> toTType ty
+    _              -> toTType $ Pointer ty)
 
 tyToParam :: (Word,T.Type) -> Parameter
 tyToParam (i,ty) = Parameter ty (UnName i) []
@@ -404,6 +406,10 @@ getElemPtrInt arrPtr ind =
 getElemPtrInBounds :: Operand -> Int -> Sems Operand
 getElemPtrInBounds arrPtr ind =
   instr double $ GetElementPtr True arrPtr [toConsI16 0,toConsI16 ind] []
+
+getElemPtrInBounds' :: Operand -> Operand -> Sems Operand
+getElemPtrInBounds' arrPtr ind =
+  instr double $ GetElementPtr True arrPtr [toConsI16 0,ind] []
 
 getElemPtr' :: Operand -> Int -> Sems Operand
 getElemPtr' arrPtr ind =

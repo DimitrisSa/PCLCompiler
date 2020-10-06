@@ -57,11 +57,17 @@ newExprSemsIR posn ((et,eOp),(lt,lOp)) = do
   (lt,lOp) <- newPointerCases posn (lt,lOp)
   let bool = not $ fullType lt
   caseFalseThrowErr posn "new [e] l statement: l must be of type ^array of t" bool
+  let t = case lt of
+            Array NoSize t -> t
+            _              -> error "Shouldn't happen"
   eOp' <- zext64 eOp
   numOfBytesOper <- mul eOp' $ mallocBytesOper lt
   i8ptr <- call malloc [numOfBytesOper]
-  newPtr <- bitcast i8ptr $ toTType lt
-  store lOp newPtr
+  newPtr <- bitcast i8ptr $ toTType t
+  i8ptr' <- call malloc [mallocBytesOper $ Pointer t]
+  newPtr' <- bitcast i8ptr' $ toTType $ Pointer t
+  store newPtr' newPtr 
+  store lOp newPtr'
 
 intCases posn = \case
   IntT -> return ()
