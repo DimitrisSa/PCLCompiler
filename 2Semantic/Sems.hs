@@ -1,59 +1,34 @@
 module Sems where
 import Prelude hiding (abs,cos,sin,tan,sqrt,exp,pi,round,lookup)
-import Control.Monad.Trans.Either
-import System.IO as S
-import System.Exit
-import Common
+import Control.Monad.Trans.Either (right)
+import Common hiding (void)
 import InitSymTab (initSymTab)
-import LocalsSems 
-import ValTypes
-import StmtSems
-import LLVM.Context
-import LLVM.Module
-import SemsCodegen
-import qualified LLVM.AST as AST
-import qualified LLVM.AST.Type as T
-import qualified LLVM.AST.Constant as C
-import qualified LLVM.AST.Float as F
-import Data.String.Transform
+import LocalsSems (varsWithTypeListSems,checkUndefDclrs,insToSymTabLabels,forwardSems
+                  ,headerParentSems,headerChildSems,checkResult)
+import ValTypes (formalsExprsTypesMatch,binOpNumCases,comparisonCases,binOpBoolCases
+                ,binOpIntCases,unaryOpNumCases,notCases,dereferenceCases,indexingCases
+                ,resultType)
+import StmtSems (dispWithSems,dispWithoutSems,newNoExprSemsIR,newExprSemsIR
+                ,notStrLiteralSems,boolCases,labelCases,goToCases)
+import SemsCodegen (cons,call,store,load,getElemPtr',allocaNum,getvar,chr,ordOp,round
+                   ,trunc,pi,ln,exp,arctan,tan,cos,sin,sqrt,fabs,abs,readReal,readBoolean
+                   ,readInteger,readString,readChar,writeInteger,writeBoolean,writeChar
+                   ,writeReal,writeString,getElemPtrInBounds,callVoid,toName,setBlock
+                   ,br,cbr,addBlock,fresh,assign,alloca,retVoid,defineFun)
+import LLVM.AST (Operand,moduleName,Name)
+import LLVM.AST.Type (void)
+import qualified LLVM.AST.Constant as C (Constant(..))
+import LLVM.AST.Float as F (SomeFloat(..))
+import Data.String.Transform (toShortByteString)
 import Data.Char (ord)
-import Data.List.Index
-import System.Process
-import Data.ByteString.Char8 (unpack)
+import Data.List.Index (indexed)
 
-process :: IO ()
-process = sems
-
-codegen :: AST.Module -> IO ()
-codegen m = withContext $ \context -> withModuleFromAST context m $ \m -> do
-  llstr <- moduleLLVMAssembly m
-  putStrLn $ unpack llstr
-  writeFile "llvmhs.ll" $ unpack llstr
-  callCommand "./usefulHs.sh"
-
-sems :: IO ()
-sems = do
-  c <- S.getContents
-  --putStrLn c
-  parserCases $ parser c
-
-parserCases :: Either Error Program -> IO ()
-parserCases = \case 
-  Left e    -> die e
-  Right ast -> astSems ast -- >> print ast
-
-astSems :: Program -> IO ()
-astSems ast =
-  let runProgramSems = programSems >>> runEitherT >>> runState
-  in case runProgramSems ast initState of
-    (Right _,(_,_,m,_)) -> codegen m
-    (Left e,_)          -> die e
-
+-- Semantics/IR
 programSems :: Program -> Sems ()
 programSems (P id body) = do
-  modifyMod $ \mod -> mod { AST.moduleName = idToShort id }
+  modifyMod $ \mod -> mod { moduleName = idToShort id }
   initSymTab
-  defineFun "main" T.void [] $ mainCodegen body
+  defineFun "main" void [] $ mainCodegen body
 
 idToShort = idString >>> toShortByteString
 
@@ -168,7 +143,7 @@ whileSemsIR posn expr stmt = do
   setBlock whileExit
 
 
-cgenIfThenElse :: Stmt -> Stmt -> AST.Operand -> Sems ()
+cgenIfThenElse :: Stmt -> Stmt -> Operand -> Sems ()
 cgenIfThenElse stmt1 stmt2 cond = do
   ifthen <- addBlock "if.then"
   ifelse <- addBlock "if.else"
@@ -187,7 +162,7 @@ cgenIfThenElse stmt1 stmt2 cond = do
   setBlock ifexit
 
 
-cgenIfThen :: Stmt -> AST.Operand -> Sems ()
+cgenIfThen :: Stmt -> Operand -> Sems ()
 cgenIfThen stmt cond = do
   ifthen <- addBlock "if.then"
   ifexit <- addBlock "if.exit"
@@ -206,7 +181,7 @@ callSems id exprs = searchCallableInSymTabs id >>= \case
   Proc     fs -> formalsExprsMatch id fs exprs >> cgenCallStmt id exprs 
   _           -> errAtId "Use of function in call statement: " id
 
-idToName :: Id -> AST.Name
+idToName :: Id -> Name
 idToName = idString >>> toName
 
 cgenCallStmt :: Id -> [Expr] -> Sems ()
@@ -214,7 +189,7 @@ cgenCallStmt id exprs = do
   args <- mapM (exprTypeOper >=> typeOperToArg) exprs
   callVoid (idToFunOper id) args
 
-typeOperToArg :: TyOper -> Sems AST.Operand
+typeOperToArg :: TyOper -> Sems Operand
 typeOperToArg (ty,op) = case ty of
   Array (Size _) t -> getElemPtrInBounds op 0
   _                -> return op
@@ -261,7 +236,7 @@ disposeSems posn = \case
   Without -> lValTypeOper >=> dispWithoutSems posn
   With    -> lValTypeOper >=> dispWithSems posn
 
-exprTypeOper :: Expr -> Sems (Type,AST.Operand)
+exprTypeOper :: Expr -> Sems (Type,Operand)
 exprTypeOper = \case
   LVal lval -> do
     (ty,op) <- lValTypeOper lval
@@ -271,7 +246,7 @@ exprTypeOper = \case
     return (ty,op')
   RVal rval -> rValTypeOper rval
 
-lValTypeOper :: LVal -> Sems (Type,AST.Operand)
+lValTypeOper :: LVal -> Sems (Type,Operand)
 lValTypeOper = \case
   IdL         id             -> do
     ty <- searchVarInSymTabs id
@@ -290,7 +265,7 @@ strLiteralSemsIR string = do
   mapM_ (cgenStrLitChar strOper) $ indexed $ string ++ ['\0']
   return (Array NoSize CharT,strOper)
 
-cgenStrLitChar :: AST.Operand -> (Int,Char) -> Sems ()
+cgenStrLitChar :: Operand -> (Int,Char) -> Sems ()
 cgenStrLitChar strOper (ind,char) = do
   charPtr <- getElemPtr' strOper ind
   store charPtr $ cons $ C.Int 8 $ toInteger $ ord char
@@ -305,7 +280,7 @@ lValExprTypeOpers lVal expr = do
   eto <- exprTypeOper expr
   return (lto,eto)
 
-rValTypeOper :: RVal -> Sems (Type,AST.Operand)
+rValTypeOper :: RVal -> Sems (Type,Operand)
 rValTypeOper = \case
   IntR    int        -> right (IntT,cons $ C.Int 16 $ toInteger int)
   TrueR              -> right (BoolT,cons $ C.Int 1 1)
@@ -336,7 +311,7 @@ rValTypeOper = \case
 
 exprsTypeOpers exp1 exp2 = mapM exprTypeOper [exp1,exp2]
 
-callType :: Id -> [Expr] -> Sems (Type,AST.Operand)
+callType :: Id -> [Expr] -> Sems (Type,Operand)
 callType id exprs = searchCallableInSymTabs id >>= \case
   FuncDclr fs t -> callRSemsIR id fs exprs t 
   Func  fs t    -> callRSemsIR id fs exprs t

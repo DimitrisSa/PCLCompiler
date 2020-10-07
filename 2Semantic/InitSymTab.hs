@@ -1,18 +1,22 @@
 module InitSymTab where
-import Prelude hiding (abs,acos)
+import Prelude hiding (abs,acos,EQ)
 import Common as P hiding (void) 
-import LLVM.AST
-import LLVM.AST.Global
-import LLVM.AST.Type as T
-import LLVM.AST.AddrSpace
-import LLVM.AST.Float
-import qualified LLVM.AST.Constant as C
-import qualified LLVM.AST.Linkage as L
-import qualified LLVM.AST.IntegerPredicate as I
-import qualified LLVM.AST.FloatingPointPredicate as FP
+import LLVM.AST (Name(..),Operand(..))
+import LLVM.AST.Global (parameters,name,returnType,initializer,alignment,type',isConstant
+                       ,unnamedAddr,linkage,Parameter(..),functionDefaults,UnnamedAddr(..)
+                       ,globalVariableDefaults)
+import LLVM.AST.Type as T (Type,i1,i8,i16,i32,i64,ptr,double,void,Type(..))
+import LLVM.AST.Float (SomeFloat(..))
+import qualified LLVM.AST.Constant as C (Constant(..))
+import LLVM.AST.Linkage (Linkage(..))
+import LLVM.AST.IntegerPredicate (IntegerPredicate(..))
+import qualified LLVM.AST.FloatingPointPredicate as FP (FloatingPointPredicate(..))
 import Data.Char (ord)
-import Data.Word
-import SemsCodegen
+import Data.Word (Word64)
+import SemsCodegen (toName,ret,phi,setBlock,br,printf,callVoid,cbr,add,icmp,call,strcmp
+                   ,scanf,allocaNum,consGlobalRef,getElemPtrInBounds,addBlock,retVoid,cons
+                   ,store,getElemPtrOp',load,sub,alloca,fresh,getBlock,acos,fcmp,fsub
+                   ,fptosi,sitofp,zext,truncTo,defineFun)
 
 initSymTab :: Sems ()
 initSymTab = do
@@ -88,7 +92,7 @@ addGlobalStr :: String -> Word64 -> String -> Sems ()
 addGlobalStr strName strLen strVal =
   addGlobalDef globalVariableDefaults {
     name = toName strName
-  , linkage = L.Private
+  , linkage = Private
   , unnamedAddr = Just GlobalAddr
   , isConstant = True
   , LLVM.AST.Global.type' = ArrayType strLen i8 
@@ -106,7 +110,7 @@ absCodeGen = do
   exit  <- addBlock "exit"
 
   setBlock entry
-  cond <- icmp I.SGE intIn $ toConsI16 0
+  cond <- icmp SGE intIn $ toConsI16 0
   cbr cond pos neg
   
   setBlock pos
@@ -280,7 +284,7 @@ readStringCodeGen = do
   counter <- alloca i16
   store counter (toConsI16 0)
   intOpMinus1 <- sub intOp (toConsI16 1)
-  cond <- icmp I.SLT (toConsI16 0) intOpMinus1 
+  cond <- icmp SLT (toConsI16 0) intOpMinus1 
   cbr cond while1 whileExit
 
   setBlock while1
@@ -288,13 +292,13 @@ readStringCodeGen = do
   strOp' <- getElemPtrOp' strOp counterVal
   callVoid scanf [str,strOp']
   char <- load strOp'
-  cond1 <- icmp I.NE char (cons $ toI8Cons '\n')
+  cond1 <- icmp NE char (cons $ toI8Cons '\n')
   cbr cond1 while2 whileExit
 
   setBlock while2
   counterVal' <- add counterVal (toConsI16 1)
   store counter counterVal'
-  cond2 <- icmp I.SLT counterVal' intOpMinus1
+  cond2 <- icmp SLT counterVal' intOpMinus1
   cbr cond2 while1 whileExit
 
   setBlock whileExit
@@ -336,13 +340,13 @@ readBooleanCodeGen = do
 
   setBlock whileTrue
   intTrue <- call strcmp [inputStartChar,readBoolTrue]
-  cond21 <- icmp I.EQ intTrue $ toConsI32 0
+  cond21 <- icmp EQ intTrue $ toConsI32 0
   true <- add (toConsI1 0) (toConsI1 1)
   cbr cond21 whileExit whileFalse
 
   setBlock whileFalse
   intFalse <- call strcmp [inputStartChar,readBoolFalse]
-  cond22 <- icmp I.EQ intFalse $ toConsI32 0
+  cond22 <- icmp EQ intFalse $ toConsI32 0
   false <- add (toConsI1 0) (toConsI1 0)
   cbr cond22 whileExit whileError
 

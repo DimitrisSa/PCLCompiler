@@ -1,5 +1,5 @@
 module Helpers where
-import Parser
+import Parser (Type(..),ArrSize(..),PassBy,Frml)
 import SemsTypes ((>>>))
 
 fullType :: Type -> Bool
