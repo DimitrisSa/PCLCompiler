@@ -1,6 +1,0 @@
-program hello;
-var a:array [10] of char;
-begin
-  readString(10,a);
-  writeString(a);
-end.

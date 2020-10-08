@@ -1,7 +1,7 @@
 module Main where
-import Sems (programSems)
+import SemsIR (programSems)
 import Parser (Program,parser)
-import SemsTypes (Error,(>>>),initState)
+import SemsIRTypes (Error,(>>>),initState)
 import System.Exit (die)
 import Control.Monad.Trans.Either (runEitherT)
 import Control.Monad.State (runState)
