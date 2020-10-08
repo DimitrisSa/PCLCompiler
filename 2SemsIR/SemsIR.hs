@@ -4,23 +4,24 @@ import Common (Sems,Expr(..),Id(..),Frml,TyOper,Type(..),Callable(..),RVal(..),L
               ,DispType(..),New(..),ArrSize(..),Stmt(..),Header(..),Body(..),Program(..)
               ,Local(..),(>=>),errAtId,formalsToTypes,searchCallableInSymTabs,(>>>)
               ,searchVarInSymTabs,lookupInLabelMap,toTType,errPos,put,get,modifyMod
-              ,getLabelMap,toList,emptySymbolTable)
+              ,getLabelMap,toList,emptySymbolTable,getCallableMap)
 import InitSymTab (initSymTab)
-import LocalsSemsIR (varsWithTypeListSemsIR,checkUndefDclrs,insToSymTabLabels,forwardSems
+import LocalsSemsIR (varsWithTypeListSemsIR,insToSymTabLabels,forwardSems
                     ,headerParentSems,headerChildSems,checkResult)
-import ValSemsIR (formalsExprsTypesMatch,binOpNumCases,comparisonCases,binOpBoolCases
+import ValSemsIR (binOpNumCases,comparisonCases,binOpBoolCases
                  ,binOpIntCases,unaryOpNumCases,notCases,dereferenceCases,indexingCases
                  ,resultType)
 import StmtSemsIR (dispWithSems,dispWithoutSems,newNoExprSemsIR,newExprSemsIR
                   ,assignmentSemsIR',boolCases,labelCases,goToCases)
-import SemsCodegen (cons,call,store,load,getElemPtr',allocaNum,getvar,getElemPtrInBounds
-                   ,callVoid,toName,setBlock,br,cbr,addBlock,fresh,retVoid,defineFun)
+import SemsCodegen (cons,call,store,load,getElemPtr',allocaNum,getvar,toName,setBlock,br
+                   ,cbr,addBlock,fresh,retVoid,defineFun)
 import LLVM.AST (Operand,moduleName,Name)
 import LLVM.AST.Type (void)
 import Data.String.Transform (toShortByteString)
 import Data.Char (ord)
 import Data.List.Index (indexed)
-import IRHelpers (idToFunOper)
+import BodySemsIRHelpers (formalsExprsTypesMatch,idToFunOper,callRValueSemsIR
+                         ,callStmtSemsIR)
 import LLVM.AST.Float as F (SomeFloat(..))
 import qualified LLVM.AST.Constant as C (Constant(..))
 
@@ -41,15 +42,17 @@ bodySems :: Body -> Sems ()
 bodySems (Body locals stmts) = do
   localsSems (reverse locals) 
   stmtsSems (reverse stmts) 
-  checkUnusedLabels
-
-checkUnusedLabels :: Sems ()
-checkUnusedLabels = getLabelMap >>= toList >>> (mapM_ $ \case
-  (id,False) -> errAtId "Label declared but not used: " id
-  _          -> return ())
+  getLabelMap >>= toList >>> (mapM_ $ \case
+    (id,False) -> errAtId "Label declared but not used: " id
+    _          -> return ())
 
 localsSems :: [Local] -> Sems ()
-localsSems locals = mapM_ localSems locals >> checkUndefDclrs
+localsSems locals = do
+  mapM_ localSems locals 
+  getCallableMap >>= toList >>> mapM_ (\case
+    (id,ProcDclr _  ) -> errAtId "No definition for procedure declaration: " id
+    (id,FuncDclr _ _) -> errAtId "No definition for function declaration: " id
+    _                 -> return ())
 
 localSems :: Local -> Sems ()
 localSems = \case
@@ -95,19 +98,9 @@ assignmentSemsIR posn = \case
 
 callSems :: Id -> [Expr] -> Sems ()
 callSems id exprs = searchCallableInSymTabs id >>= \case
-  ProcDclr fs -> formalsExprsMatch id fs exprs >> cgenCallStmt id exprs 
-  Proc     fs -> formalsExprsMatch id fs exprs >> cgenCallStmt id exprs 
+  ProcDclr fs -> mapM exprTypeOper exprs >>= callStmtSemsIR id fs 
+  Proc     fs -> mapM exprTypeOper exprs >>= callStmtSemsIR id fs
   _           -> errAtId "Use of function in call statement: " id
-
-formalsExprsMatch :: Id -> [Frml] -> [Expr] -> Sems ()
-formalsExprsMatch id fs exprs = do
-  types <- mapM (exprTypeOper >=> return . fst) exprs 
-  formalsExprsTypesMatch 1 id (formalsToTypes fs) types
-
-cgenCallStmt :: Id -> [Expr] -> Sems ()
-cgenCallStmt id exprs = do
-  args <- mapM (exprTypeOper >=> typeOperToArg) exprs
-  callVoid (idToFunOper id) args
 
 gotoSemsIR :: Id -> Sems ()
 gotoSemsIR id = do
@@ -175,11 +168,6 @@ cgenIfThen stmt cond = do
   br ifexit              
 
   setBlock ifexit
-
-typeOperToArg :: TyOper -> Sems Operand
-typeOperToArg (ty,op) = case ty of
-  Array (Size _) t -> getElemPtrInBounds op 0
-  _                -> return op
 
 newSemsIR :: (Int,Int) -> New -> LVal -> Sems ()
 newSemsIR posn = \case
@@ -268,14 +256,7 @@ exprsTypeOpers exp1 exp2 = mapM exprTypeOper [exp1,exp2]
 
 callType :: Id -> [Expr] -> Sems (Type,Operand)
 callType id exprs = searchCallableInSymTabs id >>= \case
-  FuncDclr fs t -> callRSemsIR id fs exprs t 
-  Func  fs t    -> callRSemsIR id fs exprs t
+  FuncDclr fs t -> mapM exprTypeOper exprs >>= callRValueSemsIR id fs t 
+  Func  fs t    -> mapM exprTypeOper exprs >>= callRValueSemsIR id fs t
   _             -> errAtId "Use of procedure where a return value is required: " id
-
-callRSemsIR :: Id -> [Frml] -> [Expr] -> Type-> Sems TyOper
-callRSemsIR id fs exprs t = do
-  formalsExprsMatch id fs exprs
-  args <- mapM (exprTypeOper >=> typeOperToArg) exprs
-  op <- call (idToFunOper id) args
-  right (t,op)
 

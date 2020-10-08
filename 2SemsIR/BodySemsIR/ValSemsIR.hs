@@ -252,31 +252,5 @@ notCases posn = \case
     right (BoolT,oper')
   _            -> errPos posn $ "Non-boolean expression after: not"
 
-
-formalsExprsTypesMatch :: Int -> Id -> [(PassBy,Type)] -> [Type] -> Sems ()
-formalsExprsTypesMatch i id t1s t2s = case (t1s,t2s) of
-  ((Value,t1):t1s,t2:t2s)     -> formalExprTypeMatch i id t1 t2 t1s t2s $ symbatos (t1,t2)
-  ((Reference,t1):t1s,t2:t2s) -> formalExprTypeMatch i id t1 t2 t1s t2s $
-                                   symbatos (Pointer t1, Pointer t2)
-  ([],[])                     -> return ()
-  _                           -> errAtId "Wrong number of arguments in call of: " id
-
-type ByTy = (PassBy,Type)
-formalExprTypeMatch :: Int -> Id -> Type -> Type -> [ByTy] -> [Type] -> Bool -> Sems ()
-formalExprTypeMatch i id t1 t2 t1s t2s = \case 
-  True -> formalsExprsTypesMatch (i+1) id t1s t2s
-  _    -> errorAtArg i id t1 t2
-
-errorAtArg :: Int -> Id -> Type -> Type ->Sems ()
-errorAtArg i (Id posn str) t1 t2 =
-  errPos posn $ concat ["Type mismatch at argument "
-                       ,show i
-                       ," in call of: "
-                       , str
-                       ," expected type: "
-                       , show t1
-                       ," given type: "
-                       , show t2]
-
 nonNumAfErr :: String
 nonNumAfErr = "Non-number expression after: " 

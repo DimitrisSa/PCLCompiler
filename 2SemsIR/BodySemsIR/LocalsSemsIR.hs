@@ -1,7 +1,7 @@
 module LocalsSemsIR where
 import Common (Sems,Frml,Id(..),Type(..),Callable(..),Header(..),Env(..),PassBy(..),errAtId
               ,formalsToTypes,insToCallableMap,lookupInCallableMap,getEnv,insToVariableMap
-              ,lookupInVariableMap,setEnv,(>>>),toList,getCallableMap,fullType
+              ,lookupInVariableMap,setEnv,(>>>),toList,fullType
               ,insToLabelMap,lookupInLabelMap,toTType)
 import Data.Function (on)
 import SemsCodegen(alloca,assign)
@@ -55,12 +55,6 @@ insToSymTabLabels :: [Id] -> Sems ()
 insToSymTabLabels = mapM_ $ \label -> lookupInLabelMap label >>= \case 
   Nothing -> insToLabelMap label False
   _       -> errAtId "Duplicate label declaration: " label
-
-checkUndefDclrs :: Sems ()
-checkUndefDclrs = getCallableMap >>= toList >>> mapM_ (\case
-  (id,ProcDclr _  ) -> errAtId "No definition for procedure declaration: " id
-  (id,FuncDclr _ _) -> errAtId "No definition for function declaration: " id
-  _                 -> return ())
 
 headerChildSems :: Header -> Sems ()
 headerChildSems = \case

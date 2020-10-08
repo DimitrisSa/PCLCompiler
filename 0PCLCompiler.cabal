@@ -17,8 +17,7 @@ cabal-version:       >=1.10
 
 executable 0PCLCompiler
   main-is:             Main.hs
-  --other-modules:       SemsTypes.hs
-  default-extensions:  LambdaCase,FlexibleInstances 
+  default-extensions:  LambdaCase,FlexibleInstances,OverloadedStrings
   build-depends:       base >=4.9 && <4.10,llvm-hs-pure,containers,transformers-either,
                        mtl,ghc,array,string-transform,bits,text,llvm-hs,
                        bytestring,process,ilist

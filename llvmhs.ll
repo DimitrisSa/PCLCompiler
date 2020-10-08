@@ -278,398 +278,297 @@ entry:
   %4 = alloca i16*
   store i16 1, i16* %0
   %5 = load i16, i16* %0
-  %6 = load i16, i16* %0
-  call void @writeInteger(i16 %6)
+  call void @writeInteger(i16 %5)
   store i1 true, i1* %1
-  %7 = load i1, i1* %1
-  %8 = load i1, i1* %1
-  call void @writeBoolean(i1 %8)
+  %6 = load i1, i1* %1
+  call void @writeBoolean(i1 %6)
   store i1 false, i1* %1
-  %9 = load i1, i1* %1
-  %10 = load i1, i1* %1
-  call void @writeBoolean(i1 %10)
+  %7 = load i1, i1* %1
+  call void @writeBoolean(i1 %7)
   store double 1.000000e+00, double* %3
-  %11 = load double, double* %3
-  %12 = load double, double* %3
-  call void @writeReal(double %12)
+  %8 = load double, double* %3
+  call void @writeReal(double %8)
   store i8 97, i8* %2
-  %13 = load i8, i8* %2
-  %14 = load i8, i8* %2
-  call void @writeChar(i8 %14)
-  %15 = alloca i8, i16 20
-  %16 = getelementptr i8, i8* %15, i16 0
-  store i8 71, i8* %16
-  %17 = getelementptr i8, i8* %15, i16 1
-  store i8 105, i8* %17
-  %18 = getelementptr i8, i8* %15, i16 2
-  store i8 118, i8* %18
-  %19 = getelementptr i8, i8* %15, i16 3
-  store i8 101, i8* %19
-  %20 = getelementptr i8, i8* %15, i16 4
-  store i8 32, i8* %20
-  %21 = getelementptr i8, i8* %15, i16 5
-  store i8 109, i8* %21
-  %22 = getelementptr i8, i8* %15, i16 6
-  store i8 101, i8* %22
-  %23 = getelementptr i8, i8* %15, i16 7
-  store i8 32, i8* %23
-  %24 = getelementptr i8, i8* %15, i16 8
-  store i8 97, i8* %24
-  %25 = getelementptr i8, i8* %15, i16 9
-  store i8 110, i8* %25
-  %26 = getelementptr i8, i8* %15, i16 10
-  store i8 32, i8* %26
-  %27 = getelementptr i8, i8* %15, i16 11
-  store i8 105, i8* %27
-  %28 = getelementptr i8, i8* %15, i16 12
-  store i8 110, i8* %28
-  %29 = getelementptr i8, i8* %15, i16 13
-  store i8 116, i8* %29
-  %30 = getelementptr i8, i8* %15, i16 14
-  store i8 101, i8* %30
-  %31 = getelementptr i8, i8* %15, i16 15
-  store i8 103, i8* %31
-  %32 = getelementptr i8, i8* %15, i16 16
-  store i8 101, i8* %32
-  %33 = getelementptr i8, i8* %15, i16 17
-  store i8 114, i8* %33
-  %34 = getelementptr i8, i8* %15, i16 18
-  store i8 10, i8* %34
-  %35 = getelementptr i8, i8* %15, i16 19
-  store i8 0, i8* %35
-  %36 = alloca i8, i16 20
-  %37 = getelementptr i8, i8* %36, i16 0
-  store i8 71, i8* %37
-  %38 = getelementptr i8, i8* %36, i16 1
-  store i8 105, i8* %38
-  %39 = getelementptr i8, i8* %36, i16 2
-  store i8 118, i8* %39
-  %40 = getelementptr i8, i8* %36, i16 3
-  store i8 101, i8* %40
-  %41 = getelementptr i8, i8* %36, i16 4
-  store i8 32, i8* %41
-  %42 = getelementptr i8, i8* %36, i16 5
-  store i8 109, i8* %42
-  %43 = getelementptr i8, i8* %36, i16 6
-  store i8 101, i8* %43
-  %44 = getelementptr i8, i8* %36, i16 7
-  store i8 32, i8* %44
-  %45 = getelementptr i8, i8* %36, i16 8
-  store i8 97, i8* %45
-  %46 = getelementptr i8, i8* %36, i16 9
-  store i8 110, i8* %46
-  %47 = getelementptr i8, i8* %36, i16 10
-  store i8 32, i8* %47
-  %48 = getelementptr i8, i8* %36, i16 11
-  store i8 105, i8* %48
-  %49 = getelementptr i8, i8* %36, i16 12
-  store i8 110, i8* %49
-  %50 = getelementptr i8, i8* %36, i16 13
-  store i8 116, i8* %50
-  %51 = getelementptr i8, i8* %36, i16 14
-  store i8 101, i8* %51
-  %52 = getelementptr i8, i8* %36, i16 15
-  store i8 103, i8* %52
-  %53 = getelementptr i8, i8* %36, i16 16
-  store i8 101, i8* %53
-  %54 = getelementptr i8, i8* %36, i16 17
-  store i8 114, i8* %54
-  %55 = getelementptr i8, i8* %36, i16 18
-  store i8 10, i8* %55
-  %56 = getelementptr i8, i8* %36, i16 19
-  store i8 0, i8* %56
-  call void (i8*, ...) @writeString(i8* %36)
-  %57 = call i16 @readInteger()
-  store i16 %57, i16* %0
-  %58 = load i16, i16* %0
-  %59 = load i16, i16* %0
-  call void @writeInteger(i16 %59)
+  %9 = load i8, i8* %2
+  call void @writeChar(i8 %9)
+  %10 = alloca i8, i16 20
+  %11 = getelementptr i8, i8* %10, i16 0
+  store i8 71, i8* %11
+  %12 = getelementptr i8, i8* %10, i16 1
+  store i8 105, i8* %12
+  %13 = getelementptr i8, i8* %10, i16 2
+  store i8 118, i8* %13
+  %14 = getelementptr i8, i8* %10, i16 3
+  store i8 101, i8* %14
+  %15 = getelementptr i8, i8* %10, i16 4
+  store i8 32, i8* %15
+  %16 = getelementptr i8, i8* %10, i16 5
+  store i8 109, i8* %16
+  %17 = getelementptr i8, i8* %10, i16 6
+  store i8 101, i8* %17
+  %18 = getelementptr i8, i8* %10, i16 7
+  store i8 32, i8* %18
+  %19 = getelementptr i8, i8* %10, i16 8
+  store i8 97, i8* %19
+  %20 = getelementptr i8, i8* %10, i16 9
+  store i8 110, i8* %20
+  %21 = getelementptr i8, i8* %10, i16 10
+  store i8 32, i8* %21
+  %22 = getelementptr i8, i8* %10, i16 11
+  store i8 105, i8* %22
+  %23 = getelementptr i8, i8* %10, i16 12
+  store i8 110, i8* %23
+  %24 = getelementptr i8, i8* %10, i16 13
+  store i8 116, i8* %24
+  %25 = getelementptr i8, i8* %10, i16 14
+  store i8 101, i8* %25
+  %26 = getelementptr i8, i8* %10, i16 15
+  store i8 103, i8* %26
+  %27 = getelementptr i8, i8* %10, i16 16
+  store i8 101, i8* %27
+  %28 = getelementptr i8, i8* %10, i16 17
+  store i8 114, i8* %28
+  %29 = getelementptr i8, i8* %10, i16 18
+  store i8 10, i8* %29
+  %30 = getelementptr i8, i8* %10, i16 19
+  store i8 0, i8* %30
+  call void (i8*, ...) @writeString(i8* %10)
+  %31 = call i16 @readInteger()
+  store i16 %31, i16* %0
+  %32 = load i16, i16* %0
+  call void @writeInteger(i16 %32)
   store i16* %0, i16** %4
-  %60 = icmp eq i1 true, false
-  store i1 %60, i1* %1
-  %61 = load i1, i1* %1
-  %62 = load i1, i1* %1
-  call void @writeBoolean(i1 %62)
-  %63 = icmp eq i1 false, false
-  store i1 %63, i1* %1
-  %64 = load i1, i1* %1
-  %65 = load i1, i1* %1
-  call void @writeBoolean(i1 %65)
-  %66 = sub i16 0, 1
+  %33 = icmp eq i1 true, false
+  store i1 %33, i1* %1
+  %34 = load i1, i1* %1
+  call void @writeBoolean(i1 %34)
+  %35 = icmp eq i1 false, false
+  store i1 %35, i1* %1
+  %36 = load i1, i1* %1
+  call void @writeBoolean(i1 %36)
+  %37 = sub i16 0, 1
   store i16 1, i16* %0
-  %67 = load i16, i16* %0
-  %68 = load i16, i16* %0
-  call void @writeInteger(i16 %68)
-  %69 = sub i16 0, 1
-  store i16 %69, i16* %0
-  %70 = load i16, i16* %0
-  %71 = load i16, i16* %0
-  call void @writeInteger(i16 %71)
-  %72 = fsub double 0.000000e+00, 1.000000e+00
+  %38 = load i16, i16* %0
+  call void @writeInteger(i16 %38)
+  %39 = sub i16 0, 1
+  store i16 %39, i16* %0
+  %40 = load i16, i16* %0
+  call void @writeInteger(i16 %40)
+  %41 = fsub double 0.000000e+00, 1.000000e+00
   store double 1.000000e+00, double* %3
-  %73 = load double, double* %3
+  %42 = load double, double* %3
+  call void @writeReal(double %42)
+  %43 = fsub double 0.000000e+00, 1.000000e+00
+  store double %43, double* %3
+  %44 = load double, double* %3
+  call void @writeReal(double %44)
+  %45 = add i16 1, 1
+  store i16 %45, i16* %0
+  %46 = load i16, i16* %0
+  call void @writeInteger(i16 %46)
+  %47 = sitofp i16 1 to double
+  %48 = fadd double %47, 1.000000e+00
+  store double %48, double* %3
+  %49 = load double, double* %3
+  call void @writeReal(double %49)
+  %50 = sitofp i16 1 to double
+  %51 = fadd double 1.000000e+00, %50
+  store double %51, double* %3
+  %52 = load double, double* %3
+  call void @writeReal(double %52)
+  %53 = fadd double 1.000000e+00, 1.000000e+00
+  store double %53, double* %3
+  %54 = load double, double* %3
+  call void @writeReal(double %54)
+  %55 = mul i16 1, 1
+  store i16 %55, i16* %0
+  %56 = load i16, i16* %0
+  call void @writeInteger(i16 %56)
+  %57 = sitofp i16 1 to double
+  %58 = fmul double %57, 1.000000e+00
+  store double %58, double* %3
+  %59 = load double, double* %3
+  call void @writeReal(double %59)
+  %60 = sitofp i16 1 to double
+  %61 = fmul double 1.000000e+00, %60
+  store double %61, double* %3
+  %62 = load double, double* %3
+  call void @writeReal(double %62)
+  %63 = fmul double 1.000000e+00, 1.000000e+00
+  store double %63, double* %3
+  %64 = load double, double* %3
+  call void @writeReal(double %64)
+  %65 = sub i16 1, 1
+  store i16 %65, i16* %0
+  %66 = load i16, i16* %0
+  call void @writeInteger(i16 %66)
+  %67 = sitofp i16 1 to double
+  %68 = fsub double %67, 1.000000e+00
+  store double %68, double* %3
+  %69 = load double, double* %3
+  call void @writeReal(double %69)
+  %70 = sitofp i16 1 to double
+  %71 = fsub double 1.000000e+00, %70
+  store double %71, double* %3
+  %72 = load double, double* %3
+  call void @writeReal(double %72)
+  %73 = fsub double 1.000000e+00, 1.000000e+00
+  store double %73, double* %3
   %74 = load double, double* %3
   call void @writeReal(double %74)
-  %75 = fsub double 0.000000e+00, 1.000000e+00
-  store double %75, double* %3
-  %76 = load double, double* %3
-  %77 = load double, double* %3
-  call void @writeReal(double %77)
-  %78 = add i16 1, 1
-  store i16 %78, i16* %0
-  %79 = load i16, i16* %0
-  %80 = load i16, i16* %0
-  call void @writeInteger(i16 %80)
-  %81 = sitofp i16 1 to double
-  %82 = fadd double %81, 1.000000e+00
-  store double %82, double* %3
-  %83 = load double, double* %3
+  %75 = sitofp i16 1 to double
+  %76 = sitofp i16 1 to double
+  %77 = fdiv double %75, %76
+  store double %77, double* %3
+  %78 = load double, double* %3
+  call void @writeReal(double %78)
+  %79 = sitofp i16 1 to double
+  %80 = fdiv double %79, 1.000000e+00
+  store double %80, double* %3
+  %81 = load double, double* %3
+  call void @writeReal(double %81)
+  %82 = sitofp i16 1 to double
+  %83 = fdiv double 1.000000e+00, %82
+  store double %83, double* %3
   %84 = load double, double* %3
   call void @writeReal(double %84)
-  %85 = sitofp i16 1 to double
-  %86 = fadd double 1.000000e+00, %85
-  store double %86, double* %3
-  %87 = load double, double* %3
-  %88 = load double, double* %3
-  call void @writeReal(double %88)
-  %89 = fadd double 1.000000e+00, 1.000000e+00
-  store double %89, double* %3
-  %90 = load double, double* %3
-  %91 = load double, double* %3
-  call void @writeReal(double %91)
-  %92 = mul i16 1, 1
-  store i16 %92, i16* %0
-  %93 = load i16, i16* %0
-  %94 = load i16, i16* %0
-  call void @writeInteger(i16 %94)
-  %95 = sitofp i16 1 to double
-  %96 = fmul double %95, 1.000000e+00
-  store double %96, double* %3
-  %97 = load double, double* %3
-  %98 = load double, double* %3
-  call void @writeReal(double %98)
-  %99 = sitofp i16 1 to double
-  %100 = fmul double 1.000000e+00, %99
-  store double %100, double* %3
-  %101 = load double, double* %3
-  %102 = load double, double* %3
-  call void @writeReal(double %102)
-  %103 = fmul double 1.000000e+00, 1.000000e+00
-  store double %103, double* %3
-  %104 = load double, double* %3
-  %105 = load double, double* %3
-  call void @writeReal(double %105)
-  %106 = sub i16 1, 1
-  store i16 %106, i16* %0
-  %107 = load i16, i16* %0
-  %108 = load i16, i16* %0
-  call void @writeInteger(i16 %108)
-  %109 = sitofp i16 1 to double
-  %110 = fsub double %109, 1.000000e+00
-  store double %110, double* %3
-  %111 = load double, double* %3
-  %112 = load double, double* %3
-  call void @writeReal(double %112)
+  %85 = fdiv double 1.000000e+00, 1.000000e+00
+  store double %85, double* %3
+  %86 = load double, double* %3
+  call void @writeReal(double %86)
+  %87 = sdiv i16 3, 2
+  store i16 %87, i16* %0
+  %88 = load i16, i16* %0
+  call void @writeInteger(i16 %88)
+  %89 = srem i16 3, 2
+  store i16 %89, i16* %0
+  %90 = load i16, i16* %0
+  call void @writeInteger(i16 %90)
+  %91 = or i1 true, false
+  store i1 %91, i1* %1
+  %92 = load i1, i1* %1
+  call void @writeBoolean(i1 %92)
+  %93 = and i1 true, false
+  store i1 %93, i1* %1
+  %94 = load i1, i1* %1
+  call void @writeBoolean(i1 %94)
+  %95 = icmp eq i16 1, 1
+  store i1 %95, i1* %1
+  %96 = load i1, i1* %1
+  call void @writeBoolean(i1 %96)
+  %97 = sitofp i16 1 to double
+  %98 = fcmp oeq double 1.000000e+00, %97
+  store i1 %98, i1* %1
+  %99 = load i1, i1* %1
+  call void @writeBoolean(i1 %99)
+  %100 = sitofp i16 1 to double
+  %101 = fcmp oeq double %100, 1.000000e+00
+  store i1 %101, i1* %1
+  %102 = load i1, i1* %1
+  call void @writeBoolean(i1 %102)
+  store i1 true, i1* %1
+  %103 = load i1, i1* %1
+  call void @writeBoolean(i1 %103)
+  %104 = icmp eq i8 97, 97
+  store i1 %104, i1* %1
+  %105 = load i1, i1* %1
+  call void @writeBoolean(i1 %105)
+  %106 = icmp eq i1 true, true
+  store i1 %106, i1* %1
+  %107 = load i1, i1* %1
+  call void @writeBoolean(i1 %107)
+  %108 = icmp ne i16 1, 1
+  store i1 %108, i1* %1
+  %109 = load i1, i1* %1
+  call void @writeBoolean(i1 %109)
+  %110 = sitofp i16 1 to double
+  %111 = fcmp one double 1.000000e+00, %110
+  store i1 %111, i1* %1
+  %112 = load i1, i1* %1
+  call void @writeBoolean(i1 %112)
   %113 = sitofp i16 1 to double
-  %114 = fsub double 1.000000e+00, %113
-  store double %114, double* %3
-  %115 = load double, double* %3
-  %116 = load double, double* %3
-  call void @writeReal(double %116)
-  %117 = fsub double 1.000000e+00, 1.000000e+00
-  store double %117, double* %3
-  %118 = load double, double* %3
-  %119 = load double, double* %3
-  call void @writeReal(double %119)
-  %120 = sitofp i16 1 to double
-  %121 = sitofp i16 1 to double
-  %122 = fdiv double %120, %121
-  store double %122, double* %3
-  %123 = load double, double* %3
-  %124 = load double, double* %3
-  call void @writeReal(double %124)
-  %125 = sitofp i16 1 to double
-  %126 = fdiv double %125, 1.000000e+00
-  store double %126, double* %3
-  %127 = load double, double* %3
-  %128 = load double, double* %3
-  call void @writeReal(double %128)
-  %129 = sitofp i16 1 to double
-  %130 = fdiv double 1.000000e+00, %129
-  store double %130, double* %3
-  %131 = load double, double* %3
-  %132 = load double, double* %3
-  call void @writeReal(double %132)
-  %133 = fdiv double 1.000000e+00, 1.000000e+00
-  store double %133, double* %3
-  %134 = load double, double* %3
-  %135 = load double, double* %3
-  call void @writeReal(double %135)
-  %136 = sdiv i16 3, 2
-  store i16 %136, i16* %0
-  %137 = load i16, i16* %0
-  %138 = load i16, i16* %0
-  call void @writeInteger(i16 %138)
-  %139 = srem i16 3, 2
-  store i16 %139, i16* %0
-  %140 = load i16, i16* %0
-  %141 = load i16, i16* %0
-  call void @writeInteger(i16 %141)
-  %142 = or i1 true, false
+  %114 = fcmp one double %113, 1.000000e+00
+  store i1 %114, i1* %1
+  %115 = load i1, i1* %1
+  call void @writeBoolean(i1 %115)
+  store i1 false, i1* %1
+  %116 = load i1, i1* %1
+  call void @writeBoolean(i1 %116)
+  %117 = icmp ne i8 97, 97
+  store i1 %117, i1* %1
+  %118 = load i1, i1* %1
+  call void @writeBoolean(i1 %118)
+  %119 = icmp ne i1 true, true
+  store i1 %119, i1* %1
+  %120 = load i1, i1* %1
+  call void @writeBoolean(i1 %120)
+  %121 = icmp slt i16 1, 1
+  store i1 %121, i1* %1
+  %122 = load i1, i1* %1
+  call void @writeBoolean(i1 %122)
+  %123 = sitofp i16 1 to double
+  %124 = fcmp olt double 1.000000e+00, %123
+  store i1 %124, i1* %1
+  %125 = load i1, i1* %1
+  call void @writeBoolean(i1 %125)
+  %126 = sitofp i16 1 to double
+  %127 = fcmp olt double %126, 1.000000e+00
+  store i1 %127, i1* %1
+  %128 = load i1, i1* %1
+  call void @writeBoolean(i1 %128)
+  store i1 false, i1* %1
+  %129 = load i1, i1* %1
+  call void @writeBoolean(i1 %129)
+  %130 = icmp sgt i16 1, 1
+  store i1 %130, i1* %1
+  %131 = load i1, i1* %1
+  call void @writeBoolean(i1 %131)
+  %132 = sitofp i16 1 to double
+  %133 = fcmp ogt double 1.000000e+00, %132
+  store i1 %133, i1* %1
+  %134 = load i1, i1* %1
+  call void @writeBoolean(i1 %134)
+  %135 = sitofp i16 1 to double
+  %136 = fcmp ogt double %135, 1.000000e+00
+  store i1 %136, i1* %1
+  %137 = load i1, i1* %1
+  call void @writeBoolean(i1 %137)
+  store i1 false, i1* %1
+  %138 = load i1, i1* %1
+  call void @writeBoolean(i1 %138)
+  %139 = icmp sle i16 1, 1
+  store i1 %139, i1* %1
+  %140 = load i1, i1* %1
+  call void @writeBoolean(i1 %140)
+  %141 = sitofp i16 1 to double
+  %142 = fcmp ole double 1.000000e+00, %141
   store i1 %142, i1* %1
   %143 = load i1, i1* %1
-  %144 = load i1, i1* %1
-  call void @writeBoolean(i1 %144)
-  %145 = and i1 true, false
+  call void @writeBoolean(i1 %143)
+  %144 = sitofp i16 1 to double
+  %145 = fcmp ole double %144, 1.000000e+00
   store i1 %145, i1* %1
   %146 = load i1, i1* %1
+  call void @writeBoolean(i1 %146)
+  store i1 true, i1* %1
   %147 = load i1, i1* %1
   call void @writeBoolean(i1 %147)
-  %148 = icmp eq i16 1, 1
+  %148 = icmp sge i16 1, 1
   store i1 %148, i1* %1
   %149 = load i1, i1* %1
-  %150 = load i1, i1* %1
-  call void @writeBoolean(i1 %150)
-  %151 = sitofp i16 1 to double
-  %152 = fcmp oeq double 1.000000e+00, %151
-  store i1 %152, i1* %1
-  %153 = load i1, i1* %1
-  %154 = load i1, i1* %1
-  call void @writeBoolean(i1 %154)
-  %155 = sitofp i16 1 to double
-  %156 = fcmp oeq double %155, 1.000000e+00
-  store i1 %156, i1* %1
-  %157 = load i1, i1* %1
-  %158 = load i1, i1* %1
-  call void @writeBoolean(i1 %158)
+  call void @writeBoolean(i1 %149)
+  %150 = sitofp i16 1 to double
+  %151 = fcmp oge double 1.000000e+00, %150
+  store i1 %151, i1* %1
+  %152 = load i1, i1* %1
+  call void @writeBoolean(i1 %152)
+  %153 = sitofp i16 1 to double
+  %154 = fcmp oge double %153, 1.000000e+00
+  store i1 %154, i1* %1
+  %155 = load i1, i1* %1
+  call void @writeBoolean(i1 %155)
   store i1 true, i1* %1
-  %159 = load i1, i1* %1
-  %160 = load i1, i1* %1
-  call void @writeBoolean(i1 %160)
-  %161 = icmp eq i8 97, 97
-  store i1 %161, i1* %1
-  %162 = load i1, i1* %1
-  %163 = load i1, i1* %1
-  call void @writeBoolean(i1 %163)
-  %164 = icmp eq i1 true, true
-  store i1 %164, i1* %1
-  %165 = load i1, i1* %1
-  %166 = load i1, i1* %1
-  call void @writeBoolean(i1 %166)
-  %167 = icmp ne i16 1, 1
-  store i1 %167, i1* %1
-  %168 = load i1, i1* %1
-  %169 = load i1, i1* %1
-  call void @writeBoolean(i1 %169)
-  %170 = sitofp i16 1 to double
-  %171 = fcmp one double 1.000000e+00, %170
-  store i1 %171, i1* %1
-  %172 = load i1, i1* %1
-  %173 = load i1, i1* %1
-  call void @writeBoolean(i1 %173)
-  %174 = sitofp i16 1 to double
-  %175 = fcmp one double %174, 1.000000e+00
-  store i1 %175, i1* %1
-  %176 = load i1, i1* %1
-  %177 = load i1, i1* %1
-  call void @writeBoolean(i1 %177)
-  store i1 false, i1* %1
-  %178 = load i1, i1* %1
-  %179 = load i1, i1* %1
-  call void @writeBoolean(i1 %179)
-  %180 = icmp ne i8 97, 97
-  store i1 %180, i1* %1
-  %181 = load i1, i1* %1
-  %182 = load i1, i1* %1
-  call void @writeBoolean(i1 %182)
-  %183 = icmp ne i1 true, true
-  store i1 %183, i1* %1
-  %184 = load i1, i1* %1
-  %185 = load i1, i1* %1
-  call void @writeBoolean(i1 %185)
-  %186 = icmp slt i16 1, 1
-  store i1 %186, i1* %1
-  %187 = load i1, i1* %1
-  %188 = load i1, i1* %1
-  call void @writeBoolean(i1 %188)
-  %189 = sitofp i16 1 to double
-  %190 = fcmp olt double 1.000000e+00, %189
-  store i1 %190, i1* %1
-  %191 = load i1, i1* %1
-  %192 = load i1, i1* %1
-  call void @writeBoolean(i1 %192)
-  %193 = sitofp i16 1 to double
-  %194 = fcmp olt double %193, 1.000000e+00
-  store i1 %194, i1* %1
-  %195 = load i1, i1* %1
-  %196 = load i1, i1* %1
-  call void @writeBoolean(i1 %196)
-  store i1 false, i1* %1
-  %197 = load i1, i1* %1
-  %198 = load i1, i1* %1
-  call void @writeBoolean(i1 %198)
-  %199 = icmp sgt i16 1, 1
-  store i1 %199, i1* %1
-  %200 = load i1, i1* %1
-  %201 = load i1, i1* %1
-  call void @writeBoolean(i1 %201)
-  %202 = sitofp i16 1 to double
-  %203 = fcmp ogt double 1.000000e+00, %202
-  store i1 %203, i1* %1
-  %204 = load i1, i1* %1
-  %205 = load i1, i1* %1
-  call void @writeBoolean(i1 %205)
-  %206 = sitofp i16 1 to double
-  %207 = fcmp ogt double %206, 1.000000e+00
-  store i1 %207, i1* %1
-  %208 = load i1, i1* %1
-  %209 = load i1, i1* %1
-  call void @writeBoolean(i1 %209)
-  store i1 false, i1* %1
-  %210 = load i1, i1* %1
-  %211 = load i1, i1* %1
-  call void @writeBoolean(i1 %211)
-  %212 = icmp sle i16 1, 1
-  store i1 %212, i1* %1
-  %213 = load i1, i1* %1
-  %214 = load i1, i1* %1
-  call void @writeBoolean(i1 %214)
-  %215 = sitofp i16 1 to double
-  %216 = fcmp ole double 1.000000e+00, %215
-  store i1 %216, i1* %1
-  %217 = load i1, i1* %1
-  %218 = load i1, i1* %1
-  call void @writeBoolean(i1 %218)
-  %219 = sitofp i16 1 to double
-  %220 = fcmp ole double %219, 1.000000e+00
-  store i1 %220, i1* %1
-  %221 = load i1, i1* %1
-  %222 = load i1, i1* %1
-  call void @writeBoolean(i1 %222)
-  store i1 true, i1* %1
-  %223 = load i1, i1* %1
-  %224 = load i1, i1* %1
-  call void @writeBoolean(i1 %224)
-  %225 = icmp sge i16 1, 1
-  store i1 %225, i1* %1
-  %226 = load i1, i1* %1
-  %227 = load i1, i1* %1
-  call void @writeBoolean(i1 %227)
-  %228 = sitofp i16 1 to double
-  %229 = fcmp oge double 1.000000e+00, %228
-  store i1 %229, i1* %1
-  %230 = load i1, i1* %1
-  %231 = load i1, i1* %1
-  call void @writeBoolean(i1 %231)
-  %232 = sitofp i16 1 to double
-  %233 = fcmp oge double %232, 1.000000e+00
-  store i1 %233, i1* %1
-  %234 = load i1, i1* %1
-  %235 = load i1, i1* %1
-  call void @writeBoolean(i1 %235)
-  store i1 true, i1* %1
-  %236 = load i1, i1* %1
-  %237 = load i1, i1* %1
-  call void @writeBoolean(i1 %237)
+  %156 = load i1, i1* %1
+  call void @writeBoolean(i1 %156)
   ret void
 }
