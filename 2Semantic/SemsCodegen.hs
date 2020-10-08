@@ -3,22 +3,25 @@
 
 module SemsCodegen where
 
-import Data.List
-import Data.Function
-import qualified Data.Map as Map
-import LLVM.AST
-import LLVM.AST.Global
-import LLVM.AST.Type as T
-import LLVM.AST.FunctionAttribute 
-import qualified LLVM.AST.Constant as C
-import qualified LLVM.AST.Attribute as A
-import qualified LLVM.AST.CallingConvention as CC
-import qualified LLVM.AST.FloatingPointPredicate as FP
-import qualified LLVM.AST.IntegerPredicate as I
-import Parser as P
-import SemsTypes
-import Data.List.Index
-import Data.String.Transform
+import Data.List (sortBy)
+import Data.Function (on)
+import LLVM.AST (Operand(..),Name(..),Instruction(..),Named(..),Terminator(..)
+                ,noFastMathFlags)
+import LLVM.AST.Global (Parameter(..),BasicBlock(..),parameters,basicBlocks,returnType
+                       ,name,functionDefaults)
+import LLVM.AST.Attribute (ParameterAttribute)
+import LLVM.AST.FloatingPointPredicate (FloatingPointPredicate)
+import LLVM.AST.IntegerPredicate (IntegerPredicate)
+import SemsTypes (Sems,symtab,blocks,BlockState(..),currentBlock,Names,names,count
+                 ,blockCount,toConsI16,getFromCodegen,modifyCodegen,toShortName,toTType
+                 ,(>>>),addGlobalDef,emptyCodegen)
+import Data.List.Index (indexed)
+import Data.String.Transform (toShortByteString)
+import Parser as P (Frml,PassBy(..),ArrSize(..),Type(..))
+import LLVM.AST.Type as T (Type(..),void,double,i1,i8,i16,i32,i64,ptr)
+import qualified Data.Map as Map (toList,lookup,insert)
+import qualified LLVM.AST.CallingConvention as CC (CallingConvention(..))
+import qualified LLVM.AST.Constant as C (Constant(..))
 
 -- Add function definition to Module in state
 defineFun :: String -> T.Type -> [Frml] -> Sems () -> Sems ()
@@ -337,10 +340,10 @@ orInstr a b = instr i1 $ LLVM.AST.Or a b []
 andInstr :: Operand -> Operand -> Sems Operand
 andInstr a b = instr i1 $ LLVM.AST.And a b []
 
-fcmp :: FP.FloatingPointPredicate -> Operand -> Operand -> Sems Operand
+fcmp :: FloatingPointPredicate -> Operand -> Operand -> Sems Operand
 fcmp cond a b = instr i1 $ FCmp cond a b []
 
-icmp :: I.IntegerPredicate -> Operand -> Operand -> Sems Operand
+icmp :: IntegerPredicate -> Operand -> Operand -> Sems Operand
 icmp cond a b = instr i1 $ ICmp cond a b []
 
 phi :: T.Type -> [(Operand, Name)] -> Sems Operand
@@ -362,7 +365,7 @@ call fn args = case fn of
 callVoid :: Operand -> [Operand] -> Sems ()
 callVoid fn args = instrDo $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
 
-toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
+toArgs :: [Operand] -> [(Operand, [ParameterAttribute])]
 toArgs = map (\x -> (x, []))
 
 alloca :: T.Type -> Sems Operand

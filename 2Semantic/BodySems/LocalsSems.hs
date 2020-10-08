@@ -1,5 +1,8 @@
 module LocalsSems where
-import Common
+import Common (Sems,Frml,Id,Type(..),Callable(..),Header(..),Env(..),PassBy(..),errAtId
+              ,formalsToTypes,insToCallableMap,lookupInCallableMap,getEnv,insToVariableMap
+              ,lookupInVariableMap,setEnv,(>>>),toList,getCallableMap,fullType
+              ,insToLabelMap,lookupInLabelMap)
 import Data.Function (on)
 
 forwardSems :: Header -> Sems ()

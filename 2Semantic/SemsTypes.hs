@@ -1,14 +1,15 @@
 module SemsTypes where
 import Prelude hiding (lookup)
-import Parser as P
-import Control.Monad.State 
-import Control.Monad.Trans.Either 
+import Control.Monad.State (State,modify,get)
+import Control.Monad.Trans.Either (EitherT,left)
 import Data.Map (Map,empty,insert,lookup)
-import LLVM.AST
-import LLVM.AST.Type as T
-import LLVM.AST.Constant
-import Data.Bits.Extras
-import Data.String.Transform
+import LLVM.AST (Operand(..),Module,Global,moduleDefinitions,Definition(..),Terminator(..)
+                ,Name(..),Named,Instruction,defaultModule)
+import LLVM.AST.Constant (Constant(..))
+import Data.Bits.Extras (w64)
+import Data.String.Transform (toShortByteString)
+import Parser as P (ArrSize(..),Type(..),Id(..),Frml)
+import LLVM.AST.Type as T (Type(..),ptr,i1,i8,i16,double)
 
 -- Codegen State
 type Names = Map String Int

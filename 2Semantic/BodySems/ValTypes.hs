@@ -1,12 +1,14 @@
 module ValTypes where
-import Control.Monad.Trans.Either
-import Common
-import qualified LLVM.AST as AST
-import qualified LLVM.AST.IntegerPredicate as I
-import qualified LLVM.AST.FloatingPointPredicate as FP
-import SemsCodegen
-import qualified LLVM.AST.Constant as C
-import qualified LLVM.AST.Float as F
+import Prelude hiding (EQ)
+import Common (Id(..),Type(..),PassBy(..),Sems,TyOper,Env(..),ArrSize(..),errAtId,errPos
+              ,symbatos,setEnv,getEnv)
+import Control.Monad.Trans.Either (right)
+import LLVM.AST.IntegerPredicate (IntegerPredicate(..))
+import SemsCodegen (icmp,cons,fsub,sub,fcmp,fdiv,fmul,fadd,sitofp,mul,add,srem,sdiv
+                   ,orInstr,andInstr,getElemPtrOp',load,getElemPtrInBounds')
+import LLVM.AST.Float (SomeFloat(..))
+import qualified LLVM.AST.FloatingPointPredicate as FP (FloatingPointPredicate(..))
+import qualified LLVM.AST.Constant as C (Constant(..))
 
 resultType :: (Int,Int) -> Sems TyOper
 resultType posn = getEnv >>= \case
@@ -36,10 +38,10 @@ comparisonCases posn a = \case
   [(IntT,op1),(IntT,op2)] -> 
     case a of
       "'='"  -> do
-        eqOp <- icmp I.EQ op1 op2
+        eqOp <- icmp EQ op1 op2
         right (BoolT,eqOp)
       "'<>'" -> do
-        diffOp <- icmp I.NE op1 op2
+        diffOp <- icmp NE op1 op2
         right (BoolT,diffOp)
   [(IntT,op1),(RealT,op2)] -> do 
     op1' <- sitofp op1
@@ -70,18 +72,18 @@ comparisonCases posn a = \case
   [(BoolT,op1),(BoolT,op2)] ->
     case a of
       "'='"  -> do
-        eqOp <- icmp I.EQ op1 op2
+        eqOp <- icmp EQ op1 op2
         right (BoolT,eqOp)
       "'<>'" -> do
-        diffOp <- icmp I.NE op1 op2
+        diffOp <- icmp NE op1 op2
         right (BoolT,diffOp)
   [(CharT,op1),(CharT,op2)] ->
     case a of
       "'='"  -> do
-        eqOp <- icmp I.EQ op1 op2
+        eqOp <- icmp EQ op1 op2
         right (BoolT,eqOp)
       "'<>'" -> do
-        diffOp <- icmp I.NE op1 op2
+        diffOp <- icmp NE op1 op2
         right (BoolT,diffOp)
   [(Pointer t1,op1),(Pointer t2,op2)] -> case t1 == t2 of
     True -> undefined
@@ -136,16 +138,16 @@ binOpNumCases posn intIntType restType a = \case
         opDiv <- fdiv op1' op2'
         right (intIntType,opDiv)
       "'<'" -> do
-        opLess <- icmp I.SLT op1 op2
+        opLess <- icmp SLT op1 op2
         right (intIntType,opLess)
       "'>'" -> do
-        opGreater <- icmp I.SGT op1 op2
+        opGreater <- icmp SGT op1 op2
         right (intIntType,opGreater)
       "'>='" -> do
-        opGreq <- icmp I.SGE op1 op2
+        opGreq <- icmp SGE op1 op2
         right (intIntType,opGreq)
       "'<='" -> do
-        opSmeq <- icmp I.SLE op1 op2
+        opSmeq <- icmp SLE op1 op2
         right (intIntType,opSmeq)
   [(IntT,op1),(RealT,op2)]  -> do
     op1' <- sitofp op1
@@ -238,7 +240,7 @@ unaryOpNumCases posn a = \case
     let oper' = case a of "'+'" -> oper; "'-'" -> operMinus
     right (IntT,oper')
   (RealT,oper) -> do
-    operMinus <- fsub (cons $ C.Float $ F.Double 0.0) oper
+    operMinus <- fsub (cons $ C.Float $ Double 0.0) oper
     let oper' = case a of "'+'" -> oper; "'-'" -> operMinus
     right (RealT,oper')
   _     -> errPos posn $ nonNumAfErr ++ a 
@@ -246,7 +248,7 @@ unaryOpNumCases posn a = \case
 notCases :: (Int,Int) -> TyOper -> Sems TyOper
 notCases posn = \case
   (BoolT,oper) -> do
-    oper' <- icmp I.EQ oper $ cons $ C.Int 1 0
+    oper' <- icmp EQ oper $ cons $ C.Int 1 0
     right (BoolT,oper')
   _            -> errPos posn $ "Non-boolean expression after: not"
 

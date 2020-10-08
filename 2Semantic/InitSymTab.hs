@@ -1,22 +1,22 @@
 module InitSymTab where
 import Prelude hiding (abs,acos,EQ)
-import Common as P hiding (void) 
 import LLVM.AST (Name(..),Operand(..))
 import LLVM.AST.Global (parameters,name,returnType,initializer,alignment,type',isConstant
                        ,unnamedAddr,linkage,Parameter(..),functionDefaults,UnnamedAddr(..)
                        ,globalVariableDefaults)
-import LLVM.AST.Type as T (Type,i1,i8,i16,i32,i64,ptr,double,void,Type(..))
 import LLVM.AST.Float (SomeFloat(..))
-import qualified LLVM.AST.Constant as C (Constant(..))
 import LLVM.AST.Linkage (Linkage(..))
 import LLVM.AST.IntegerPredicate (IntegerPredicate(..))
-import qualified LLVM.AST.FloatingPointPredicate as FP (FloatingPointPredicate(..))
 import Data.Char (ord)
 import Data.Word (Word64)
 import SemsCodegen (toName,ret,phi,setBlock,br,printf,callVoid,cbr,add,icmp,call,strcmp
                    ,scanf,allocaNum,consGlobalRef,getElemPtrInBounds,addBlock,retVoid,cons
                    ,store,getElemPtrOp',load,sub,alloca,fresh,getBlock,acos,fcmp,fsub
                    ,fptosi,sitofp,zext,truncTo,defineFun)
+import Common as P hiding (void) 
+import LLVM.AST.Type as T (Type,i1,i8,i16,i32,i64,ptr,double,void,Type(..))
+import qualified LLVM.AST.Constant as C (Constant(..))
+import qualified LLVM.AST.FloatingPointPredicate as FP (FloatingPointPredicate(..))
 
 initSymTab :: Sems ()
 initSymTab = do

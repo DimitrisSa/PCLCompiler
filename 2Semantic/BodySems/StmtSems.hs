@@ -1,11 +1,12 @@
 module StmtSems where
 import Prelude hiding (lookup)
-import Control.Monad.Trans.Either
-import Common
-import LLVM.AST
-import LLVM.AST.Type
-import qualified LLVM.AST.Constant as C
-import SemsCodegen
+import Common (ArrSize(..),Type(..),Sems,TyOper,Id,toTType,symbatos,fullType,errPos,(>>>)
+              ,toConsI64,errAtId,insToLabelMap)
+import LLVM.AST (Operand)
+import LLVM.AST.Type (i8)
+import SemsCodegen (store,getElemPtrInt,cons,sitofp,free,callVoid,call,load,bitcast,malloc
+                   ,mul,zext64)
+import qualified LLVM.AST.Constant as C (Constant(..))
 
 labelCases :: Id -> Maybe Bool -> Sems ()
 labelCases id = \case
