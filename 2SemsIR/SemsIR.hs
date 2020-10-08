@@ -2,7 +2,7 @@ module SemsIR where
 import Control.Monad.Trans.Either (right)
 import Common (Sems,Expr(..),Id(..),Frml,TyOper,Type(..),Callable(..),RVal(..),LVal(..)
               ,DispType(..),New(..),ArrSize(..),Stmt(..),Header(..),Body(..),Program(..)
-              ,Local(..),(>=>),errAtId,formalsToTypes,searchCallableInSymTabs,(>>>)
+              ,Local(..),(>=>),errAtId,searchCallableInSymTabs,(>>>)
               ,searchVarInSymTabs,lookupInLabelMap,toTType,errPos,put,get,modifyMod
               ,getLabelMap,toList,emptySymbolTable,getCallableMap)
 import InitSymTab (initSymTab)
@@ -20,8 +20,7 @@ import LLVM.AST.Type (void)
 import Data.String.Transform (toShortByteString)
 import Data.Char (ord)
 import Data.List.Index (indexed)
-import BodySemsIRHelpers (formalsExprsTypesMatch,idToFunOper,callRValueSemsIR
-                         ,callStmtSemsIR)
+import BodySemsIRHelpers (idToFunOper,callRValueSemsIR,callStmtSemsIR)
 import LLVM.AST.Float as F (SomeFloat(..))
 import qualified LLVM.AST.Constant as C (Constant(..))
 
