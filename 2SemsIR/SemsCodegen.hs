@@ -11,7 +11,7 @@ import LLVM.AST.FloatingPointPredicate (FloatingPointPredicate)
 import LLVM.AST.IntegerPredicate (IntegerPredicate)
 import SemsIRTypes (Sems,symtab,blocks,BlockState(..),currentBlock,Names,names,count
                    ,blockCount,toConsI16,getFromCodegen,modifyCodegen,toShortName,toTType
-                   ,(>>>),addGlobalDef,emptyCodegen)
+                   ,(>>>),addGlobalDef,emptyCodegen,consGlobalRef,toName)
 import Data.List.Index (indexed)
 import Data.String.Transform (toShortByteString)
 import Parser as P (Frml,PassBy(..),ArrSize(..),Type(..))
@@ -34,13 +34,10 @@ defineFun name retty frmls codegen = do
                         _        -> name
     , parameters =  (
         fmap (frmlToTy >>> tyToParam) $ indexed frmls
-      , case name of "writeString" -> True; _ -> False
+      , False
       )
     , basicBlocks = blocks
     } 
-
-toName :: String -> Name
-toName = toShortByteString >>> Name
 
 -- Create Basic Blocks from Codegen State
 createBlocks :: Sems [BasicBlock]
@@ -60,8 +57,8 @@ makeBlock (l, (BlockState _ s t)) = BasicBlock l (reverse s) (maketerm t)
 -- Create Parameter from Formal
 frmlToTy :: (Int,Frml) -> (Word,T.Type)
 frmlToTy (i,(by,_,ty)) = (fromIntegral i,case by of
-  Value -> toTType ty 
-  _     -> case ty of
+  Val -> toTType ty 
+  _   -> case ty of
     Array NoSize _ -> toTType ty
     _              -> toTType $ Pointer ty)
 
@@ -154,9 +151,6 @@ getvar var = do
     Nothing -> error $ "Local variable not in scope: " ++ show var
 
 -- Constant Global References
-consGlobalRef :: T.Type -> Name -> Operand
-consGlobalRef ty name = ConstantOperand $ C.GlobalReference ty name
-
 printf :: Operand
 printf = consGlobalRef printfScanfType "printf"
 
@@ -209,7 +203,7 @@ writeString = consGlobalRef writeStringType "writeString"
 writeStringType = ptr $ FunctionType {
     resultType = T.void
   , argumentTypes = [ptr i8]
-  , isVarArg = True
+  , isVarArg = False
   }
 
 readString :: Operand

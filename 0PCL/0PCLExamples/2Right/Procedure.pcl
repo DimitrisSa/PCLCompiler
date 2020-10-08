@@ -1,0 +1,17 @@
+program order;
+var a:integer;
+procedure ok();
+  procedure ok();
+    begin
+      writeString("hello world1\n")
+    end;
+  begin
+    ok();
+    writeString("hello world2\n")
+  end;
+begin
+  ok();
+  a := -1;
+  writeString("Hello World3\n");
+  writeInteger(abs(a))
+end.

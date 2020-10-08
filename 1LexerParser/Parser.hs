@@ -1613,13 +1613,13 @@ happyReduction_20 ((HappyAbsSyn16  happy_var_4) `HappyStk`
 
 happyReduce_21 = happySpecReduce_0  15 happyReduction_21
 happyReduction_21  =  HappyAbsSyn15
-		 (Value
+		 (Val
 	)
 
 happyReduce_22 = happySpecReduce_1  15 happyReduction_22
 happyReduction_22 _
 	 =  HappyAbsSyn15
-		 (Reference
+		 (Ref
 	)
 
 happyReduce_23 = happySpecReduce_1  16 happyReduction_23
@@ -2260,7 +2260,7 @@ data Local =
 data Header = ProcHeader Id [Frml]  | FuncHeader Id [Frml] Type
   deriving(Show)
 
-data PassBy = Value | Reference
+data PassBy = Val | Ref
   deriving(Show,Eq)
 
 type Frml = (PassBy,[Id],Type)

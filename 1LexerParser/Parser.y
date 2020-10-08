@@ -126,8 +126,8 @@ Frml     :: { Frml }
            : Optvar Ids ':' Type                { ($1,$2,$4) }
 
 Optvar     :: { PassBy }
-Optvar     : {-empty-}                          { Value     }
-           | var                                { Reference }
+Optvar     : {-empty-}                          { Val }
+           | var                                { Ref }
 
 Type :: { Type }
      : integer                            { IntT           }
@@ -254,7 +254,7 @@ data Local =
 data Header = ProcHeader Id [Frml]  | FuncHeader Id [Frml] Type
   deriving(Show)
 
-data PassBy = Value | Reference
+data PassBy = Val | Ref
   deriving(Show,Eq)
 
 type Frml = (PassBy,[Id],Type)

@@ -8,8 +8,9 @@ import LLVM.AST (Operand(..),Module,Global,moduleDefinitions,Definition(..),Term
 import LLVM.AST.Constant (Constant(..))
 import Data.Bits.Extras (w64)
 import Data.String.Transform (toShortByteString)
-import Parser as P (ArrSize(..),Type(..),Id(..),Frml)
-import LLVM.AST.Type as T (Type(..),ptr,i1,i8,i16,double)
+import Parser as P (ArrSize(..),Type(..),Id(..),Frml,PassBy(..))
+import LLVM.AST.Type as T (Type(..),ptr,i1,i8,i16,double,void)
+import qualified LLVM.AST.Constant as C (Constant(..))
 
 -- Codegen State
 type Names = Map String Int
@@ -43,7 +44,7 @@ data Callable =
 
 type VariableMap = Map Id P.Type
 type LabelMap    = Map Id Bool
-type CallableMap = Map Id Callable
+type CallableMap = Map Id (Callable,Operand)
 
 data SymbolTable = SymbolTable {
    variableMap :: VariableMap
@@ -51,6 +52,7 @@ data SymbolTable = SymbolTable {
   ,callableMap :: CallableMap
   }
 
+type TyOperBool = (P.Type,Operand,Bool)
 type TyOper = (P.Type,Operand)
 type Error = String
 
@@ -127,7 +129,52 @@ insToLabelMap label b = modify $ \(e,st:sts,m,cgen) ->
 
 insToCallableMap :: Id -> Callable -> Sems ()
 insToCallableMap id cal = modify $ \(e,st:sts,m,cgen) ->
-  (e,st { callableMap = insert id cal $ callableMap st }:sts,m,cgen)
+  (e,st {
+       callableMap = insert id (cal,calToOper cal $ idToName id) $ callableMap st
+     }:sts,m,cgen)
+
+toName :: String -> Name
+toName = toShortByteString >>> Name
+
+idToName :: Id -> Name
+idToName = idString >>> toName
+
+consGlobalRef :: T.Type -> Name -> Operand
+consGlobalRef ty name = ConstantOperand $ C.GlobalReference ty name
+
+calToOper :: Callable -> Name -> Operand
+calToOper cal name = consGlobalRef (calToTy cal) name
+
+calToTy :: Callable -> T.Type
+calToTy = \case
+  Proc frmls        -> procToTy frmls
+  Func frmls ty     -> funcToTy frmls ty
+  ProcDclr frmls    -> procToTy frmls
+  FuncDclr frmls ty -> funcToTy frmls ty
+
+funcToTy :: [Frml] -> P.Type -> T.Type
+funcToTy frmls ty = ptr $ FunctionType {
+    resultType = toTType ty
+  , argumentTypes = frmlsToArgTypes frmls
+  , isVarArg = False
+  }
+
+procToTy :: [Frml] -> T.Type
+procToTy frmls = ptr $ FunctionType {
+    resultType = T.void
+  , argumentTypes = frmlsToArgTypes frmls
+  , isVarArg = False
+  }
+
+frmlsToArgTypes :: [Frml] -> [T.Type]
+frmlsToArgTypes = map frmlToArgType
+
+frmlToArgType :: Frml -> T.Type
+frmlToArgType (by,_,ty) = case by of
+  Val -> toTType ty 
+  _   -> case ty of
+    P.Array NoSize _ -> toTType ty
+    _              -> toTType $ Pointer ty
 
 lookupInMap :: Sems (Map Id a) -> Id -> Sems (Maybe a)
 lookupInMap getMap id = getMap >>= lookup id >>> return
@@ -138,14 +185,14 @@ lookupInVariableMap = lookupInMap getVariableMap
 lookupInLabelMap :: Id -> Sems (Maybe Bool)
 lookupInLabelMap = lookupInMap getLabelMap
 
-lookupInCallableMap :: Id -> Sems (Maybe Callable)
+lookupInCallableMap :: Id -> Sems (Maybe (Callable,Operand))
 lookupInCallableMap = lookupInMap getCallableMap
 
 searchVarInSymTabs :: Id -> Sems P.Type
 searchVarInSymTabs id =
   getSymTabs >>= searchInSymTabs variableMap id "Undeclared variable: "
 
-searchCallableInSymTabs :: Id -> Sems Callable
+searchCallableInSymTabs :: Id -> Sems (Callable,Operand)
 searchCallableInSymTabs id = getSymTabs >>= 
   searchInSymTabs callableMap id "Undeclared function or procedure in call: "
 

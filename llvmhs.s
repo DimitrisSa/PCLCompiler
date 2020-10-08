@@ -402,229 +402,72 @@ chr:                                    # @chr
 	.size	chr, .Lfunc_end15-chr
 	.cfi_endproc
                                         # -- End function
-	.section	.rodata.cst8,"aM",@progbits,8
-	.p2align	3               # -- Begin function main
-.LCPI16_0:
-	.quad	4607182418800017408     # double 1
-.LCPI16_1:
-	.quad	-4616189618054758400    # double -1
-.LCPI16_2:
-	.quad	4611686018427387904     # double 2
-	.text
-	.globl	main
+	.globl	ok                      # -- Begin function ok
+	.p2align	4, 0x90
+	.type	ok,@function
+ok:                                     # @ok
+	.cfi_startproc
+# %bb.0:                                # %entry
+	subq	$24, %rsp
+	.cfi_def_cfa_offset 32
+	movabsq	$8031924123371070824, %rax # imm = 0x6F77206F6C6C6568
+	movq	%rax, 10(%rsp)
+	movl	$828664946, 18(%rsp)    # imm = 0x31646C72
+	movw	$10, 22(%rsp)
+	leaq	10(%rsp), %rdi
+	callq	writeString
+	addq	$24, %rsp
+	retq
+.Lfunc_end16:
+	.size	ok, .Lfunc_end16-ok
+	.cfi_endproc
+                                        # -- End function
+	.globl	ok.1                    # -- Begin function ok.1
+	.p2align	4, 0x90
+	.type	ok.1,@function
+ok.1:                                   # @ok.1
+	.cfi_startproc
+# %bb.0:                                # %entry
+	subq	$24, %rsp
+	.cfi_def_cfa_offset 32
+	callq	ok.1
+	movabsq	$8031924123371070824, %rax # imm = 0x6F77206F6C6C6568
+	movq	%rax, 10(%rsp)
+	movl	$845442162, 18(%rsp)    # imm = 0x32646C72
+	movw	$10, 22(%rsp)
+	leaq	10(%rsp), %rdi
+	callq	writeString
+	addq	$24, %rsp
+	retq
+.Lfunc_end17:
+	.size	ok.1, .Lfunc_end17-ok.1
+	.cfi_endproc
+                                        # -- End function
+	.globl	main                    # -- Begin function main
 	.p2align	4, 0x90
 	.type	main,@function
 main:                                   # @main
 	.cfi_startproc
 # %bb.0:                                # %entry
-	pushq	%r14
-	.cfi_def_cfa_offset 16
-	pushq	%rbx
-	.cfi_def_cfa_offset 24
-	subq	$56, %rsp
-	.cfi_def_cfa_offset 80
-	.cfi_offset %rbx, -24
-	.cfi_offset %r14, -16
-	movw	$1, 14(%rsp)
-	movzwl	14(%rsp), %edi
-	callq	writeInteger
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movabsq	$4607182418800017408, %r14 # imm = 0x3FF0000000000000
-	movq	%r14, 16(%rsp)
-	movsd	.LCPI16_0(%rip), %xmm0  # xmm0 = mem[0],zero
-	callq	writeReal
-	movb	$97, 27(%rsp)
-	movzbl	27(%rsp), %edi
-	callq	writeChar
-	movabsq	$2334391967770110279, %rax # imm = 0x20656D2065766947
-	movq	%rax, 28(%rsp)
-	movabsq	$7450489176113311329, %rax # imm = 0x6765746E69206E61
-	movq	%rax, 36(%rsp)
-	movl	$684645, 44(%rsp)       # imm = 0xA7265
-	leaq	28(%rsp), %rdi
-	xorl	%eax, %eax
+	subq	$24, %rsp
+	.cfi_def_cfa_offset 32
+	callq	ok.1
+	movw	$-1, 8(%rsp)
+	movabsq	$8022916924116329800, %rax # imm = 0x6F57206F6C6C6548
+	movq	%rax, 10(%rsp)
+	movl	$862219378, 18(%rsp)    # imm = 0x33646C72
+	movw	$10, 22(%rsp)
+	leaq	10(%rsp), %rdi
 	callq	writeString
-	callq	readInteger
-	movw	%ax, 14(%rsp)
-	movzwl	14(%rsp), %edi
+	movzwl	8(%rsp), %edi
+	callq	abs
+                                        # kill: def %ax killed %ax def %eax
+	movl	%eax, %edi
 	callq	writeInteger
-	leaq	14(%rsp), %rax
-	movq	%rax, 48(%rsp)
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movw	$1, 14(%rsp)
-	movzwl	14(%rsp), %edi
-	callq	writeInteger
-	movw	$-1, 14(%rsp)
-	movzwl	14(%rsp), %edi
-	callq	writeInteger
-	movq	%r14, 16(%rsp)
-	movsd	.LCPI16_0(%rip), %xmm0  # xmm0 = mem[0],zero
-	callq	writeReal
-	movabsq	$-4616189618054758400, %rax # imm = 0xBFF0000000000000
-	movq	%rax, 16(%rsp)
-	movsd	.LCPI16_1(%rip), %xmm0  # xmm0 = mem[0],zero
-	callq	writeReal
-	movw	$2, 14(%rsp)
-	movzwl	14(%rsp), %edi
-	callq	writeInteger
-	movabsq	$4611686018427387904, %rbx # imm = 0x4000000000000000
-	movq	%rbx, 16(%rsp)
-	movsd	.LCPI16_2(%rip), %xmm0  # xmm0 = mem[0],zero
-	callq	writeReal
-	movq	%rbx, 16(%rsp)
-	movsd	.LCPI16_2(%rip), %xmm0  # xmm0 = mem[0],zero
-	callq	writeReal
-	movq	%rbx, 16(%rsp)
-	movsd	.LCPI16_2(%rip), %xmm0  # xmm0 = mem[0],zero
-	callq	writeReal
-	movw	$1, 14(%rsp)
-	movzwl	14(%rsp), %edi
-	callq	writeInteger
-	movq	%r14, 16(%rsp)
-	movsd	.LCPI16_0(%rip), %xmm0  # xmm0 = mem[0],zero
-	callq	writeReal
-	movq	%r14, 16(%rsp)
-	movsd	.LCPI16_0(%rip), %xmm0  # xmm0 = mem[0],zero
-	callq	writeReal
-	movq	%r14, 16(%rsp)
-	movsd	.LCPI16_0(%rip), %xmm0  # xmm0 = mem[0],zero
-	callq	writeReal
-	movw	$0, 14(%rsp)
-	movzwl	14(%rsp), %edi
-	callq	writeInteger
-	movq	$0, 16(%rsp)
-	xorps	%xmm0, %xmm0
-	callq	writeReal
-	movq	$0, 16(%rsp)
-	xorps	%xmm0, %xmm0
-	callq	writeReal
-	movq	$0, 16(%rsp)
-	xorps	%xmm0, %xmm0
-	callq	writeReal
-	movq	%r14, 16(%rsp)
-	movsd	.LCPI16_0(%rip), %xmm0  # xmm0 = mem[0],zero
-	callq	writeReal
-	movq	%r14, 16(%rsp)
-	movsd	.LCPI16_0(%rip), %xmm0  # xmm0 = mem[0],zero
-	callq	writeReal
-	movq	%r14, 16(%rsp)
-	movsd	.LCPI16_0(%rip), %xmm0  # xmm0 = mem[0],zero
-	callq	writeReal
-	movq	%r14, 16(%rsp)
-	movsd	.LCPI16_0(%rip), %xmm0  # xmm0 = mem[0],zero
-	callq	writeReal
-	movw	$1, 14(%rsp)
-	movzwl	14(%rsp), %edi
-	callq	writeInteger
-	movw	$1, 14(%rsp)
-	movzwl	14(%rsp), %edi
-	callq	writeInteger
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$0, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	movb	$1, 13(%rsp)
-	movzbl	13(%rsp), %edi
-	callq	writeBoolean
-	addq	$56, %rsp
-	popq	%rbx
-	popq	%r14
+	addq	$24, %rsp
 	retq
-.Lfunc_end16:
-	.size	main, .Lfunc_end16-main
+.Lfunc_end18:
+	.size	main, .Lfunc_end18-main
 	.cfi_endproc
                                         # -- End function
 	.type	.LscanfChar,@object     # @scanfChar

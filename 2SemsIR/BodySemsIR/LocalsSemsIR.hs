@@ -5,6 +5,7 @@ import Common (Sems,Frml,Id(..),Type(..),Callable(..),Header(..),Env(..),PassBy(
               ,insToLabelMap,lookupInLabelMap,toTType)
 import Data.Function (on)
 import SemsCodegen(alloca,assign)
+import LLVM.AST (Operand(..))
 
 varsWithTypeListSemsIR :: [([Id],Type)] -> Sems ()
 varsWithTypeListSemsIR rvwtl = mapM_ varsWithTypeSemsIR rvwtl
@@ -43,8 +44,8 @@ checkFrmls id fs = mapM_ (checkFrml id) fs
 
 checkFrml :: Id -> Frml -> Sems ()
 checkFrml id = \case
-  (Value,_,Array _ _) -> errAtId "Can't pass array by value in: " id;
-  _                   -> return ()
+  (Val,_,Array _ _) -> errAtId "Can't pass array by value in: " id;
+  _                 -> return ()
 
 checkType :: Id -> Type -> Sems ()
 checkType id = \case
@@ -82,17 +83,17 @@ headerParentSems = \case
   ProcHeader id fs    -> lookupInCallableMap id >>= procCases id (reverse fs)
   FuncHeader id fs ty -> lookupInCallableMap id >>= funcCases id (reverse fs) ty
 
-procCases :: Id -> [Frml] -> Maybe Callable -> Sems ()
+procCases :: Id -> [Frml] -> Maybe (Callable,Operand) -> Sems ()
 procCases id fs = \case
-  Just (ProcDclr fs') -> insToSymTabIfFrmlsMatch id fs fs'
-  Nothing             -> checkFrmls id fs >> insToCallableMap id (Proc fs)
-  _                   -> errAtId duplicateCallableErr id
+  Just (ProcDclr fs',_) -> insToSymTabIfFrmlsMatch id fs fs'
+  Nothing               -> checkFrmls id fs >> insToCallableMap id (Proc fs)
+  _                     -> errAtId duplicateCallableErr id
 
-funcCases :: Id -> [Frml] -> Type -> Maybe Callable -> Sems ()
+funcCases :: Id -> [Frml] -> Type -> Maybe (Callable,Operand) -> Sems ()
 funcCases id fs ty = \case
-  Just (FuncDclr fs' ty') -> insToSymTabIfFrmlsAndTypeMatch id fs fs' ty ty'
-  Nothing                 -> checkFrmlsType id fs ty >> insToCallableMap id (Func fs ty)
-  _                       -> errAtId duplicateCallableErr id
+  Just (FuncDclr fs' ty',_) -> insToSymTabIfFrmlsAndTypeMatch id fs fs' ty ty'
+  Nothing                   -> checkFrmlsType id fs ty >> insToCallableMap id (Func fs ty)
+  _                         -> errAtId duplicateCallableErr id
 
 insToSymTabIfFrmlsMatch :: Id -> [Frml] -> [Frml] -> Sems ()
 insToSymTabIfFrmlsMatch id fs fs' = sameTypes id fs fs' >> insToCallableMap id (Proc fs)

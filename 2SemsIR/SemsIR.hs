@@ -2,9 +2,9 @@ module SemsIR where
 import Control.Monad.Trans.Either (right)
 import Common (Sems,Expr(..),Id(..),Frml,TyOper,Type(..),Callable(..),RVal(..),LVal(..)
               ,DispType(..),New(..),ArrSize(..),Stmt(..),Header(..),Body(..),Program(..)
-              ,Local(..),(>=>),errAtId,searchCallableInSymTabs,(>>>)
+              ,Local(..),(>=>),errAtId,searchCallableInSymTabs,(>>>),TyOperBool
               ,searchVarInSymTabs,lookupInLabelMap,toTType,errPos,put,get,modifyMod
-              ,getLabelMap,toList,emptySymbolTable,getCallableMap)
+              ,getLabelMap,toList,emptySymbolTable,getCallableMap,toName)
 import InitSymTab (initSymTab)
 import LocalsSemsIR (varsWithTypeListSemsIR,insToSymTabLabels,forwardSems
                     ,headerParentSems,headerChildSems,checkResult)
@@ -13,14 +13,14 @@ import ValSemsIR (binOpNumCases,comparisonCases,binOpBoolCases
                  ,resultType)
 import StmtSemsIR (dispWithSems,dispWithoutSems,newNoExprSemsIR,newExprSemsIR
                   ,assignmentSemsIR',boolCases,labelCases,goToCases)
-import SemsCodegen (cons,call,store,load,getElemPtr',allocaNum,getvar,toName,setBlock,br
+import SemsCodegen (cons,call,store,load,getElemPtr',allocaNum,getvar,setBlock,br
                    ,cbr,addBlock,fresh,retVoid,defineFun)
 import LLVM.AST (Operand,moduleName,Name)
 import LLVM.AST.Type (void)
 import Data.String.Transform (toShortByteString)
 import Data.Char (ord)
 import Data.List.Index (indexed)
-import BodySemsIRHelpers (idToFunOper,callRValueSemsIR,callStmtSemsIR)
+import BodySemsIRHelpers (callRValueSemsIR',callStmtSemsIR')
 import LLVM.AST.Float as F (SomeFloat(..))
 import qualified LLVM.AST.Constant as C (Constant(..))
 
@@ -49,26 +49,37 @@ localsSems :: [Local] -> Sems ()
 localsSems locals = do
   mapM_ localSems locals 
   getCallableMap >>= toList >>> mapM_ (\case
-    (id,ProcDclr _  ) -> errAtId "No definition for procedure declaration: " id
-    (id,FuncDclr _ _) -> errAtId "No definition for function declaration: " id
-    _                 -> return ())
+    (id,(ProcDclr _  ,_)) -> errAtId "No definition for procedure declaration: " id
+    (id,(FuncDclr _ _,_)) -> errAtId "No definition for function declaration: " id
+    _                     -> return ())
 
 localSems :: Local -> Sems ()
 localSems = \case
   VarsWithTypeList vwtl -> varsWithTypeListSemsIR $ reverse vwtl
   Labels ls             -> insToSymTabLabels $ reverse ls
-  HeaderBody h b        -> headerBodySems h b
+  HeaderBody h b        -> headerBodySemsIR h b
   Forward h             -> forwardSems h
 
-headerBodySems :: Header -> Body -> Sems ()
-headerBodySems h b = do
+headerBodySemsIR :: Header -> Body -> Sems ()
+headerBodySemsIR h b = do
   headerParentSems h
   (e,sms,m,cgen) <- get
   put $ (e,emptySymbolTable:sms,m,cgen)
   headerChildSems h
-  bodySems b
   checkResult
-  put (e,sms,m,cgen)
+  defineFun (nameFromHeader h) void (frmlsFromHeader h) $ mainCodegen b
+  (_,_,m',_) <- get
+  put (e,sms,m',cgen)
+
+nameFromHeader :: Header -> String
+nameFromHeader = \case
+  ProcHeader id _   -> idString id
+  FuncHeader id _ _ -> idString id
+
+frmlsFromHeader :: Header -> [Frml]
+frmlsFromHeader = \case
+  ProcHeader _ fs   -> fs
+  FuncHeader _ fs _ -> fs
 
 stmtsSems :: [Stmt] -> Sems ()
 stmtsSems ss = mapM_ stmtSems ss
@@ -78,7 +89,7 @@ stmtSems = \case
   Empty                      -> return ()
   Assignment posn lVal expr  -> assignmentSemsIR posn lVal expr
   Block stmts                -> stmtsSems $ reverse stmts
-  CallS (id,exprs)           -> callSems id $ reverse exprs
+  CallS (id,exprs)           -> callStmtSemsIR id $ reverse exprs
   IfThen posn e s            -> exprTypeOper e >>= boolCases posn "if-then" >>= 
                                 cgenIfThen s
   IfThenElse posn e s1 s2    -> exprTypeOper e >>= boolCases posn "if-then-else" >>=
@@ -86,7 +97,7 @@ stmtSems = \case
   While posn e stmt          -> whileSemsIR posn e stmt
   Label id stmt              -> labelSemsIR id stmt
   GoTo id                    -> gotoSemsIR id
-  Return                     -> return ()
+  Return                     -> retVoid
   New posn new lVal          -> newSemsIR posn new lVal
   Dispose posn disptype lVal -> disposeSems posn disptype lVal
 
@@ -95,11 +106,11 @@ assignmentSemsIR posn = \case
   StrLiteral str -> \_ -> errPos posn $ "Assignment to string literal: " ++ str
   lVal           -> lValExprTypeOpers lVal >=> assignmentSemsIR' posn
 
-callSems :: Id -> [Expr] -> Sems ()
-callSems id exprs = searchCallableInSymTabs id >>= \case
-  ProcDclr fs -> mapM exprTypeOper exprs >>= callStmtSemsIR id fs 
-  Proc     fs -> mapM exprTypeOper exprs >>= callStmtSemsIR id fs
-  _           -> errAtId "Use of function in call statement: " id
+callStmtSemsIR :: Id -> [Expr] -> Sems ()
+callStmtSemsIR id exprs = searchCallableInSymTabs id >>= \case
+  (ProcDclr fs,_) -> mapM exprTypeOperBool exprs >>= callStmtSemsIR' id fs 
+  (Proc     fs,_) -> mapM exprTypeOperBool exprs >>= callStmtSemsIR' id fs
+  _               -> errAtId "Use of function in call statement: " id
 
 gotoSemsIR :: Id -> Sems ()
 gotoSemsIR id = do
@@ -178,15 +189,20 @@ disposeSems posn = \case
   Without -> lValTypeOper >=> dispWithoutSems posn
   With    -> lValTypeOper >=> dispWithSems posn
 
-exprTypeOper :: Expr -> Sems (Type,Operand)
-exprTypeOper = \case
-  LVal lval -> do
-    (ty,op) <- lValTypeOper lval
-    op' <- case ty of
-      Array _ _ -> return op
-      _         -> load op 
+toTyOper :: TyOperBool -> Sems TyOper
+toTyOper = \case
+  (ty,op,True)  -> do
+    op' <- load op
     return (ty,op')
-  RVal rval -> rValTypeOper rval
+  (ty,op,False) -> return (ty,op)
+
+exprTypeOper :: Expr -> Sems TyOper
+exprTypeOper = exprTypeOperBool >=> toTyOper
+
+exprTypeOperBool :: Expr -> Sems TyOperBool
+exprTypeOperBool = \case
+  LVal lval -> lValTypeOper lval >>= \(ty,op) -> return (ty,op,True)
+  RVal rval -> rValTypeOper rval >>= \(ty,op) -> return (ty,op,False)
 
 lValTypeOper :: LVal -> Sems (Type,Operand)
 lValTypeOper = \case
@@ -231,7 +247,7 @@ rValTypeOper = \case
   CharR   char       -> right (CharT,cons $ C.Int 8 $ toInteger $ ord char)
   ParenR  rVal       -> rValTypeOper rVal
   NilR               -> right (Nil,cons $ C.Int 1 0)
-  CallR   (id,exprs) -> callType id $ reverse exprs
+  CallR   (id,exprs) -> callRValueSemsIR id $ reverse exprs
   Papaki  lVal       -> lValTypeOper lVal >>= \(ty,op) -> right (Pointer ty,op)
   Not     posn expr  -> exprTypeOper expr >>= notCases posn
   Pos     posn expr  -> exprTypeOper expr >>= unaryOpNumCases posn "'+'"
@@ -253,9 +269,9 @@ rValTypeOper = \case
 
 exprsTypeOpers exp1 exp2 = mapM exprTypeOper [exp1,exp2]
 
-callType :: Id -> [Expr] -> Sems (Type,Operand)
-callType id exprs = searchCallableInSymTabs id >>= \case
-  FuncDclr fs t -> mapM exprTypeOper exprs >>= callRValueSemsIR id fs t 
-  Func  fs t    -> mapM exprTypeOper exprs >>= callRValueSemsIR id fs t
-  _             -> errAtId "Use of procedure where a return value is required: " id
+callRValueSemsIR :: Id -> [Expr] -> Sems (Type,Operand)
+callRValueSemsIR id exprs = searchCallableInSymTabs id >>= \case
+  (FuncDclr fs t,_) -> mapM exprTypeOperBool exprs >>= callRValueSemsIR' id fs t 
+  (Func  fs t   ,_) -> mapM exprTypeOperBool exprs >>= callRValueSemsIR' id fs t
+  _                 -> errAtId "Use of procedure where a return value is required: " id
 

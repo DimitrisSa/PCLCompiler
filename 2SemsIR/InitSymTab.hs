@@ -9,8 +9,8 @@ import LLVM.AST.Linkage (Linkage(..))
 import LLVM.AST.IntegerPredicate (IntegerPredicate(..))
 import Data.Char (ord)
 import Data.Word (Word64)
-import SemsCodegen (toName,ret,phi,setBlock,br,printf,callVoid,cbr,add,icmp,call,strcmp
-                   ,scanf,allocaNum,consGlobalRef,getElemPtrInBounds,addBlock,retVoid,cons
+import SemsCodegen (ret,phi,setBlock,br,printf,callVoid,cbr,add,icmp,call,strcmp
+                   ,scanf,allocaNum,getElemPtrInBounds,addBlock,retVoid,cons
                    ,store,getElemPtrOp',load,sub,alloca,fresh,getBlock,acos,fcmp,fsub
                    ,fptosi,sitofp,zext,truncTo,defineFun)
 import Common as P hiding (void) 
@@ -27,32 +27,32 @@ initSymTab = do
   strcmpDef
   freeDef
   mallocDef
-  insertProcToSymTabAndDefs "writeInteger" [(Value,[dummy "n"],IntT)]
-  insertProcToSymTabAndDefs "writeBoolean" [(Value,[dummy "b"],BoolT)]
-  insertProcToSymTabAndDefs "writeChar" [(Value,[dummy "c"],CharT)]
-  insertProcToSymTabAndDefs "writeReal" [(Value,[dummy "r"],RealT)]
-  insertProcToSymTabAndDefs "writeString" [(Reference, [dummy "s"],Array NoSize CharT)]
-  insertProcToSymTabAndDefs "readString" [(Value,[dummy "size"],IntT)
-                                         ,(Reference,[dummy "s"],Array NoSize CharT)
+  insertProcToSymTabAndDefs "writeInteger" [(Val,[dummy "n"],IntT)]
+  insertProcToSymTabAndDefs "writeBoolean" [(Val,[dummy "b"],BoolT)]
+  insertProcToSymTabAndDefs "writeChar" [(Val,[dummy "c"],CharT)]
+  insertProcToSymTabAndDefs "writeReal" [(Val,[dummy "r"],RealT)]
+  insertProcToSymTabAndDefs "writeString" [(Ref, [dummy "s"],Array NoSize CharT)]
+  insertProcToSymTabAndDefs "readString" [(Val,[dummy "size"],IntT)
+                                         ,(Ref,[dummy "s"],Array NoSize CharT)
                                          ]
   insertFuncToSymTabAndDefs "readInteger" [] IntT
   insertFuncToSymTabAndDefs "readBoolean" [] BoolT
   insertFuncToSymTabAndDefs "readChar" [] CharT
   insertFuncToSymTabAndDefs "readReal" [] RealT
-  insertFuncToSymTabAndDefs "abs" [(Value,[dummy "n"],IntT)] IntT
-  insertFuncToSymTabAndDefs "fabs" [(Value,[dummy "r"],RealT)] RealT
-  insertFuncToSymTabAndDefs "sqrt" [(Value,[dummy "r"],RealT)] RealT
-  insertFuncToSymTabAndDefs "sin" [(Value,[dummy "r"],RealT)] RealT
-  insertFuncToSymTabAndDefs "cos" [(Value,[dummy "r"],RealT)] RealT
-  insertFuncToSymTabAndDefs "tan" [(Value,[dummy "r"],RealT)] RealT
-  insertFuncToSymTabAndDefs "arctan" [(Value,[dummy "r"],RealT)] RealT
-  insertFuncToSymTabAndDefs "exp" [(Value,[dummy "r"],RealT)] RealT
-  insertFuncToSymTabAndDefs "ln" [(Value,[dummy "r"],RealT)] RealT
+  insertFuncToSymTabAndDefs "abs" [(Val,[dummy "n"],IntT)] IntT
+  insertFuncToSymTabAndDefs "fabs" [(Val,[dummy "r"],RealT)] RealT
+  insertFuncToSymTabAndDefs "sqrt" [(Val,[dummy "r"],RealT)] RealT
+  insertFuncToSymTabAndDefs "sin" [(Val,[dummy "r"],RealT)] RealT
+  insertFuncToSymTabAndDefs "cos" [(Val,[dummy "r"],RealT)] RealT
+  insertFuncToSymTabAndDefs "tan" [(Val,[dummy "r"],RealT)] RealT
+  insertFuncToSymTabAndDefs "arctan" [(Val,[dummy "r"],RealT)] RealT
+  insertFuncToSymTabAndDefs "exp" [(Val,[dummy "r"],RealT)] RealT
+  insertFuncToSymTabAndDefs "ln" [(Val,[dummy "r"],RealT)] RealT
   insertFuncToSymTabAndDefs "pi" [] RealT
-  insertFuncToSymTabAndDefs "trunc" [(Value,[dummy "r"],RealT)] IntT
-  insertFuncToSymTabAndDefs "round" [(Value,[dummy "r"],RealT)] IntT
-  insertFuncToSymTabAndDefs "ord" [(Value,[dummy "r"],CharT)] IntT
-  insertFuncToSymTabAndDefs "chr" [(Value,[dummy "r"],IntT)] CharT
+  insertFuncToSymTabAndDefs "trunc" [(Val,[dummy "r"],RealT)] IntT
+  insertFuncToSymTabAndDefs "round" [(Val,[dummy "r"],RealT)] IntT
+  insertFuncToSymTabAndDefs "ord" [(Val,[dummy "r"],CharT)] IntT
+  insertFuncToSymTabAndDefs "chr" [(Val,[dummy "r"],IntT)] CharT
 --getDefs >>= error . ("\n"++). concat . fmap
 --  ((++"\n").show.(\(GlobalDefinition x)-> (name x,parameters x,returnType x)))
 
