@@ -1,18 +1,23 @@
 module ValSemsIR where
 import Prelude hiding (EQ)
 import Common (Id(..),Type(..),PassBy(..),Sems,TyOper,Env(..),ArrSize(..),errAtId,errPos
-              ,symbatos,setEnv,getEnv)
+              ,symbatos,setEnv,getEnv,toTType,searchVarInSymTabs)
 import Control.Monad.Trans.Either (right)
 import LLVM.AST.IntegerPredicate (IntegerPredicate(..))
 import SemsCodegen (icmp,cons,fsub,sub,fcmp,fdiv,fmul,fadd,sitofp,mul,add,srem,sdiv
-                   ,orInstr,andInstr,getElemPtrOp',load,getElemPtrInBounds')
+                   ,orInstr,andInstr,getElemPtrOp',load,getElemPtrInBounds'
+                   ,insToVariableMap,alloca)
 import LLVM.AST.Float (SomeFloat(..))
+import InitSymTab (dummy)
 import qualified LLVM.AST.FloatingPointPredicate as FP (FloatingPointPredicate(..))
 import qualified LLVM.AST.Constant as C (Constant(..))
 
-resultType :: (Int,Int) -> Sems TyOper
-resultType posn = getEnv >>= \case
-  InFunc id ty _ -> setEnv (InFunc id ty True) >> return (ty,undefined)
+resultTypeOper :: (Int,Int) -> Sems TyOper
+resultTypeOper posn = getEnv >>= \case
+  InFunc id ty _ -> do
+    setEnv (InFunc id ty True)
+    insToVariableMap (dummy "result") ty
+    searchVarInSymTabs (dummy "result")
   InProc         -> errPos posn "Result in procedure"
 
 dereferenceCases :: (Int,Int) -> TyOper -> Sems TyOper

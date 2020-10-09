@@ -269,115 +269,48 @@ entry:
   ret i8 %1
 }
 
-define void @ok() {
+define i16 @ok() {
 entry:
-  %0 = alloca i8, i16 14
-  %1 = getelementptr i8, i8* %0, i16 0
-  store i8 104, i8* %1
-  %2 = getelementptr i8, i8* %0, i16 1
-  store i8 101, i8* %2
-  %3 = getelementptr i8, i8* %0, i16 2
-  store i8 108, i8* %3
-  %4 = getelementptr i8, i8* %0, i16 3
-  store i8 108, i8* %4
-  %5 = getelementptr i8, i8* %0, i16 4
-  store i8 111, i8* %5
-  %6 = getelementptr i8, i8* %0, i16 5
-  store i8 32, i8* %6
-  %7 = getelementptr i8, i8* %0, i16 6
-  store i8 119, i8* %7
-  %8 = getelementptr i8, i8* %0, i16 7
-  store i8 111, i8* %8
-  %9 = getelementptr i8, i8* %0, i16 8
-  store i8 114, i8* %9
-  %10 = getelementptr i8, i8* %0, i16 9
-  store i8 108, i8* %10
-  %11 = getelementptr i8, i8* %0, i16 10
-  store i8 100, i8* %11
-  %12 = getelementptr i8, i8* %0, i16 11
-  store i8 49, i8* %12
-  %13 = getelementptr i8, i8* %0, i16 12
-  store i8 10, i8* %13
-  %14 = getelementptr i8, i8* %0, i16 13
-  store i8 0, i8* %14
-  call void @writeString(i8* %0)
-  ret void
-}
-
-define void @ok.1() {
-entry:
-  call void @ok.1()
-  %0 = alloca i8, i16 14
-  %1 = getelementptr i8, i8* %0, i16 0
-  store i8 104, i8* %1
-  %2 = getelementptr i8, i8* %0, i16 1
-  store i8 101, i8* %2
-  %3 = getelementptr i8, i8* %0, i16 2
-  store i8 108, i8* %3
-  %4 = getelementptr i8, i8* %0, i16 3
-  store i8 108, i8* %4
-  %5 = getelementptr i8, i8* %0, i16 4
-  store i8 111, i8* %5
-  %6 = getelementptr i8, i8* %0, i16 5
-  store i8 32, i8* %6
-  %7 = getelementptr i8, i8* %0, i16 6
-  store i8 119, i8* %7
-  %8 = getelementptr i8, i8* %0, i16 7
-  store i8 111, i8* %8
-  %9 = getelementptr i8, i8* %0, i16 8
-  store i8 114, i8* %9
-  %10 = getelementptr i8, i8* %0, i16 9
-  store i8 108, i8* %10
-  %11 = getelementptr i8, i8* %0, i16 10
-  store i8 100, i8* %11
-  %12 = getelementptr i8, i8* %0, i16 11
-  store i8 50, i8* %12
-  %13 = getelementptr i8, i8* %0, i16 12
-  store i8 10, i8* %13
-  %14 = getelementptr i8, i8* %0, i16 13
-  store i8 0, i8* %14
-  call void @writeString(i8* %0)
-  ret void
+  %0 = alloca i16
+  store i16 1, i16* %0
+  %1 = load i16, i16* %0
+  ret i16 %1
 }
 
 define void @main() {
 entry:
   %0 = alloca i16
-  call void @ok.1()
-  %1 = sub i16 0, 1
-  store i16 %1, i16* %0
-  %2 = alloca i8, i16 14
-  %3 = getelementptr i8, i8* %2, i16 0
-  store i8 72, i8* %3
-  %4 = getelementptr i8, i8* %2, i16 1
-  store i8 101, i8* %4
-  %5 = getelementptr i8, i8* %2, i16 2
+  %1 = alloca i8, i16 13
+  %2 = getelementptr i8, i8* %1, i16 0
+  store i8 72, i8* %2
+  %3 = getelementptr i8, i8* %1, i16 1
+  store i8 101, i8* %3
+  %4 = getelementptr i8, i8* %1, i16 2
+  store i8 108, i8* %4
+  %5 = getelementptr i8, i8* %1, i16 3
   store i8 108, i8* %5
-  %6 = getelementptr i8, i8* %2, i16 3
-  store i8 108, i8* %6
-  %7 = getelementptr i8, i8* %2, i16 4
-  store i8 111, i8* %7
-  %8 = getelementptr i8, i8* %2, i16 5
-  store i8 32, i8* %8
-  %9 = getelementptr i8, i8* %2, i16 6
-  store i8 87, i8* %9
-  %10 = getelementptr i8, i8* %2, i16 7
-  store i8 111, i8* %10
-  %11 = getelementptr i8, i8* %2, i16 8
-  store i8 114, i8* %11
-  %12 = getelementptr i8, i8* %2, i16 9
-  store i8 108, i8* %12
-  %13 = getelementptr i8, i8* %2, i16 10
-  store i8 100, i8* %13
-  %14 = getelementptr i8, i8* %2, i16 11
-  store i8 51, i8* %14
-  %15 = getelementptr i8, i8* %2, i16 12
-  store i8 10, i8* %15
-  %16 = getelementptr i8, i8* %2, i16 13
-  store i8 0, i8* %16
-  call void @writeString(i8* %2)
-  %17 = load i16, i16* %0
-  %18 = call i16 @abs(i16 %17)
-  call void @writeInteger(i16 %18)
+  %6 = getelementptr i8, i8* %1, i16 4
+  store i8 111, i8* %6
+  %7 = getelementptr i8, i8* %1, i16 5
+  store i8 32, i8* %7
+  %8 = getelementptr i8, i8* %1, i16 6
+  store i8 87, i8* %8
+  %9 = getelementptr i8, i8* %1, i16 7
+  store i8 111, i8* %9
+  %10 = getelementptr i8, i8* %1, i16 8
+  store i8 114, i8* %10
+  %11 = getelementptr i8, i8* %1, i16 9
+  store i8 108, i8* %11
+  %12 = getelementptr i8, i8* %1, i16 10
+  store i8 100, i8* %12
+  %13 = getelementptr i8, i8* %1, i16 11
+  store i8 10, i8* %13
+  %14 = getelementptr i8, i8* %1, i16 12
+  store i8 0, i8* %14
+  call void @writeString(i8* %1)
+  %15 = call i16 @ok()
+  store i16 %15, i16* %0
+  %16 = load i16, i16* %0
+  call void @writeInteger(i16 %16)
   ret void
 }

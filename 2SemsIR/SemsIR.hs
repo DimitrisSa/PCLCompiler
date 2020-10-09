@@ -4,17 +4,18 @@ import Common (Sems,Expr(..),Id(..),Frml,TyOper,Type(..),Callable(..),RVal(..),L
               ,DispType(..),New(..),ArrSize(..),Stmt(..),Header(..),Body(..),Program(..)
               ,Local(..),(>=>),errAtId,searchCallableInSymTabs,(>>>),TyOperBool
               ,searchVarInSymTabs,lookupInLabelMap,toTType,errPos,put,get,modifyMod
-              ,getLabelMap,toList,emptySymbolTable,getCallableMap,toName)
-import InitSymTab (initSymTab)
+              ,getLabelMap,toList,emptySymbolTable,getCallableMap,toName,Env(..)
+              ,lookupInVariableMap,getEnv)
+import InitSymTab (initSymTab,dummy)
 import LocalsSemsIR (varsWithTypeListSemsIR,insToSymTabLabels,forwardSems
                     ,headerParentSems,headerChildSems,checkResult)
 import ValSemsIR (binOpNumCases,comparisonCases,binOpBoolCases
                  ,binOpIntCases,unaryOpNumCases,notCases,dereferenceCases,indexingCases
-                 ,resultType)
+                 ,resultTypeOper)
 import StmtSemsIR (dispWithSems,dispWithoutSems,newNoExprSemsIR,newExprSemsIR
                   ,assignmentSemsIR',boolCases,labelCases,goToCases)
 import SemsCodegen (cons,call,store,load,getElemPtr',allocaNum,getvar,setBlock,br
-                   ,cbr,addBlock,fresh,retVoid,defineFun)
+                   ,cbr,addBlock,fresh,retVoid,defineFun,ret)
 import LLVM.AST (Operand,moduleName,Name)
 import LLVM.AST.Type (void)
 import Data.String.Transform (toShortByteString)
@@ -28,14 +29,13 @@ programSems :: Program -> Sems ()
 programSems (P id body) = do
   modifyMod $ \mod -> mod { moduleName = toShortByteString $ idString id }
   initSymTab
-  defineFun "main" void [] $ mainCodegen body
+  defineFun "main" void [] $ (mainCodegen body >> retVoid)
 
 mainCodegen :: Body -> Sems ()
 mainCodegen body = do
   entry <- addBlock "entry"
   setBlock entry
   bodySems body
-  retVoid
 
 bodySems :: Body -> Sems ()
 bodySems (Body locals stmts) = do
@@ -66,20 +66,12 @@ headerBodySemsIR h b = do
   (e,sms,m,cgen) <- get
   put $ (e,emptySymbolTable:sms,m,cgen)
   headerChildSems h
+  case h of
+    ProcHeader id fs   -> defineFun (idString id) void fs $ mainCodegen b
+    FuncHeader id fs t -> defineFun (idString id) (toTType t) fs $ mainCodegen b
   checkResult
-  defineFun (nameFromHeader h) void (frmlsFromHeader h) $ mainCodegen b
   (_,_,m',_) <- get
   put (e,sms,m',cgen)
-
-nameFromHeader :: Header -> String
-nameFromHeader = \case
-  ProcHeader id _   -> idString id
-  FuncHeader id _ _ -> idString id
-
-frmlsFromHeader :: Header -> [Frml]
-frmlsFromHeader = \case
-  ProcHeader _ fs   -> fs
-  FuncHeader _ fs _ -> fs
 
 stmtsSems :: [Stmt] -> Sems ()
 stmtsSems ss = mapM_ stmtSems ss
@@ -97,7 +89,14 @@ stmtSems = \case
   While posn e stmt          -> whileSemsIR posn e stmt
   Label id stmt              -> labelSemsIR id stmt
   GoTo id                    -> gotoSemsIR id
-  Return                     -> retVoid
+  Return                     -> getEnv >>= \case
+                                  InProc            -> retVoid
+                                  InFunc id ty bool -> do
+                                    op <- lookupInVariableMap (dummy "result") >>= \case
+                                      Just (_,op) -> return op
+                                      Nothing     -> error "Shouldn't happen"
+                                    op <- load op
+                                    ret op
   New posn new lVal          -> newSemsIR posn new lVal
   Dispose posn disptype lVal -> disposeSems posn disptype lVal
 
@@ -206,11 +205,8 @@ exprTypeOperBool = \case
 
 lValTypeOper :: LVal -> Sems (Type,Operand)
 lValTypeOper = \case
-  IdL         id             -> do
-    ty <- searchVarInSymTabs id
-    oper <- getvar $ idString id 
-    return (ty,oper)
-  Result      posn           -> resultType posn
+  IdL         id             -> searchVarInSymTabs id
+  Result      posn           -> resultTypeOper posn
   StrLiteral  str            -> strLiteralSemsIR str
   Indexing    posn lVal expr -> lValExprTypeOpers lVal expr >>= indexingCases posn
   Dereference posn expr      -> exprTypeOper expr >>= dereferenceCases posn

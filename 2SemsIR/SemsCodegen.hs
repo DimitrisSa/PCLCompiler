@@ -11,11 +11,12 @@ import LLVM.AST.FloatingPointPredicate (FloatingPointPredicate)
 import LLVM.AST.IntegerPredicate (IntegerPredicate)
 import SemsIRTypes (Sems,symtab,blocks,BlockState(..),currentBlock,Names,names,count
                    ,blockCount,toConsI16,getFromCodegen,modifyCodegen,toShortName,toTType
-                   ,(>>>),addGlobalDef,emptyCodegen,consGlobalRef,toName)
+                   ,(>>>),addGlobalDef,emptyCodegen,consGlobalRef,toName,variableMap)
 import Data.List.Index (indexed)
 import Data.String.Transform (toShortByteString)
-import Parser as P (Frml,PassBy(..),ArrSize(..),Type(..))
+import Parser as P (Id,Frml,PassBy(..),ArrSize(..),Type(..))
 import LLVM.AST.Type as T (Type(..),void,double,i1,i8,i16,i32,i64,ptr)
+import Control.Monad.State (modify)
 import qualified Data.Map as Map (toList,lookup,insert)
 import qualified LLVM.AST.CallingConvention as CC (CallingConvention(..))
 import qualified LLVM.AST.Constant as C (Constant(..))
@@ -428,3 +429,10 @@ retVoid = terminator $ Do $ Ret Nothing []
 
 cons :: C.Constant -> Operand
 cons = ConstantOperand
+
+insToVariableMap :: Id -> P.Type -> Sems ()
+insToVariableMap id ty = do
+  var <- alloca $ toTType ty
+  modify $ \(e,st:sts,m,cgen) ->
+    (e,st { variableMap = Map.insert id (ty,var) $ variableMap st }:sts,m,cgen)
+

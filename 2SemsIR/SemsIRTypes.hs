@@ -42,7 +42,7 @@ data Callable =
   FuncDclr [Frml] P.Type
   deriving(Show,Eq)
 
-type VariableMap = Map Id P.Type
+type VariableMap = Map Id (P.Type,Operand)
 type LabelMap    = Map Id Bool
 type CallableMap = Map Id (Callable,Operand)
 
@@ -119,10 +119,6 @@ getLabelMap = getMap labelMap
 getCallableMap :: Sems CallableMap
 getCallableMap = getMap callableMap
 
-insToVariableMap :: Id -> P.Type -> Sems ()
-insToVariableMap var ty = modify $ \(e,st:sts,m,cgen) ->
-  (e,st { variableMap = insert var ty $ variableMap st }:sts,m,cgen)
-
 insToLabelMap :: Id -> Bool -> Sems ()
 insToLabelMap label b = modify $ \(e,st:sts,m,cgen) ->
   (e,st { labelMap = insert label b $ labelMap st }:sts,m,cgen)
@@ -179,7 +175,7 @@ frmlToArgType (by,_,ty) = case by of
 lookupInMap :: Sems (Map Id a) -> Id -> Sems (Maybe a)
 lookupInMap getMap id = getMap >>= lookup id >>> return
 
-lookupInVariableMap :: Id -> Sems (Maybe P.Type)
+lookupInVariableMap :: Id -> Sems (Maybe (P.Type,Operand))
 lookupInVariableMap = lookupInMap getVariableMap
 
 lookupInLabelMap :: Id -> Sems (Maybe Bool)
@@ -188,7 +184,7 @@ lookupInLabelMap = lookupInMap getLabelMap
 lookupInCallableMap :: Id -> Sems (Maybe (Callable,Operand))
 lookupInCallableMap = lookupInMap getCallableMap
 
-searchVarInSymTabs :: Id -> Sems P.Type
+searchVarInSymTabs :: Id -> Sems (P.Type,Operand)
 searchVarInSymTabs id =
   getSymTabs >>= searchInSymTabs variableMap id "Undeclared variable: "
 

@@ -1,10 +1,10 @@
 module LocalsSemsIR where
 import Common (Sems,Frml,Id(..),Type(..),Callable(..),Header(..),Env(..),PassBy(..),errAtId
-              ,formalsToTypes,insToCallableMap,lookupInCallableMap,getEnv,insToVariableMap
+              ,formalsToTypes,insToCallableMap,lookupInCallableMap,getEnv
               ,lookupInVariableMap,setEnv,(>>>),toList,fullType
               ,insToLabelMap,lookupInLabelMap,toTType)
 import Data.Function (on)
-import SemsCodegen(alloca,assign)
+import SemsCodegen(alloca,assign,insToVariableMap)
 import LLVM.AST (Operand(..))
 
 varsWithTypeListSemsIR :: [([Id],Type)] -> Sems ()
@@ -22,8 +22,6 @@ insToSymTabVarWithType ty id = do
     True -> return ()
     _    -> errAtId "Can't declare 'array of': " id
   insToVariableMap id ty 
-  var <- alloca $ toTType ty
-  assign (idString id) var
 
 forwardSems :: Header -> Sems ()
 forwardSems = \case

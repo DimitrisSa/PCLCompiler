@@ -408,39 +408,11 @@ chr:                                    # @chr
 ok:                                     # @ok
 	.cfi_startproc
 # %bb.0:                                # %entry
-	subq	$24, %rsp
-	.cfi_def_cfa_offset 32
-	movabsq	$8031924123371070824, %rax # imm = 0x6F77206F6C6C6568
-	movq	%rax, 10(%rsp)
-	movl	$828664946, 18(%rsp)    # imm = 0x31646C72
-	movw	$10, 22(%rsp)
-	leaq	10(%rsp), %rdi
-	callq	writeString
-	addq	$24, %rsp
+	movw	$1, -2(%rsp)
+	movw	$1, %ax
 	retq
 .Lfunc_end16:
 	.size	ok, .Lfunc_end16-ok
-	.cfi_endproc
-                                        # -- End function
-	.globl	ok.1                    # -- Begin function ok.1
-	.p2align	4, 0x90
-	.type	ok.1,@function
-ok.1:                                   # @ok.1
-	.cfi_startproc
-# %bb.0:                                # %entry
-	subq	$24, %rsp
-	.cfi_def_cfa_offset 32
-	callq	ok.1
-	movabsq	$8031924123371070824, %rax # imm = 0x6F77206F6C6C6568
-	movq	%rax, 10(%rsp)
-	movl	$845442162, 18(%rsp)    # imm = 0x32646C72
-	movw	$10, 22(%rsp)
-	leaq	10(%rsp), %rdi
-	callq	writeString
-	addq	$24, %rsp
-	retq
-.Lfunc_end17:
-	.size	ok.1, .Lfunc_end17-ok.1
 	.cfi_endproc
                                         # -- End function
 	.globl	main                    # -- Begin function main
@@ -451,23 +423,20 @@ main:                                   # @main
 # %bb.0:                                # %entry
 	subq	$24, %rsp
 	.cfi_def_cfa_offset 32
-	callq	ok.1
-	movw	$-1, 8(%rsp)
 	movabsq	$8022916924116329800, %rax # imm = 0x6F57206F6C6C6548
-	movq	%rax, 10(%rsp)
-	movl	$862219378, 18(%rsp)    # imm = 0x33646C72
-	movw	$10, 22(%rsp)
-	leaq	10(%rsp), %rdi
+	movq	%rax, 11(%rsp)
+	movl	$174353522, 19(%rsp)    # imm = 0xA646C72
+	movb	$0, 23(%rsp)
+	leaq	11(%rsp), %rdi
 	callq	writeString
+	callq	ok
+	movw	%ax, 8(%rsp)
 	movzwl	8(%rsp), %edi
-	callq	abs
-                                        # kill: def %ax killed %ax def %eax
-	movl	%eax, %edi
 	callq	writeInteger
 	addq	$24, %rsp
 	retq
-.Lfunc_end18:
-	.size	main, .Lfunc_end18-main
+.Lfunc_end17:
+	.size	main, .Lfunc_end17-main
 	.cfi_endproc
                                         # -- End function
 	.type	.LscanfChar,@object     # @scanfChar
