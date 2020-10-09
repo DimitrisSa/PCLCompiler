@@ -14,7 +14,7 @@ import ValSemsIR (binOpNumCases,comparisonCases,binOpBoolCases
                  ,resultTypeOper)
 import StmtSemsIR (dispWithSems,dispWithoutSems,newNoExprSemsIR,newExprSemsIR
                   ,assignmentSemsIR',boolCases,labelCases,goToCases)
-import SemsCodegen (cons,call,store,load,getElemPtr',allocaNum,getvar,setBlock,br
+import SemsCodegen (cons,call,store,load,getElemPtr',allocaNum,setBlock,br
                    ,cbr,addBlock,fresh,retVoid,defineFun,ret)
 import LLVM.AST (Operand,moduleName,Name)
 import LLVM.AST.Type (void)

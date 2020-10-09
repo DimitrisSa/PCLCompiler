@@ -4,7 +4,7 @@ import Common (Sems,Frml,Id(..),Type(..),Callable(..),Header(..),Env(..),PassBy(
               ,lookupInVariableMap,setEnv,(>>>),toList,fullType
               ,insToLabelMap,lookupInLabelMap,toTType)
 import Data.Function (on)
-import SemsCodegen(alloca,assign,insToVariableMap)
+import SemsCodegen(alloca,insToVariableMap)
 import LLVM.AST (Operand(..))
 
 varsWithTypeListSemsIR :: [([Id],Type)] -> Sems ()

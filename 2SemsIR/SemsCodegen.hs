@@ -138,19 +138,6 @@ current = do
     Just x -> return x
     Nothing -> error $ "No such block: " ++ show c
 
--- Symtab operations
-assign :: String -> Operand -> Sems ()
-assign var x = do
-  lcls <- getFromCodegen symtab
-  modifyCodegen $ \s -> s { symtab = [(var, x)] ++ lcls }
-
-getvar :: String -> Sems Operand
-getvar var = do
-  syms <- getFromCodegen symtab
-  case lookup var syms of
-    Just x  -> return x
-    Nothing -> error $ "Local variable not in scope: " ++ show var
-
 -- Constant Global References
 printf :: Operand
 printf = consGlobalRef printfScanfType "printf"
