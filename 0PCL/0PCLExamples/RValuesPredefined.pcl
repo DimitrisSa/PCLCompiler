@@ -1,0 +1,203 @@
+program RValuesPredefined;
+var a,a1,a2:integer;b,b1,b2:boolean;c,c1,c2:char;d,d1,d2:real;e:^integer;
+begin
+
+  (* Everything for 1 integer *)
+  writeString("Give me an integer: ");
+  a := readInteger();
+  writeString("Here\'s your integer: ");
+  writeInteger(a);
+  writeString("Here\'s + your integer: ");
+  writeInteger(+a);
+  writeString("Here\'s - your integer: ");
+  writeInteger(-a);
+  writeString("Here\'s your integer\'s absolute value: ");
+  writeInteger(abs(a));
+  writeString("Here\'s your integer\'s real equivalent: ");
+  writeReal(a);
+  writeString("Here\'s your integer\'s ASCII char equivalent: ");
+  writeChar(chr(a));
+  e := @a;
+
+  (* Everything for 1 boolean *)
+  writeString("Give me a boolean: ");
+  b := readBoolean();
+  writeString("Here\'s your boolean: ");
+  writeBoolean(b);
+  writeString("Here\'s not your boolean: ");
+  writeBoolean(not b);
+
+
+  (* Everything for 1 real *)
+  writeString("Give me a real: ");
+  d := readReal();
+  writeString("Here\'s your real: ");
+  writeReal(d);
+  writeString("Here\'s + your real: ");
+  writeReal(+d);
+  writeString("Here\'s - your real: ");
+  writeReal(-d);
+  writeString("Here\'s your real\'s absolute value: ");
+  writeReal(fabs(d));
+  writeString("Here\'s your real\'s square root: ");
+  writeReal(sqrt(d));
+  writeString("Here\'s your real\'s sin: ");
+  writeReal(sin(d));
+  writeString("Here\'s your real\'s cos: ");
+  writeReal(cos(d));
+  writeString("Here\'s your real\'s tan: ");
+  writeReal(tan(d));
+  writeString("Here\'s your real\'s arctan: ");
+  writeReal(arctan(d));
+  writeString("Here\'s e raised to your real: ");
+  writeReal(exp(d));
+  writeString("Here\'s your real\'s natural logarithm: ");
+  writeReal(ln(d));
+  writeString("And here\'s pi!: ");
+  writeReal(pi());
+  writeString("Here\'s your real truncated: ");
+  writeInteger(trunc(d));
+  writeString("Here\'s your real rounded: ");
+  writeInteger(round(d));
+
+  (* Everything for 1 char *)
+  writeString("Give me a char: ");
+  c := readChar();
+  writeString("Here\'s your char: ");
+  writeChar(c);
+  writeString("Here\'s your char\'s ASCII code: ");
+  writeInteger(ord(c));
+
+  (* Everything for 2 integers *)
+  writeString("Give me an integer: ");
+  a1 := readInteger();
+  writeString("Give me another integer: ");
+  a2 := readInteger();
+  writeString("Here\'s your integer + your other integer: ");
+  writeInteger(a1+a2);
+  writeString("Here\'s your integer * your other integer: ");
+  writeInteger(a1*a2);
+  writeString("Here\'s your integer - your other integer: ");
+  writeInteger(a1-a2);
+  writeString("Here\'s your integer / your other integer: ");
+  writeReal(a1/a2);
+  writeString("Here\'s your integer div your other integer: ");
+  writeInteger(a1 div a2);
+  writeString("Here\'s your integer mod your other integer: ");
+  writeInteger(a1 mod a2);
+  writeString("Here\'s your integer < your other integer: ");
+  writeBoolean(a1<a2);
+  writeString("Here\'s your integer > your other integer: ");
+  writeBoolean(a1>a2);
+  writeString("Here\'s your integer <= your other integer: ");
+  writeBoolean(a1<=a2);
+  writeString("Here\'s your integer >= your other integer: ");
+  writeBoolean(a1>=a2);
+  writeString("Here\'s your integer = your other integer: ");
+  writeBoolean(a1 = a2);
+  writeString("Here\'s your integer <> your other integer: ");
+  writeBoolean(a1 <> a2);
+
+  (* Everything for an integer and a real *)
+  writeString("Give me an integer: ");
+  a1 := readInteger();
+  writeString("Give me a real: ");
+  d := readReal();
+  writeString("Here\'s your integer + your real: ");
+  writeReal(a1+d);
+  writeString("Here\'s your integer * your real: ");
+  writeReal(a1*d);
+  writeString("Here\'s your integer - your real: ");
+  writeReal(a1-d);
+  writeString("Here\'s your integer / your real: ");
+  writeReal(a1/d);
+  writeString("Here\'s your integer < your real: ");
+  writeBoolean(a1<d);
+  writeString("Here\'s your integer > your real: ");
+  writeBoolean(a1>d);
+  writeString("Here\'s your integer <= your real: ");
+  writeBoolean(a1<=d);
+  writeString("Here\'s your integer >= your real: ");
+  writeBoolean(a1>=d);
+  writeString("Here\'s your integer = your real: ");
+  writeBoolean(a1 = d);
+  writeString("Here\'s your integer <> your real: ");
+  writeBoolean(a1 <> d);
+
+  (* Everything for a real and an integer *)
+  writeString("Give me a real: ");
+  d := readReal();
+  writeString("Give me an integer: ");
+  a1 := readInteger();
+  writeString("Here\'s your real + your integer: ");
+  writeReal(d+a1);                          
+  writeString("Here\'s your real * your integer: ");
+  writeReal(d*a1);                          
+  writeString("Here\'s your real - your integer: ");
+  writeReal(d-a1);                          
+  writeString("Here\'s your real / your integer: ");
+  writeReal(d/a1);
+  writeString("Here\'s your real < your integer: ");
+  writeBoolean(d<a1);                          
+  writeString("Here\'s your real > your integer: ");
+  writeBoolean(d>a1);                          
+  writeString("Here\'s your real <= your integer: ");
+  writeBoolean(d<=a1);                          
+  writeString("Here\'s your real >= your integer: ");
+  writeBoolean(d>=a1);
+  writeString("Here\'s your real = your integer: ");
+  writeBoolean(d = a1);
+  writeString("Here\'s your real <> your integer: ");
+  writeBoolean(d <> a1);
+
+  (* Everything for 2 reals *)
+  writeString("Give me a real: ");
+  d1 := readReal();
+  writeString("Give me another real: ");
+  d2 := readReal();
+  writeString("Here\'s your real + your other real: ");
+  writeReal(d1+d2);
+  writeString("Here\'s your real * your other real: ");
+  writeReal(d1*d2);
+  writeString("Here\'s your real - your other real: ");
+  writeReal(d1-d2);
+  writeString("Here\'s your real / your other real: ");
+  writeReal(d1/d2);
+  writeString("Here\'s your real < your other real: ");
+  writeBoolean(d1<d2);
+  writeString("Here\'s your real > your other real: ");
+  writeBoolean(d1>d2);
+  writeString("Here\'s your real <= your other real: ");
+  writeBoolean(d1<=d2);
+  writeString("Here\'s your real >= your other real: ");
+  writeBoolean(d1>=d2);
+  writeString("Here\'s your real = your other real: ");
+  writeBoolean(d1 = d2);
+  writeString("Here\'s your real <> your other real: ");
+  writeBoolean(d1 <> d2);
+
+  (* Everything for 2 booleans *)
+  writeString("Give me a boolean: ");
+  b1 := readBoolean();
+  writeString("Give me another boolean: ");
+  b2 := readBoolean();
+  writeString("Here\'s your boolean and your other boolean: ");
+  writeBoolean(b1 and b2);
+  writeString("Here\'s your boolean or your other boolean: ");
+  writeBoolean(b1 or b2);
+  writeString("Here\'s your boolean = your other boolean: ");
+  writeBoolean(b1 = b2);
+  writeString("Here\'s your boolean <> your other boolean: ");
+  writeBoolean(b1 <> b2);
+
+  (* Everything for 2 chars *)
+  writeString("Give me a char: ");
+  c1 := readChar();
+  writeString("Give me another char: ");
+  c2 := readChar();
+  writeString("Here\'s your char = your other char: ");
+  writeBoolean(c1 = c2);
+  writeString("Here\'s your char <> your other char: ");
+  writeBoolean(c1 <> c2);
+
+end.

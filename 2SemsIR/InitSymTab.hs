@@ -1,5 +1,5 @@
 module InitSymTab where
-import Prelude hiding (abs,acos,EQ)
+import Prelude hiding (abs,acos,atan,log,EQ)
 import LLVM.AST (Name(..),Operand(..))
 import LLVM.AST.Global (parameters,name,returnType,initializer,alignment,type',isConstant
                        ,unnamedAddr,linkage,Parameter(..),functionDefaults,UnnamedAddr(..)
@@ -12,7 +12,7 @@ import Data.Word (Word64)
 import SemsCodegen (ret,phi,setBlock,br,printf,callVoid,cbr,add,icmp,call,strcmp
                    ,scanf,allocaNum,getElemPtrInBounds,addBlock,retVoid,cons
                    ,store,getElemPtrOp',load,sub,alloca,fresh,getBlock,acos,fcmp,fsub
-                   ,fptosi,sitofp,zext,truncTo,defineFun)
+                   ,fptosi,sitofp,zext,truncTo,defineFun,atan,log)
 import Common as P hiding (void) 
 import LLVM.AST.Type as T (Type,i1,i8,i16,i32,i64,ptr,double,void,Type(..))
 import qualified LLVM.AST.Constant as C (Constant(..))
@@ -24,6 +24,8 @@ initSymTab = do
   printfDef
   scanfDef
   acosDef
+  atanDef
+  logDef
   strcmpDef
   freeDef
   mallocDef
@@ -80,6 +82,8 @@ codegenFromName = \case
   "readChar"     -> readCodeGen ".scanChar" "c"
   "readReal"     -> readCodeGen ".scanReal" "lf"
   "abs"          -> absCodeGen
+  "arctan"       -> arctanCodeGen
+  "ln"           -> lnCodeGen
   "pi"           -> piCodeGen
   "trunc"        -> truncCodeGen
   "round"        -> roundCodeGen
@@ -97,7 +101,7 @@ addGlobalStr strName strLen strVal =
   , isConstant = True
   , LLVM.AST.Global.type' = ArrayType strLen i8 
   , LLVM.AST.Global.alignment = 1
-  , initializer = Just $ C.Array i8 $ fmap toI8Cons $ strVal
+  , initializer = Just $ C.Array i8 $ fmap toConsI8 $ strVal
   }
 
 -- Code Generaton Functions
@@ -245,6 +249,18 @@ writeBooleanCodeGen = do
   callVoid printf [str]
   retVoid
 
+arctanCodeGen :: Sems ()
+arctanCodeGen = do 
+  entry <- addBlock "entry"
+  setBlock entry
+  call atan [ LocalReference double (UnName 0) ] >>= ret
+
+lnCodeGen :: Sems ()
+lnCodeGen = do 
+  entry <- addBlock "entry"
+  setBlock entry
+  call log [ LocalReference double (UnName 0) ] >>= ret
+
 writeStringCodeGen :: Sems ()
 writeStringCodeGen = do 
   entry <- addBlock "entry"
@@ -261,11 +277,29 @@ readCodeGen str1 str2 = do
   str <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType len i8)) $ toName str1) 0
   opPtr <- alloca $ typeFromStr str2
   callVoid scanf [str,opPtr]
+  opPtr <- case str2 of
+    "c" -> eatNewLine opPtr
+    _   -> return opPtr
   op <- load opPtr
-  str <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 3 i8)) $ toName "scanfChar") 0
-  charPtr <- alloca i8
-  callVoid scanf [str,charPtr] -- eat the newline
   ret op
+
+eatNewLine opPtr = do
+  while1    <- addBlock "while"
+  whileExit <- addBlock "while.exit"
+
+  op <- load opPtr
+  cond <- icmp EQ (toConsI8Op '\n') op
+  cbr cond while1 whileExit
+
+  setBlock while1
+  str <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 3 i8)) $ toName "scanfChar") 0
+  callVoid scanf [str,opPtr] -- eat the newline
+  op <- load opPtr
+  cond <- icmp EQ (toConsI8Op '\n') op
+  cbr cond while1 whileExit
+
+  setBlock whileExit
+  return opPtr
 
 readStringCodeGen :: Sems ()
 readStringCodeGen = do 
@@ -292,7 +326,7 @@ readStringCodeGen = do
   strOp' <- getElemPtrOp' strOp counterVal
   callVoid scanf [str,strOp']
   char <- load strOp'
-  cond1 <- icmp NE char (cons $ toI8Cons '\n')
+  cond1 <- icmp NE char (cons $ toConsI8 '\n')
   cbr cond1 while2 whileExit
 
   setBlock while2
@@ -304,7 +338,7 @@ readStringCodeGen = do
   setBlock whileExit
   counterVal'' <- load counter
   strOp'' <- getElemPtrOp' strOp counterVal''
-  store strOp'' (cons $ toI8Cons '\0')
+  store strOp'' (cons $ toConsI8 '\0')
   retVoid
 
 readBooleanCodeGen :: Sems ()
@@ -399,6 +433,26 @@ acosDef = addGlobalDef functionDefaults {
     )
   } 
 
+atanDef :: Sems ()
+atanDef = addGlobalDef functionDefaults {
+    returnType = double
+  , name = toName "atan"
+  , parameters = (
+      [ Parameter double (UnName 0) [] ]
+    , False
+    )
+  } 
+
+logDef :: Sems ()
+logDef = addGlobalDef functionDefaults {
+    returnType = double
+  , name = toName "log"
+  , parameters = (
+      [ Parameter double (UnName 0) [] ]
+    , False
+    )
+  } 
+
 strcmpDef :: Sems ()
 strcmpDef = addGlobalDef functionDefaults {
     returnType = i32
@@ -421,8 +475,11 @@ mallocDef = addGlobalDef functionDefaults {
   } 
 
 -- Helpers
-toI8Cons :: Char -> C.Constant
-toI8Cons = ord >>> toInteger >>> C.Int 8
+toConsI8 :: Char -> C.Constant
+toConsI8 = ord >>> toInteger >>> C.Int 8
+
+toConsI8Op :: Char -> Operand
+toConsI8Op = toConsI8 >>> ConstantOperand
 
 dummy :: String -> Id
 dummy s = Id (0,0) s

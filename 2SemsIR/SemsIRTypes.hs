@@ -19,7 +19,6 @@ data CodegenState
   = CodegenState {
     currentBlock :: Name                     
   , blocks       :: Map Name BlockState  
-  , symtab       :: [(String, Operand)]              
   , blockCount   :: Int                      
   , count        :: Word                     
   , names        :: Names
@@ -61,7 +60,7 @@ type Sems  = EitherT Error (State (Env,[SymbolTable],Module,CodegenState))
 
 -- Initial state
 emptyCodegen :: CodegenState
-emptyCodegen = CodegenState (toShortName "entry") empty [] 1 0 empty
+emptyCodegen = CodegenState (toShortName "entry") empty 1 0 empty
 
 emptySymbolTable :: SymbolTable
 emptySymbolTable = SymbolTable empty empty empty

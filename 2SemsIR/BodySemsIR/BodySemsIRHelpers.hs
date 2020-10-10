@@ -1,9 +1,5 @@
 module BodySemsIRHelpers where
-import Prelude hiding (abs,cos,sin,tan,sqrt,exp,pi,round)
-import SemsCodegen (writeInteger,writeBoolean,writeChar,writeReal,writeString,readString
-                   ,readInteger,readBoolean,readChar,readReal,abs,fabs,sqrt,sin,cos,tan
-                   ,arctan,exp,ln,pi,trunc,round,ordOp,chr,call,getElemPtrInBounds
-                   ,callVoid,load)
+import SemsCodegen (call,getElemPtrInBounds,callVoid,load,sitofp)
 import Parser (ArrSize(..),Frml,Id(..),idString,Type(..),PassBy(..))
 import SemsIRTypes (TyOper,TyOperBool,Sems,(>>>),errAtId,errPos,searchCallableInSymTabs)
 import Helpers (symbatos,formalsToTypes)
@@ -34,6 +30,8 @@ formalsExprsSemsIR id byTys tyOperBools = case (byTys,tyOperBools) of
 
 formalExprSemsIR :: Id -> (Int,(ByTy,TyOperBool)) -> Sems Operand
 formalExprSemsIR id (i,(byTy,tyOperBool)) = case (byTy,tyOperBool) of
+  ((Val,RealT),(IntT,op,True))  -> load op >>= sitofp
+  ((Val,RealT),(IntT,op,False)) -> sitofp op
   ((Val,t1),(t2,op,True))  -> checkSymbatos i id t1 t2 >> load op
   ((Val,t1),(t2,op,False)) -> checkSymbatos i id t1 t2 >> return op
   ((Ref,t1),(t2,op,_)) -> do
@@ -55,30 +53,3 @@ errorAtArg i (Id posn str) t1 t2 =
                        ," given type: ", show t2]
 
 idToFunOper id = searchCallableInSymTabs id >>= \(_,op) -> return op
-
---idToFunOper = idString >>> \case
---  "writeInteger" -> writeInteger
---  "writeBoolean" -> writeBoolean
---  "writeChar"    -> writeChar 
---  "writeReal"    -> writeReal
---  "writeString"  -> writeString 
---  "readString"   -> readString
---  "readInteger"  -> readInteger
---  "readBoolean"  -> readBoolean
---  "readChar"     -> readChar
---  "readReal"     -> readReal
---  "abs"          -> abs
---  "fabs"         -> fabs
---  "sqrt"         -> sqrt
---  "sin"          -> sin
---  "cos"          -> cos
---  "tan"          -> tan
---  "arctan"       -> arctan
---  "exp"          -> exp
---  "ln"           -> ln
---  "pi"           -> pi
---  "trunc"        -> trunc
---  "round"        -> round
---  "ord"          -> ordOp
---  "chr"          -> chr
---  _              -> undefined

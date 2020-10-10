@@ -4,7 +4,8 @@ import Common (Sems,Expr(..),Id(..),Frml,TyOper,Type(..),Callable(..),RVal(..),L
               ,DispType(..),New(..),ArrSize(..),Stmt(..),Header(..),Body(..),Program(..)
               ,Local(..),(>=>),errAtId,searchCallableInSymTabs,(>>>),TyOperBool
               ,searchVarInSymTabs,lookupInLabelMap,toTType,errPos,put,get,modifyMod
-              ,getLabelMap,toList,emptySymbolTable,getCallableMap,toName)
+              ,getLabelMap,toList,emptySymbolTable,getCallableMap,toName,emptyCodegen
+              ,modifyCodegen)
 import InitSymTab (initSymTab)
 import LocalsSemsIR (varsWithTypeListSemsIR,insToSymTabLabels,forwardSems
                     ,headerParentSems,headerChildSems,checkResult)
@@ -13,8 +14,8 @@ import ValSemsIR (binOpNumCases,comparisonCases,binOpBoolCases
                  ,resultTypeOper)
 import StmtSemsIR (dispWithSems,dispWithoutSems,newNoExprSemsIR,newExprSemsIR
                   ,assignmentSemsIR',boolCases,labelCases,goToCases,returnIR)
-import SemsCodegen (cons,call,store,load,getElemPtr',allocaNum,setBlock,br
-                   ,cbr,addBlock,fresh,retVoid,defineFun,ret)
+import SemsCodegen (cons,call,store,load,getElemPtr',alloca,setBlock,br
+                   ,cbr,addBlock,fresh,retVoid,defineFun,ret,getElemPtrInt)
 import LLVM.AST (Operand,moduleName,Name)
 import LLVM.AST.Type (void)
 import Data.String.Transform (toShortByteString)
@@ -193,9 +194,7 @@ disposeSemsIR posn = \case
 
 toTyOper :: TyOperBool -> Sems TyOper
 toTyOper = \case
-  (ty,op,True)  -> do
-    op' <- load op
-    return (ty,op')
+  (ty,op,True)  -> load op >>= \op' -> return (ty,op')
   (ty,op,False) -> return (ty,op)
 
 exprTypeOper :: Expr -> Sems TyOper
@@ -217,14 +216,15 @@ lValTypeOper = \case
 
 strLiteralSemsIR :: String -> Sems TyOper
 strLiteralSemsIR string = do
-  (_,num) <- rValTypeOper $ IntR $ length string + 1
-  strOper <- allocaNum num $ toTType CharT
+  let n = length string + 1
+  let t = Array (Size n) CharT
+  strOper <- alloca $ toTType t
   mapM_ (cgenStrLitChar strOper) $ indexed $ string ++ ['\0']
-  return (Array NoSize CharT,strOper)
+  return (t,strOper)
 
 cgenStrLitChar :: Operand -> (Int,Char) -> Sems ()
 cgenStrLitChar strOper (ind,char) = do
-  charPtr <- getElemPtr' strOper ind
+  charPtr <- getElemPtrInt strOper ind
   store charPtr $ cons $ C.Int 8 $ toInteger $ ord char
 
 rValTypeOper :: RVal -> Sems (Type,Operand)

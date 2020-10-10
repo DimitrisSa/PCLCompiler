@@ -9,7 +9,7 @@ import LLVM.AST.Global (Parameter(..),BasicBlock(..),parameters,basicBlocks,retu
 import LLVM.AST.Attribute (ParameterAttribute)
 import LLVM.AST.FloatingPointPredicate (FloatingPointPredicate)
 import LLVM.AST.IntegerPredicate (IntegerPredicate)
-import SemsIRTypes (Sems,symtab,blocks,BlockState(..),currentBlock,Names,names,count
+import SemsIRTypes (Sems,blocks,BlockState(..),currentBlock,Names,names,count
                    ,blockCount,toConsI16,getFromCodegen,modifyCodegen,toShortName,toTType
                    ,(>>>),addGlobalDef,emptyCodegen,consGlobalRef,toName,variableMap)
 import Data.List.Index (indexed)
@@ -29,10 +29,7 @@ defineFun name retty frmls codegen = do
   blocks <- createBlocks             -- create blocks based on the new codegen state
   addGlobalDef functionDefaults {
       returnType = retty
-    , name = toName $ case name of 
-                        "arctan" -> "atan"
-                        "ln"     -> "log"
-                        _        -> name
+    , name = toName name
     , parameters =  (
         fmap (frmlToTy >>> tyToParam) $ indexed frmls
       , False
@@ -169,110 +166,11 @@ freeType = ptr $ FunctionType {
   , isVarArg = False
   }
 
-writeGlobalRef :: (T.Type,Name) -> Operand
-writeGlobalRef (argType,name) = consGlobalRef (writeType argType) name
-
-writeType argType = ptr $ FunctionType {
-    resultType = T.void
-  , argumentTypes = [argType]
-  , isVarArg = False
-  }
-
-[writeInteger, writeBoolean, writeChar, writeReal] =
-  map writeGlobalRef [(i16,"writeInteger")
-                     ,(i1,"writeBoolean")
-                     ,(i8,"writeChar")
-                     ,(double,"writeReal")
-                     ]
-
-writeString :: Operand
-writeString = consGlobalRef writeStringType "writeString"
-
-writeStringType = ptr $ FunctionType {
-    resultType = T.void
-  , argumentTypes = [ptr i8]
-  , isVarArg = False
-  }
-
-readString :: Operand
-readString = consGlobalRef readStringType "readString"
-
-readStringType = ptr $ FunctionType {
-    resultType = T.void
-  , argumentTypes = [i16, ptr i8]
-  , isVarArg = False
-  }
-
-readGlobalRef :: (T.Type,Name) -> Operand
-readGlobalRef (resType,name) = consGlobalRef (readType resType) name
-
-readType resType = ptr $ FunctionType {
-    resultType = resType
-  , argumentTypes = []
-  , isVarArg = False
-  }
-
-[readInteger, readBoolean, readChar, readReal] =
-  map readGlobalRef [(i16,"readInteger")
-                     ,(i1,"readBoolean")
-                     ,(i8,"readChar")
-                     ,(double,"readReal")
-                     ]
-
-abs :: Operand
-abs = consGlobalRef absType "abs"
-
-absType = ptr $ FunctionType {
-    resultType = i16
-  , argumentTypes = [i16]
-  , isVarArg = False
-  }
-
-[fabs,sqrt,sin,cos,tan,arctan,exp,ln,acos] =
-  map (consGlobalRef mathType) ["fabs","sqrt","sin","cos","tan","arctan","exp","ln","acos"]
+[acos,atan,log] = map (consGlobalRef mathType) ["acos","atan","log"]
 
 mathType = ptr $ FunctionType {
     resultType = double
   , argumentTypes = [double]
-  , isVarArg = False
-  }
-
-pi :: Operand
-pi = consGlobalRef piType "pi"
-
-piType = ptr $ FunctionType {
-    resultType = double
-  , argumentTypes = []
-  , isVarArg = False
-  }
-
-trunc :: Operand
-trunc = consGlobalRef truncRoundType "trunc"
-
-round :: Operand
-round = consGlobalRef truncRoundType "round"
-
-truncRoundType = ptr $ FunctionType {
-    resultType = i16
-  , argumentTypes = [double]
-  , isVarArg = False
-  }
-
-ordOp :: Operand
-ordOp = consGlobalRef ordType "ord"
-
-ordType = ptr $ FunctionType {
-    resultType = i16
-  , argumentTypes = [i8]
-  , isVarArg = False
-  }
-
-chr :: Operand
-chr = consGlobalRef chrType "chr"
-
-chrType = ptr $ FunctionType {
-    resultType = i8
-  , argumentTypes = [i16]
   , isVarArg = False
   }
 
@@ -422,4 +320,13 @@ insToVariableMap id ty = do
   var <- alloca $ toTType ty
   modify $ \(e,st:sts,m,cgen) ->
     (e,st { variableMap = Map.insert id (ty,var) $ variableMap st }:sts,m,cgen)
+
+insToVariableMapFormal :: Id -> P.Type -> Sems ()
+insToVariableMapFormal id ty = do
+  n <- fresh
+  let ref = (UnName n)
+  let tty = toTType ty
+  modify $ \(e,st:sts,m,cgen) -> (e,st {
+      variableMap = Map.insert id (ty,LocalReference tty ref) $ variableMap st
+    }:sts,m,cgen)
 

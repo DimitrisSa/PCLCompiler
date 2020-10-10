@@ -4,7 +4,7 @@ import Common (Sems,Frml,Id(..),Type(..),Callable(..),Header(..),Env(..),PassBy(
               ,lookupInVariableMap,setEnv,(>>>),toList,fullType
               ,insToLabelMap,lookupInLabelMap,toTType)
 import Data.Function (on)
-import SemsCodegen(alloca,insToVariableMap)
+import SemsCodegen(alloca,insToVariableMap,insToVariableMapFormal)
 import LLVM.AST (Operand(..))
 
 varsWithTypeListSemsIR :: [([Id],Type)] -> Sems ()
@@ -57,8 +57,8 @@ insToSymTabLabels = mapM_ $ \label -> lookupInLabelMap label >>= \case
 
 headerChildSems :: Header -> Sems ()
 headerChildSems = \case
-  ProcHeader _ formals     -> insToSymTabFrmls formals
-  FuncHeader id formals ty -> insToSymTabFrmls formals >> setEnv (InFunc id ty False)
+  ProcHeader _ fs     -> insToSymTabFrmls fs
+  FuncHeader id fs ty -> insToSymTabFrmls fs >> setEnv (InFunc id ty False)
 
 insToSymTabFrmls :: [Frml] -> Sems ()
 insToSymTabFrmls = mapM_ insToSymTabFrml
@@ -68,7 +68,7 @@ insToSymTabFrml (_,ids,t) = mapM_ (insToSymTabVar t) ids
 
 insToSymTabVar :: Type -> Id -> Sems ()
 insToSymTabVar ty var = lookupInVariableMap var >>= \case
-  Nothing -> insToVariableMap var ty 
+  Nothing -> insToVariableMapFormal var ty 
   _       -> errAtId "Duplicate Argument: " var
 
 checkResult :: Sems ()
