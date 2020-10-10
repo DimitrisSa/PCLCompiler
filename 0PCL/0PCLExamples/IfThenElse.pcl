@@ -1,0 +1,7 @@
+program IfThenElse;
+var a:integer;
+begin
+  a := readInteger();
+  if a = 1 then writeInteger(a)
+  else writeInteger(a+1)
+end.

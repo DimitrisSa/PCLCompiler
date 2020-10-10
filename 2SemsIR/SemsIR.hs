@@ -4,16 +4,15 @@ import Common (Sems,Expr(..),Id(..),Frml,TyOper,Type(..),Callable(..),RVal(..),L
               ,DispType(..),New(..),ArrSize(..),Stmt(..),Header(..),Body(..),Program(..)
               ,Local(..),(>=>),errAtId,searchCallableInSymTabs,(>>>),TyOperBool
               ,searchVarInSymTabs,lookupInLabelMap,toTType,errPos,put,get,modifyMod
-              ,getLabelMap,toList,emptySymbolTable,getCallableMap,toName,Env(..)
-              ,lookupInVariableMap,getEnv)
-import InitSymTab (initSymTab,dummy)
+              ,getLabelMap,toList,emptySymbolTable,getCallableMap,toName)
+import InitSymTab (initSymTab)
 import LocalsSemsIR (varsWithTypeListSemsIR,insToSymTabLabels,forwardSems
                     ,headerParentSems,headerChildSems,checkResult)
 import ValSemsIR (binOpNumCases,comparisonCases,binOpBoolCases
                  ,binOpIntCases,unaryOpNumCases,notCases,dereferenceCases,indexingCases
                  ,resultTypeOper)
 import StmtSemsIR (dispWithSems,dispWithoutSems,newNoExprSemsIR,newExprSemsIR
-                  ,assignmentSemsIR',boolCases,labelCases,goToCases)
+                  ,assignmentSemsIR',boolCases,labelCases,goToCases,returnIR)
 import SemsCodegen (cons,call,store,load,getElemPtr',allocaNum,setBlock,br
                    ,cbr,addBlock,fresh,retVoid,defineFun,ret)
 import LLVM.AST (Operand,moduleName,Name)
@@ -25,40 +24,41 @@ import BodySemsIRHelpers (callRValueSemsIR',callStmtSemsIR')
 import LLVM.AST.Float as F (SomeFloat(..))
 import qualified LLVM.AST.Constant as C (Constant(..))
 
-programSems :: Program -> Sems ()
-programSems (P id body) = do
+programSemsIR :: Program -> Sems ()
+programSemsIR (P id body) = do
   modifyMod $ \mod -> mod { moduleName = toShortByteString $ idString id }
   initSymTab
-  defineFun "main" void [] $ (mainCodegen body >> retVoid)
+  defineFun "main" void [] $ bodySemsIR body >> retVoid
 
-mainCodegen :: Body -> Sems ()
-mainCodegen body = do
+bodySemsIR :: Body -> Sems ()
+bodySemsIR (Body locals stmts) = do
   entry <- addBlock "entry"
   setBlock entry
-  bodySems body
-
-bodySems :: Body -> Sems ()
-bodySems (Body locals stmts) = do
-  localsSems (reverse locals) 
-  stmtsSems (reverse stmts) 
+  localsSemsIR (reverse locals) 
+  stmtsSemsIR (reverse stmts) 
   getLabelMap >>= toList >>> (mapM_ $ \case
     (id,False) -> errAtId "Label declared but not used: " id
     _          -> return ())
 
-localsSems :: [Local] -> Sems ()
-localsSems locals = do
-  mapM_ localSems locals 
+localsSemsIR :: [Local] -> Sems ()
+localsSemsIR locals = do
+  mapM_ localSemsIR locals 
   getCallableMap >>= toList >>> mapM_ (\case
     (id,(ProcDclr _  ,_)) -> errAtId "No definition for procedure declaration: " id
     (id,(FuncDclr _ _,_)) -> errAtId "No definition for function declaration: " id
     _                     -> return ())
 
-localSems :: Local -> Sems ()
-localSems = \case
+localSemsIR :: Local -> Sems ()
+localSemsIR = \case
   VarsWithTypeList vwtl -> varsWithTypeListSemsIR $ reverse vwtl
   Labels ls             -> insToSymTabLabels $ reverse ls
   HeaderBody h b        -> headerBodySemsIR h b
   Forward h             -> forwardSems h
+
+functionBodySemsIR :: Body -> Sems ()
+functionBodySemsIR b = do
+  bodySemsIR b
+  returnIR
 
 headerBodySemsIR :: Header -> Body -> Sems ()
 headerBodySemsIR h b = do
@@ -67,43 +67,39 @@ headerBodySemsIR h b = do
   put $ (e,emptySymbolTable:sms,m,cgen)
   headerChildSems h
   case h of
-    ProcHeader id fs   -> defineFun (idString id) void fs $ mainCodegen b
-    FuncHeader id fs t -> defineFun (idString id) (toTType t) fs $ mainCodegen b
+    ProcHeader id fs   -> defineFun (idString id) void fs $ functionBodySemsIR b
+    FuncHeader id fs t -> defineFun (idString id) (toTType t) fs $ functionBodySemsIR b
   checkResult
   (_,_,m',_) <- get
   put (e,sms,m',cgen)
 
-stmtsSems :: [Stmt] -> Sems ()
-stmtsSems ss = mapM_ stmtSems ss
+stmtsSemsIR :: [Stmt] -> Sems ()
+stmtsSemsIR ss = mapM_ stmtSemsIR ss
 
-stmtSems :: Stmt -> Sems ()
-stmtSems = \case
+stmtSemsIR :: Stmt -> Sems ()
+stmtSemsIR = \case
   Empty                      -> return ()
   Assignment posn lVal expr  -> assignmentSemsIR posn lVal expr
-  Block stmts                -> stmtsSems $ reverse stmts
+  Block stmts                -> stmtsSemsIR $ reverse stmts
   CallS (id,exprs)           -> callStmtSemsIR id $ reverse exprs
-  IfThen posn e s            -> exprTypeOper e >>= boolCases posn "if-then" >>= 
-                                cgenIfThen s
-  IfThenElse posn e s1 s2    -> exprTypeOper e >>= boolCases posn "if-then-else" >>=
-                                cgenIfThenElse s1 s2
+  IfThen posn e s            -> ifThenSemsIR posn e s
+  IfThenElse posn e s1 s2    -> ifThenElseSemsIR posn e s1 s2
   While posn e stmt          -> whileSemsIR posn e stmt
   Label id stmt              -> labelSemsIR id stmt
   GoTo id                    -> gotoSemsIR id
-  Return                     -> getEnv >>= \case
-                                  InProc            -> retVoid
-                                  InFunc id ty bool -> do
-                                    op <- lookupInVariableMap (dummy "result") >>= \case
-                                      Just (_,op) -> return op
-                                      Nothing     -> error "Shouldn't happen"
-                                    op <- load op
-                                    ret op
+  Return                     -> returnIR
   New posn new lVal          -> newSemsIR posn new lVal
-  Dispose posn disptype lVal -> disposeSems posn disptype lVal
+  Dispose posn disptype lVal -> disposeSemsIR posn disptype lVal
 
 assignmentSemsIR :: (Int,Int) -> LVal -> Expr -> Sems ()
 assignmentSemsIR posn = \case
   StrLiteral str -> \_ -> errPos posn $ "Assignment to string literal: " ++ str
   lVal           -> lValExprTypeOpers lVal >=> assignmentSemsIR' posn
+
+lValExprTypeOpers lVal expr = do
+  lto <- lValTypeOper lVal 
+  eto <- exprTypeOper expr
+  return (lto,eto)
 
 callStmtSemsIR :: Id -> [Expr] -> Sems ()
 callStmtSemsIR id exprs = searchCallableInSymTabs id >>= \case
@@ -111,24 +107,40 @@ callStmtSemsIR id exprs = searchCallableInSymTabs id >>= \case
   (Proc     fs,_) -> mapM exprTypeOperBool exprs >>= callStmtSemsIR' id fs
   _               -> errAtId "Use of function in call statement: " id
 
-gotoSemsIR :: Id -> Sems ()
-gotoSemsIR id = do
-  bool <- lookupInLabelMap id 
-  goToCases id bool
-  br $ toName $ idString id
-  i <- fresh
-  nextBlock <- addBlock $ "next" ++ show i
-  setBlock nextBlock
+ifThenSemsIR :: (Int,Int) -> Expr -> Stmt -> Sems ()
+ifThenSemsIR posn e s = do
+  cond <- boolCases posn "if-then" =<< exprTypeOper e
 
-labelSemsIR :: Id -> Stmt -> Sems ()
-labelSemsIR id stmt = do
-  bool <- lookupInLabelMap id
-  labelCases id bool
-  label <- addBlock $ idString id
-  br label 
-  
-  setBlock label
-  stmtSems stmt
+  ifthen <- addBlock "if.then"
+  ifexit <- addBlock "if.exit"
+
+  cbr cond ifthen ifexit
+
+  setBlock ifthen
+  stmtSemsIR s
+  br ifexit              
+
+  setBlock ifexit
+
+ifThenElseSemsIR :: (Int,Int) -> Expr -> Stmt -> Stmt -> Sems ()
+ifThenElseSemsIR posn e s1 s2 = do
+  cond <- boolCases posn "if-then-else" =<< exprTypeOper e
+
+  ifthen <- addBlock "if.then"
+  ifelse <- addBlock "if.else"
+  ifexit <- addBlock "if.exit"
+
+  cbr cond ifthen ifelse
+
+  setBlock ifthen
+  stmtSemsIR s1
+  br ifexit     
+
+  setBlock ifelse
+  stmtSemsIR s2
+  br ifexit     
+
+  setBlock ifexit
 
 whileSemsIR :: (Int,Int) -> Expr -> Stmt -> Sems ()
 whileSemsIR posn expr stmt = do
@@ -139,52 +151,43 @@ whileSemsIR posn expr stmt = do
   cbr cond while whileExit
 
   setBlock while
-  stmtSems stmt          
+  stmtSemsIR stmt          
   cond <- exprTypeOper expr >>= boolCases posn "while"
   cbr cond while whileExit
 
   setBlock whileExit
 
+labelSemsIR :: Id -> Stmt -> Sems ()
+labelSemsIR id stmt = do
+  bool <- lookupInLabelMap id
+  labelCases id bool
+  label <- addBlock $ idString id
+  br label 
+  
+  setBlock label
+  stmtSemsIR stmt
 
-cgenIfThenElse :: Stmt -> Stmt -> Operand -> Sems ()
-cgenIfThenElse stmt1 stmt2 cond = do
-  ifthen <- addBlock "if.then"
-  ifelse <- addBlock "if.else"
-  ifexit <- addBlock "if.exit"
-
-  cbr cond ifthen ifelse
-
-  setBlock ifthen
-  stmtSems stmt1
-  br ifexit     
-
-  setBlock ifelse
-  stmtSems stmt2
-  br ifexit     
-
-  setBlock ifexit
-
-
-cgenIfThen :: Stmt -> Operand -> Sems ()
-cgenIfThen stmt cond = do
-  ifthen <- addBlock "if.then"
-  ifexit <- addBlock "if.exit"
-
-  cbr cond ifthen ifexit
-
-  setBlock ifthen
-  stmtSems stmt          
-  br ifexit              
-
-  setBlock ifexit
+gotoSemsIR :: Id -> Sems ()
+gotoSemsIR id = do
+  bool <- lookupInLabelMap id 
+  goToCases id bool
+  br $ toName $ idString id
+  i <- fresh
+  nextBlock <- addBlock $ "next" ++ show i
+  setBlock nextBlock
 
 newSemsIR :: (Int,Int) -> New -> LVal -> Sems ()
 newSemsIR posn = \case
   NewNoExpr -> lValTypeOper >=> newNoExprSemsIR posn
   NewExpr e -> exprLValTypeOpers e >=> newExprSemsIR posn
 
-disposeSems :: (Int,Int) -> DispType -> LVal -> Sems ()
-disposeSems posn = \case
+exprLValTypeOpers expr lVal = do
+  eto <- exprTypeOper expr
+  lto <- lValTypeOper lVal
+  return (eto,lto)
+
+disposeSemsIR :: (Int,Int) -> DispType -> LVal -> Sems ()
+disposeSemsIR posn = \case
   Without -> lValTypeOper >=> dispWithoutSems posn
   With    -> lValTypeOper >=> dispWithSems posn
 
@@ -223,16 +226,6 @@ cgenStrLitChar :: Operand -> (Int,Char) -> Sems ()
 cgenStrLitChar strOper (ind,char) = do
   charPtr <- getElemPtr' strOper ind
   store charPtr $ cons $ C.Int 8 $ toInteger $ ord char
-
-exprLValTypeOpers expr lVal = do
-  eto <- exprTypeOper expr
-  lto <- lValTypeOper lVal
-  return (eto,lto)
-
-lValExprTypeOpers lVal expr = do
-  lto <- lValTypeOper lVal 
-  eto <- exprTypeOper expr
-  return (lto,eto)
 
 rValTypeOper :: RVal -> Sems (Type,Operand)
 rValTypeOper = \case

@@ -1,5 +1,5 @@
 module Main where
-import SemsIR (programSems)
+import SemsIR (programSemsIR)
 import Parser (Program,parser)
 import SemsIRTypes (Error,(>>>),initState)
 import System.Exit (die)
@@ -24,7 +24,7 @@ parserCases = \case
 
 astSems :: Program -> IO ()
 astSems ast =
-  let runProgramSems = programSems >>> runEitherT >>> runState
+  let runProgramSems = programSemsIR >>> runEitherT >>> runState
   in case runProgramSems ast initState of
     (Right _,(_,_,m,_)) -> codegen m
     (Left e,_)          -> die e
@@ -32,6 +32,6 @@ astSems ast =
 codegen :: A.Module -> IO ()
 codegen m = withContext $ \context -> withModuleFromAST context m $ \m -> do
   llstr <- moduleLLVMAssembly m
-  putStrLn $ unpack llstr
+  --putStrLn $ unpack llstr
   writeFile "llvmhs.ll" $ unpack llstr
   callCommand "./usefulHs.sh"

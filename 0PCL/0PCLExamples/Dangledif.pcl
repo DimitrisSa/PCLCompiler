@@ -1,7 +1,0 @@
-program danglingif;
-label john;
-var mitsos:integer;
-begin
-john:
-"ok" := mitsos
-end.

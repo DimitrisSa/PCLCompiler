@@ -1,12 +1,23 @@
 module StmtSemsIR where
 import Prelude hiding (lookup)
 import Common (ArrSize(..),Type(..),Sems,TyOper,Id,toTType,symbatos,fullType,errPos,(>>>)
-              ,toConsI64,errAtId,insToLabelMap)
+              ,toConsI64,errAtId,insToLabelMap,getEnv,Env(..),lookupInVariableMap)
 import LLVM.AST (Operand)
 import LLVM.AST.Type (i8)
+import InitSymTab (dummy)
 import SemsCodegen (store,getElemPtrInt,cons,sitofp,free,callVoid,call,load,bitcast,malloc
-                   ,mul,zext64)
+                   ,mul,zext64,retVoid,ret)
 import qualified LLVM.AST.Constant as C (Constant(..))
+
+returnIR :: Sems ()
+returnIR = getEnv >>= \case
+  InProc            -> retVoid
+  InFunc id ty bool -> do
+    op <- lookupInVariableMap (dummy "result") >>= \case
+      Just (_,op) -> return op
+      Nothing     -> error "Shouldn't happen"
+    op <- load op
+    ret op 
 
 labelCases :: Id -> Maybe Bool -> Sems ()
 labelCases id = \case

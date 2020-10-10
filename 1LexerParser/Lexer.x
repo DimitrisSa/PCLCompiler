@@ -5,10 +5,10 @@ module Lexer where
 %wrapper "monad"
 
 $letter    = [a-z A-Z]
-@id        = $letter [$letter _]*
-
 $digit     = 0-9
+
 @int       = $digit+
+@id        = $letter [$letter _ $digit]*
 
 $e         = [e E]
 $sign      = [\- \+]

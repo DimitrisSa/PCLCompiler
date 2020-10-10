@@ -1,0 +1,15 @@
+program functions;
+var a:integer;
+forward function ok2():integer;
+function ok1():integer;
+  begin
+    result := ok2();
+  end;
+function ok2():integer;
+  begin
+    result := readInteger();
+  end;
+begin
+  a := ok1();
+  writeInteger(a);
+end.
