@@ -8,12 +8,12 @@ tools:
 
 To Do:
 - operations for integers also (possibly by merging ir with sems) DONE
-- HeaderBody Local
-- Forward Local
+- HeaderBody Local DONE
+- Forward Local DONE
 - Label statement DONE
 - goto statement DONE
-- return statement
-- result lval
+- return statement DONE
+- result lval DONE
 - dispose statement DONE
 - new statement DONE
 - double to X86_FP80 
@@ -21,3 +21,11 @@ To Do:
 - find all the built-in functions in llvm and define them (like printf) DONE
       -> then define the PCL equivalent (like writeString)
 
+To Test:
+  - label
+  - goto
+  - dispose
+  - new
+
+To Fix:
+  - references gap because of pass by ref

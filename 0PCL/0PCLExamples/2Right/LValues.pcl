@@ -4,10 +4,10 @@ function add1(b:integer):integer;
   begin
     result := b+1;
   end;
-(*procedure add2(var a:integer);
+procedure add2(var a:integer);
   begin
     a := a+2;
-  end;*)
+  end;
 begin
   i := 0;
   writeString("Give me an integer: ");
@@ -18,22 +18,24 @@ begin
       i := i + 1;
     end;
   a[2] := readInteger();
-  (*writeString("Here I\'ve added 1 to all your integers:\n");*)
+
+  writeString("Here I\'ve added 1 to all your integers:\n");
   i := 0;
   while i < 3 do 
     begin
-      writeInteger(a[i]);
       writeInteger(add1(a[i]));
       i := i + 1;
     end;
-  (*writeString("Here I\'ve added 2 to all your integers:\n");
+
+  writeString("Here I\'ve added 2 to all your integers:\n");
   i := 0;
   while i < 3 do 
     begin
-      add2(a[i])
+      add2(a[i]);
       writeInteger(a[i]);
       i := i + 1;
-    end;*)
+    end;
+
   writeChar("Give me another integer: "[2]);
   ac := "hey\n";
   writeString(ac);

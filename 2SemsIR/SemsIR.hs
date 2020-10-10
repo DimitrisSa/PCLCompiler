@@ -29,12 +29,14 @@ programSemsIR :: Program -> Sems ()
 programSemsIR (P id body) = do
   modifyMod $ \mod -> mod { moduleName = toShortByteString $ idString id }
   initSymTab
-  defineFun "main" void [] $ bodySemsIR body >> retVoid
+  defineFun "main" void [] $ do
+    entry <- addBlock "entry"
+    setBlock entry
+    bodySemsIR body
+    retVoid
 
 bodySemsIR :: Body -> Sems ()
 bodySemsIR (Body locals stmts) = do
-  entry <- addBlock "entry"
-  setBlock entry
   localsSemsIR (reverse locals) 
   stmtsSemsIR (reverse stmts) 
   getLabelMap >>= toList >>> (mapM_ $ \case
@@ -66,10 +68,14 @@ headerBodySemsIR h b = do
   headerParentSems h
   (e,sms,m,cgen) <- get
   put $ (e,emptySymbolTable:sms,m,cgen)
-  headerChildSems h
+  let codegen = do
+                  entry <- addBlock "entry"
+                  setBlock entry
+                  headerChildSems h
+                  functionBodySemsIR b
   case h of
-    ProcHeader id fs   -> defineFun (idString id) void fs $ functionBodySemsIR b
-    FuncHeader id fs t -> defineFun (idString id) (toTType t) fs $ functionBodySemsIR b
+    ProcHeader id fs   -> defineFun (idString id) void fs codegen 
+    FuncHeader id fs t -> defineFun (idString id) (toTType t) fs codegen
   checkResult
   (_,_,m',_) <- get
   put (e,sms,m',cgen)

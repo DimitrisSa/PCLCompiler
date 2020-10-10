@@ -321,12 +321,26 @@ insToVariableMap id ty = do
   modify $ \(e,st:sts,m,cgen) ->
     (e,st { variableMap = Map.insert id (ty,var) $ variableMap st }:sts,m,cgen)
 
-insToVariableMapFormal :: Id -> P.Type -> Sems ()
-insToVariableMapFormal id ty = do
-  n <- fresh
-  let ref = (UnName n)
+insToVariableMapFormalVal :: Id -> P.Type -> Int -> Sems ()
+insToVariableMapFormalVal id ty n = do
+  i <- fresh
   let tty = toTType ty
+  let refI = LocalReference tty (UnName (i-1))
+  let nameN = (UnName (i+fromIntegral (n-1)))
+  blk <- current
+  modifyBlock (blk { stack = (nameN := Alloca tty Nothing 0 []) : stack blk } )
+  let refN = LocalReference (ptr tty) nameN
+  store refN refI
   modify $ \(e,st:sts,m,cgen) -> (e,st {
-      variableMap = Map.insert id (ty,LocalReference tty ref) $ variableMap st
+      variableMap = Map.insert id (ty,refN) $ variableMap st
+    }:sts,m,cgen)
+
+insToVariableMapFormalRef :: Id -> P.Type -> Int -> Sems ()
+insToVariableMapFormalRef id ty n = do
+  i <- fresh
+  let tty = toTType ty
+  let refI = LocalReference tty (UnName (i-1))
+  modify $ \(e,st:sts,m,cgen) -> (e,st {
+      variableMap = Map.insert id (ty,refI) $ variableMap st
     }:sts,m,cgen)
 

@@ -76,6 +76,9 @@ infixl 9 >>>
 modifyCodegen :: (CodegenState -> CodegenState) -> Sems ()
 modifyCodegen f = modify $ \(env,sts,m,cgen) -> (env,sts,m,f cgen)
 
+setCount :: Int -> Sems ()
+setCount i = modifyCodegen $ \s -> s { count = fromIntegral i }
+
 getFromCodegen :: (CodegenState -> a) -> Sems a
 getFromCodegen f = get >>= (\(_,_,_,x) -> f x) >>> return
 

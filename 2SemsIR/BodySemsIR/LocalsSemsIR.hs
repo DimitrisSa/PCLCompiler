@@ -2,9 +2,10 @@ module LocalsSemsIR where
 import Common (Sems,Frml,Id(..),Type(..),Callable(..),Header(..),Env(..),PassBy(..),errAtId
               ,formalsToTypes,insToCallableMap,lookupInCallableMap,getEnv
               ,lookupInVariableMap,setEnv,(>>>),toList,fullType
-              ,insToLabelMap,lookupInLabelMap,toTType)
+              ,insToLabelMap,lookupInLabelMap,toTType,setCount)
 import Data.Function (on)
-import SemsCodegen(alloca,insToVariableMap,insToVariableMapFormal)
+import SemsCodegen(alloca,insToVariableMap,insToVariableMapFormalVal
+                  ,insToVariableMapFormalRef)
 import LLVM.AST (Operand(..))
 
 varsWithTypeListSemsIR :: [([Id],Type)] -> Sems ()
@@ -57,18 +58,26 @@ insToSymTabLabels = mapM_ $ \label -> lookupInLabelMap label >>= \case
 
 headerChildSems :: Header -> Sems ()
 headerChildSems = \case
-  ProcHeader _ fs     -> insToSymTabFrmls fs
-  FuncHeader id fs ty -> insToSymTabFrmls fs >> setEnv (InFunc id ty False)
+  ProcHeader _ fs     -> headerChildSems' fs
+  FuncHeader id fs ty -> headerChildSems' fs >> setEnv (InFunc id ty False)
 
-insToSymTabFrmls :: [Frml] -> Sems ()
-insToSymTabFrmls = mapM_ insToSymTabFrml
+headerChildSems' :: [Frml] -> Sems ()
+headerChildSems' fs = do
+  let n = length fs
+  insToSymTabFrmls n fs
+  setCount $ 2*n
 
-insToSymTabFrml :: Frml -> Sems ()
-insToSymTabFrml (_,ids,t) = mapM_ (insToSymTabVar t) ids
+insToSymTabFrmls :: Int -> [Frml] -> Sems ()
+insToSymTabFrmls n = mapM_ (insToSymTabFrml n)
 
-insToSymTabVar :: Type -> Id -> Sems ()
-insToSymTabVar ty var = lookupInVariableMap var >>= \case
-  Nothing -> insToVariableMapFormal var ty 
+insToSymTabFrml :: Int -> Frml -> Sems ()
+insToSymTabFrml n (by,ids,t) = mapM_ (insToSymTabVar n by t) ids
+
+insToSymTabVar :: Int -> PassBy -> Type -> Id -> Sems ()
+insToSymTabVar n by ty var = lookupInVariableMap var >>= \case
+  Nothing -> case by of
+    Val -> insToVariableMapFormalVal var ty n
+    Ref -> insToVariableMapFormalRef var ty n
   _       -> errAtId "Duplicate Argument: " var
 
 checkResult :: Sems ()

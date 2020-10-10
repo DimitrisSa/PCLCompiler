@@ -425,19 +425,104 @@ chr:                                    # @chr
 	.size	chr, .Lfunc_end17-chr
 	.cfi_endproc
                                         # -- End function
-	.globl	add1                    # -- Begin function add1
+	.globl	prime                   # -- Begin function prime
 	.p2align	4, 0x90
-	.type	add1,@function
-add1:                                   # @add1
+	.type	prime,@function
+prime:                                  # @prime
 	.cfi_startproc
 # %bb.0:                                # %entry
-	movzwl	-2(%rsp), %eax
-	incl	%eax
-	movw	%ax, -4(%rsp)
-                                        # kill: def %ax killed %ax killed %eax
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	.cfi_offset %rbp, -16
+	movq	%rsp, %rbp
+	.cfi_def_cfa_register %rbp
+	pushq	%rbx
+	pushq	%rax
+	.cfi_offset %rbx, -24
+	movw	%di, -10(%rbp)
+	testw	%di, %di
+	js	.LBB18_1
+# %bb.3:                                # %if.else
+	movswl	-10(%rbp), %eax
+	cmpl	$2, %eax
+	jge	.LBB18_5
+.LBB18_4:                               # %if.then1
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rsp
+	movb	$0, -16(%rax)
+	jmp	.LBB18_2
+.LBB18_1:                               # %if.then
+	movq	%rsp, %rbx
+	leaq	-16(%rbx), %rsp
+	movzwl	-10(%rbp), %edi
+	negw	%di
+	callq	prime
+	andb	$1, %al
+	movb	%al, -16(%rbx)
+	jmp	.LBB18_2
+.LBB18_5:                               # %if.else1
+	movzwl	-10(%rbp), %eax
+	cmpl	$2, %eax
+	jne	.LBB18_7
+# %bb.6:                                # %if.then2
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rsp
+	movb	$1, -16(%rax)
+	jmp	.LBB18_2
+.LBB18_7:                               # %if.else2
+	movzwl	-10(%rbp), %eax
+	movl	%eax, %ecx
+	shrl	$15, %ecx
+	addl	%eax, %ecx
+	andl	$65534, %ecx            # imm = 0xFFFE
+	cmpw	%cx, %ax
+	je	.LBB18_4
+# %bb.8:                                # %if.else3
+	movw	$3, -12(%rbp)
+	movzwl	-10(%rbp), %eax
+	movl	%eax, %ecx
+	shrl	$15, %ecx
+	addl	%eax, %ecx
+	sarw	%cx
+	movswl	%cx, %eax
+	cmpl	$3, %eax
+	jl	.LBB18_2
+	.p2align	4, 0x90
+.LBB18_9:                               # %while
+                                        # =>This Inner Loop Header: Depth=1
+	movzwl	-10(%rbp), %eax
+	cwtd
+	idivw	-12(%rbp)
+	testw	%dx, %dx
+	jne	.LBB18_11
+# %bb.10:                               # %if.then4
+                                        #   in Loop: Header=BB18_9 Depth=1
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rsp
+	movb	$0, -16(%rax)
+.LBB18_11:                              # %if.exit4
+                                        #   in Loop: Header=BB18_9 Depth=1
+	movzwl	-12(%rbp), %eax
+	addl	$2, %eax
+	movw	%ax, -12(%rbp)
+	movzwl	-10(%rbp), %ecx
+	movl	%ecx, %edx
+	shrl	$15, %edx
+	addl	%ecx, %edx
+	sarw	%dx
+	cmpw	%dx, %ax
+	jle	.LBB18_9
+.LBB18_2:                               # %if.exit
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rsp
+	movb	$1, -16(%rax)
+	movb	-16(%rax), %al
+	leaq	-8(%rbp), %rsp
+	popq	%rbx
+	popq	%rbp
 	retq
 .Lfunc_end18:
-	.size	add1, .Lfunc_end18-add1
+	.size	prime, .Lfunc_end18-prime
 	.cfi_endproc
                                         # -- End function
 	.globl	main                    # -- Begin function main
@@ -451,105 +536,142 @@ main:                                   # @main
 	.cfi_offset %rbp, -16
 	movq	%rsp, %rbp
 	.cfi_def_cfa_register %rbp
-	pushq	%r15
 	pushq	%r14
-	pushq	%r12
 	pushq	%rbx
-	subq	$64, %rsp
-	.cfi_offset %rbx, -48
-	.cfi_offset %r12, -40
-	.cfi_offset %r14, -32
-	.cfi_offset %r15, -24
-	movw	$0, -34(%rbp)
-	movabsq	$2334391967770110279, %r14 # imm = 0x20656D2065766947
-	movq	%r14, -67(%rbp)
-	movabsq	$7450489176113311329, %rax # imm = 0x6765746E69206E61
-	movq	%rax, -59(%rbp)
-	movl	$540701285, -51(%rbp)   # imm = 0x203A7265
-	movb	$0, -47(%rbp)
-	leaq	-67(%rbp), %rdi
+	subq	$80, %rsp
+	.cfi_offset %rbx, -32
+	.cfi_offset %r14, -24
+	movabsq	$2318339454418644048, %rax # imm = 0x202C657361656C50
+	movq	%rax, -57(%rbp)
+	movabsq	$7307218077898664295, %rax # imm = 0x6568742065766967
+	movq	%rax, -49(%rbp)
+	movw	$29984, -41(%rbp)       # imm = 0x7520
+	movabsq	$7883951509302767728, %rax # imm = 0x6D696C2072657070
+	movq	%rax, -39(%rbp)
+	movl	$975205481, -31(%rbp)   # imm = 0x3A207469
+	movw	$32, -27(%rbp)
+	leaq	-57(%rbp), %rdi
 	callq	writeString
-	movswl	-34(%rbp), %eax
-	cmpl	$1, %eax
-	jg	.LBB19_3
-# %bb.1:                                # %while.preheader
-	movabsq	$2338042655863172705, %r15 # imm = 0x20726568746F6E61
-	movabsq	$9071462256698740, %r12 # imm = 0x203A7265676574
-	.p2align	4, 0x90
-.LBB19_2:                               # %while
-                                        # =>This Inner Loop Header: Depth=1
-	movswq	-34(%rbp), %rbx
 	callq	readInteger
-	movw	%ax, -46(%rbp,%rbx,2)
+	movw	%ax, -20(%rbp)
+	movabsq	$8461736369875153488, %rax # imm = 0x756E20656D697250
+	movq	%rax, -86(%rbp)
+	movabsq	$7305437225760940653, %rax # imm = 0x656220737265626D
+	movq	%rax, -78(%rbp)
+	movabsq	$2319389466615445364, %rax # imm = 0x2030206E65657774
+	movq	%rax, -70(%rbp)
+	movl	$543452769, -62(%rbp)   # imm = 0x20646E61
+	movb	$0, -58(%rbp)
+	leaq	-86(%rbp), %rdi
+	callq	writeString
+	movzwl	-20(%rbp), %edi
+	callq	writeInteger
+	movw	$2570, -25(%rbp)        # imm = 0xA0A
+	movb	$0, -23(%rbp)
+	leaq	-25(%rbp), %rdi
+	callq	writeString
+	movw	$0, -22(%rbp)
+	movswl	-20(%rbp), %eax
+	cmpl	$2, %eax
+	jl	.LBB19_2
+# %bb.1:                                # %if.then
+	incw	-22(%rbp)
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rdi
+	movq	%rdi, %rsp
+	movw	$2610, -16(%rax)        # imm = 0xA32
+	movb	$0, -14(%rax)
+	callq	writeString
+.LBB19_2:                               # %if.exit
+	movswl	-20(%rbp), %eax
+	cmpl	$3, %eax
+	jl	.LBB19_4
+# %bb.3:                                # %if.then1
+	incw	-22(%rbp)
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rdi
+	movq	%rdi, %rsp
+	movw	$2611, -16(%rax)        # imm = 0xA33
+	movb	$0, -14(%rax)
+	callq	writeString
+.LBB19_4:                               # %if.exit1
+	movw	$6, -18(%rbp)
+	movswl	-20(%rbp), %eax
+	cmpl	$6, %eax
+	jl	.LBB19_11
+	.p2align	4, 0x90
+.LBB19_5:                               # %while
+                                        # =>This Inner Loop Header: Depth=1
+	movzwl	-18(%rbp), %edi
+	decl	%edi
+	callq	prime
+	testb	$1, %al
+	je	.LBB19_7
+# %bb.6:                                # %if.then2
+                                        #   in Loop: Header=BB19_5 Depth=1
+	incw	-22(%rbp)
+	movzwl	-18(%rbp), %edi
+	decl	%edi
+	callq	writeInteger
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rdi
+	movq	%rdi, %rsp
+	movw	$10, -16(%rax)
+	callq	writeString
+.LBB19_7:                               # %if.exit2
+                                        #   in Loop: Header=BB19_5 Depth=1
+	movzwl	-18(%rbp), %ebx
+	movzwl	-20(%rbp), %r14d
+	movl	%ebx, %edi
+	incl	%edi
+	callq	prime
+	cmpw	%r14w, %bx
+	je	.LBB19_10
+# %bb.8:                                # %if.exit2
+                                        #   in Loop: Header=BB19_5 Depth=1
+	testb	$1, %al
+	je	.LBB19_10
+# %bb.9:                                # %if.then3
+                                        #   in Loop: Header=BB19_5 Depth=1
+	incw	-22(%rbp)
+	movzwl	-18(%rbp), %edi
+	incl	%edi
+	callq	writeInteger
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rdi
+	movq	%rdi, %rsp
+	movw	$10, -16(%rax)
+	callq	writeString
+.LBB19_10:                              # %if.exit3
+                                        #   in Loop: Header=BB19_5 Depth=1
+	movzwl	-18(%rbp), %eax
+	addl	$6, %eax
+	movw	%ax, -18(%rbp)
+	cmpw	-20(%rbp), %ax
+	jle	.LBB19_5
+.LBB19_11:                              # %while.exit
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rdi
+	movq	%rdi, %rsp
+	movw	$10, -16(%rax)
+	callq	writeString
+	movzwl	-22(%rbp), %edi
+	callq	writeInteger
 	movq	%rsp, %rax
 	leaq	-32(%rax), %rdi
 	movq	%rdi, %rsp
-	movq	%r14, -32(%rax)
-	movq	%r15, -24(%rax)
-	movw	$28265, -16(%rax)       # imm = 0x6E69
-	movq	%r12, -14(%rax)
-	callq	writeString
-	movzwl	-34(%rbp), %eax
-	incl	%eax
-	movw	%ax, -34(%rbp)
-	cwtl
-	cmpl	$2, %eax
-	jl	.LBB19_2
-.LBB19_3:                               # %while.exit
-	callq	readInteger
-	movw	%ax, -42(%rbp)
-	movw	$0, -34(%rbp)
-	xorl	%eax, %eax
-	testb	%al, %al
-	jne	.LBB19_5
-	.p2align	4, 0x90
-.LBB19_4:                               # %while1
-                                        # =>This Inner Loop Header: Depth=1
-	movswq	-34(%rbp), %rax
-	movzwl	-46(%rbp,%rax,2), %edi
-	callq	writeInteger
-	movswq	-34(%rbp), %rax
-	movzwl	-46(%rbp,%rax,2), %edi
-	callq	add1
-                                        # kill: def %ax killed %ax def %eax
-	movl	%eax, %edi
-	callq	writeInteger
-	movzwl	-34(%rbp), %eax
-	incl	%eax
-	movw	%ax, -34(%rbp)
-	cwtl
-	cmpl	$3, %eax
-	jl	.LBB19_4
-.LBB19_5:                               # %while.exit1
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rsp
-	movq	%r14, -32(%rax)
-	movabsq	$2338042655863172705, %rcx # imm = 0x20726568746F6E61
+	movabsq	$7935454064021762080, %rcx # imm = 0x6E20656D69727020
+	movq	%rcx, -32(%rax)
+	movabsq	$2986775449669102965, %rcx # imm = 0x2973287265626D75
 	movq	%rcx, -24(%rax)
-	movw	$28265, -16(%rax)       # imm = 0x6E69
-	movabsq	$9071462256698740, %rcx # imm = 0x203A7265676574
+	movw	$30496, -16(%rax)       # imm = 0x7720
+	movabsq	$7959390400868086373, %rcx # imm = 0x6E756F6620657265
 	movq	%rcx, -14(%rax)
-	movzbl	-30(%rax), %edi
-	callq	writeChar
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rsp
-	movw	$25960, -16(%rax)       # imm = 0x6568
-	movb	$121, -14(%rax)
-	movw	$10, -13(%rax)
-	movl	-16(%rax), %eax
-	movl	%eax, -39(%rbp)
-	movb	$0, -35(%rbp)
-	leaq	-37(%rbp), %rbx
-	leaq	-39(%rbp), %rdi
+	movl	$667236, -6(%rax)       # imm = 0xA2E64
 	callq	writeString
-	movq	%rbx, -80(%rbp)
-	movzbl	-37(%rbp), %edi
-	callq	writeChar
-	leaq	-32(%rbp), %rsp
+	leaq	-16(%rbp), %rsp
 	popq	%rbx
-	popq	%r12
 	popq	%r14
-	popq	%r15
 	popq	%rbp
 	retq
 .Lfunc_end19:
