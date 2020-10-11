@@ -49,10 +49,12 @@ begin
   writeChar(pc^);
   dispose pc;
 
+  i := 0;
 loop:
-  writeString("I\'ve created an infinite loop using a label and a goto\n");
+  writeString("I\'ve created a loop that\'s going to run 3 times using label and goto\n");
   writeString("Tell me something: \n");
   readString(100,acbig);
-  goto loop
+  i := i+1;
+  if i < 3 then goto loop
 
 end.
