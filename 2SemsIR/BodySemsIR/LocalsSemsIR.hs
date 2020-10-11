@@ -63,15 +63,15 @@ headerChildSems = \case
 
 headerChildSems' :: [Frml] -> Sems ()
 headerChildSems' fs = do
-  let n = length fs
-  insToSymTabFrmls n fs
+  let n = sum $ map (\(_,ids,_) -> length ids) fs
+  insToSymTabFrmls n $ reverse fs
   setCount $ 2*n
 
 insToSymTabFrmls :: Int -> [Frml] -> Sems ()
 insToSymTabFrmls n = mapM_ (insToSymTabFrml n)
 
 insToSymTabFrml :: Int -> Frml -> Sems ()
-insToSymTabFrml n (by,ids,t) = mapM_ (insToSymTabVar n by t) ids
+insToSymTabFrml n (by,ids,t) = mapM_ (insToSymTabVar n by t) $ reverse ids
 
 insToSymTabVar :: Int -> PassBy -> Type -> Id -> Sems ()
 insToSymTabVar n by ty var = lookupInVariableMap var >>= \case

@@ -1,12 +1,10 @@
 #include<stdio.h>
 #include<stdlib.h>
 
-void foo(double a){
-  a = 2.0;
+void add1(int a){
+   int a = 1;
 }
 
 int main(){
-  double a;
-  foo(a);
   return 0;
 }

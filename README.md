@@ -18,14 +18,9 @@ To Do:
 - new statement DONE
 - double to X86_FP80 
 - size of pointers?
+- eat space in beginning of string?
 - find all the built-in functions in llvm and define them (like printf) DONE
       -> then define the PCL equivalent (like writeString)
-
-To Test:
-  - label
-  - goto
-  - dispose
-  - new
 
 To Fix:
   - references gap because of pass by ref

@@ -1,6 +1,7 @@
 program IfThen;
 var a:integer;
 begin
+  writeString("Give me an integer and I\'ll talk if it\'s equal to 1: ");
   a := readInteger();
-  if a = 1 then writeInteger(a)
+  if a = 1 then writeString("YEAH IT IS\n");
 end.

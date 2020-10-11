@@ -34,6 +34,7 @@ formalExprSemsIR id (i,(byTy,tyOperBool)) = case (byTy,tyOperBool) of
   ((Val,RealT),(IntT,op,False)) -> sitofp op
   ((Val,t1),(t2,op,True))  -> checkSymbatos i id t1 t2 >> load op
   ((Val,t1),(t2,op,False)) -> checkSymbatos i id t1 t2 >> return op
+  ((Ref,t1),(t2,op,False)) -> errAtId "Can't pass rvalue by reference at: " id
   ((Ref,t1),(t2,op,_)) -> do
     checkSymbatos i id (Pointer t1) (Pointer t2)
     case t2 of

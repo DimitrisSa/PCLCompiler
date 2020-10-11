@@ -32,8 +32,7 @@ indexingCases posn = \case
     elemOp <- getElemPtrInBounds' lOp eOp
     right (t,elemOp)
   ((Array NoSize t,lOp),(IntT,eOp)) -> do
-    lOp' <- load lOp
-    elemOp <- getElemPtrOp' lOp' eOp
+    elemOp <- getElemPtrOp' lOp eOp
     right (t,elemOp)
   ((Array _ _,_)  ,(_,_)     ) -> errPos posn "non-integer index"
   _                            -> errPos posn "indexing non-array"

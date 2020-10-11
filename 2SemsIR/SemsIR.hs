@@ -66,19 +66,19 @@ functionBodySemsIR b = do
 headerBodySemsIR :: Header -> Body -> Sems ()
 headerBodySemsIR h b = do
   headerParentSems h
-  (e,sms,m,cgen) <- get
-  put $ (e,emptySymbolTable:sms,m,cgen)
+  (e,parentsm:sms,m,cgen) <- get
+  put $ (e,emptySymbolTable:parentsm:sms,m,cgen)
   let codegen = do
                   entry <- addBlock "entry"
                   setBlock entry
                   headerChildSems h
                   functionBodySemsIR b
   case h of
-    ProcHeader id fs   -> defineFun (idString id) void fs codegen 
-    FuncHeader id fs t -> defineFun (idString id) (toTType t) fs codegen
+    ProcHeader id fs   -> defineFun (idString id) void (reverse fs) codegen 
+    FuncHeader id fs t -> defineFun (idString id) (toTType t) (reverse fs) codegen
   checkResult
   (_,_,m',_) <- get
-  put (e,sms,m',cgen)
+  put (e,parentsm:sms,m',cgen)
 
 stmtsSemsIR :: [Stmt] -> Sems ()
 stmtsSemsIR ss = mapM_ stmtSemsIR ss

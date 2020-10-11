@@ -12,7 +12,7 @@ import Data.Word (Word64)
 import SemsCodegen (ret,phi,setBlock,br,printf,callVoid,cbr,add,icmp,call,strcmp
                    ,scanf,allocaNum,getElemPtrInBounds,addBlock,retVoid,cons
                    ,store,getElemPtrOp',load,sub,alloca,fresh,getBlock,acos,fcmp,fsub
-                   ,fptosi,sitofp,zext,truncTo,defineFun,atan,log)
+                   ,fptosi,sitofp,zext,truncTo,defineFun,atan,log,orInstr)
 import Common as P hiding (void) 
 import LLVM.AST.Type as T (Type,i1,i8,i16,i32,i64,ptr,double,void,Type(..))
 import qualified LLVM.AST.Constant as C (Constant(..))
@@ -206,8 +206,8 @@ piCodeGen = do
 
 writeCodeGen :: String -> String -> Sems ()
 writeCodeGen str1 str2 = do 
-  let len = fromIntegral $ 3 + length str2
-  addGlobalStr str1 len $ "%" ++ str2 ++ "\n\0"
+  let len = fromIntegral $ 2 + length str2
+  addGlobalStr str1 len $ "%" ++ str2 ++ "\0"
   entry <- addBlock "entry"
   setBlock entry
   str1 <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType len i8)) $ toName str1) 0
@@ -223,8 +223,8 @@ typeFromStr = \case
 
 writeBooleanCodeGen :: Sems ()
 writeBooleanCodeGen = do 
-  addGlobalStr "true" 6 "true\n\0"
-  addGlobalStr "false" 7 "false\n\0"
+  addGlobalStr "true" 5 "true\0"
+  addGlobalStr "false" 6 "false\0"
   entry <- addBlock "entry"
   setBlock entry
   ifthen <- addBlock "if.then"
@@ -234,12 +234,12 @@ writeBooleanCodeGen = do
   cbr (LocalReference i1 (UnName 0)) ifthen ifelse
 
   setBlock ifthen
-  trueStr <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 6 i8)) $ toName "true") 0
+  trueStr <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 5 i8)) $ toName "true") 0
   br ifexit     
   ifthen <- getBlock
 
   setBlock ifelse
-  falseStr <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 7 i8)) $ toName "false") 0
+  falseStr <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 6 i8)) $ toName "false") 0
   br ifexit     
   ifelse <- getBlock
 
@@ -277,29 +277,32 @@ readCodeGen str1 str2 = do
   str <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType len i8)) $ toName str1) 0
   opPtr <- alloca $ typeFromStr str2
   callVoid scanf [str,opPtr]
-  opPtr <- case str2 of
-    "c" -> eatNewLine opPtr
-    _   -> return opPtr
   op <- load opPtr
   ret op
 
-eatNewLine opPtr = do
+eatSpace opPtr = do
   while1    <- addBlock "while"
   whileExit <- addBlock "while.exit"
 
   op <- load opPtr
-  cond <- icmp EQ (toConsI8Op '\n') op
+  cond <- opIsSpace op
   cbr cond while1 whileExit
 
   setBlock while1
   str <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 3 i8)) $ toName "scanfChar") 0
-  callVoid scanf [str,opPtr] -- eat the newline
+  callVoid scanf [str,opPtr] -- eat the space
   op <- load opPtr
-  cond <- icmp EQ (toConsI8Op '\n') op
+  cond <- opIsSpace op
   cbr cond while1 whileExit
 
   setBlock whileExit
-  return opPtr
+
+opIsSpace op = do
+  cond1 <- icmp EQ (toConsI8Op '\n') op
+  cond2 <- icmp EQ (toConsI8Op '\t') op
+  cond3 <- icmp EQ (toConsI8Op ' ') op
+  cond4 <- orInstr cond1 cond2
+  orInstr cond3 cond4
 
 readStringCodeGen :: Sems ()
 readStringCodeGen = do 
@@ -314,6 +317,8 @@ readStringCodeGen = do
   while1    <- addBlock "while1"
   while2    <- addBlock "while2"
   whileExit <- addBlock "while.exit"
+
+  eatSpace strOp
 
   counter <- alloca i16
   store counter (toConsI16 0)

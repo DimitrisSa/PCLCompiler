@@ -165,10 +165,10 @@ procToTy frmls = ptr $ FunctionType {
   }
 
 frmlsToArgTypes :: [Frml] -> [T.Type]
-frmlsToArgTypes = map frmlToArgType
+frmlsToArgTypes = concat . map frmlToArgTypes
 
-frmlToArgType :: Frml -> T.Type
-frmlToArgType (by,_,ty) = case by of
+frmlToArgTypes :: Frml -> [T.Type]
+frmlToArgTypes (by,ids,ty) = replicate (length ids) $ case by of
   Val -> toTType ty 
   _   -> case ty of
     P.Array NoSize _ -> toTType ty

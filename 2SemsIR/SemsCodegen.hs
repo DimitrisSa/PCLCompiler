@@ -31,7 +31,7 @@ defineFun name retty frmls codegen = do
       returnType = retty
     , name = toName name
     , parameters =  (
-        fmap (frmlToTy >>> tyToParam) $ indexed frmls
+        map tyToParam $ indexed $ concat $ map frmlToTys frmls
       , False
       )
     , basicBlocks = blocks
@@ -53,15 +53,15 @@ makeBlock (l, (BlockState _ s t)) = BasicBlock l (reverse s) (maketerm t)
     maketerm Nothing = error $ "Block has no terminator: " ++ (show l)
 
 -- Create Parameter from Formal
-frmlToTy :: (Int,Frml) -> (Word,T.Type)
-frmlToTy (i,(by,_,ty)) = (fromIntegral i,case by of
+frmlToTys :: Frml -> [T.Type]
+frmlToTys (by,ids,ty) = replicate (length ids) $ case by of
   Val -> toTType ty 
   _   -> case ty of
     Array NoSize _ -> toTType ty
-    _              -> toTType $ Pointer ty)
+    _              -> toTType $ Pointer ty
 
-tyToParam :: (Word,T.Type) -> Parameter
-tyToParam (i,ty) = Parameter ty (UnName i) []
+tyToParam :: (Int,T.Type) -> Parameter
+tyToParam (i,ty) = Parameter ty (UnName $ fromIntegral i) []
 
 -- fresh number for Unnamed Operands
 fresh :: Sems Word
