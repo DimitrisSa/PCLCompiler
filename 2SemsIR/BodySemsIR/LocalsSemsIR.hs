@@ -17,8 +17,8 @@ varsWithTypeSemsIR (vars,ty) = mapM_ (insToSymTabVarWithType ty) $ reverse vars
 insToSymTabVarWithType :: Type -> Id -> Sems ()
 insToSymTabVarWithType ty id = do
   lookupInVariableMap id >>= \case 
-    Nothing -> return ()
-    _       -> errAtId "Duplicate Variable: " id
+    Just (_,_,True) -> errAtId "Duplicate Variable: " id
+    _               -> return ()
   case fullType ty of
     True -> return ()
     _    -> errAtId "Can't declare 'array of': " id
@@ -56,28 +56,35 @@ insToSymTabLabels = mapM_ $ \label -> lookupInLabelMap label >>= \case
   Nothing -> insToLabelMap label False
   _       -> errAtId "Duplicate label declaration: " label
 
-headerChildSems :: Header -> Sems ()
-headerChildSems = \case
-  ProcHeader _ fs     -> headerChildSems' fs
-  FuncHeader id fs ty -> headerChildSems' fs >> setEnv (InFunc id ty False)
+headerChildSems :: [Frml] -> Header -> Sems ()
+headerChildSems pfs = \case
+  ProcHeader _ fs     -> headerChildSems' (trueFrmls fs ++ falseFrmls pfs) 
+  FuncHeader id fs ty -> headerChildSems' (trueFrmls fs ++ falseFrmls pfs) >>
+                         setEnv (InFunc id ty False)
 
-headerChildSems' :: [Frml] -> Sems ()
-headerChildSems' fs = do
-  let n = sum $ map (\(_,ids,_) -> length ids) fs
-  insToSymTabFrmls n $ reverse fs
+trueFrmls :: [Frml] -> [(Bool,Frml)]
+trueFrmls = map (\f -> (True,f))
+
+falseFrmls :: [Frml] -> [(Bool,Frml)]
+falseFrmls = map (\f -> (False,f))
+
+headerChildSems' :: [(Bool,Frml)] -> Sems ()
+headerChildSems' bfs = do
+  let n = sum $ map (\(_,(_,ids,_)) -> length ids) bfs
+  insToSymTabFrmls n $ reverse bfs
   setCount $ 2*n
 
-insToSymTabFrmls :: Int -> [Frml] -> Sems ()
+insToSymTabFrmls :: Int -> [(Bool,Frml)] -> Sems ()
 insToSymTabFrmls n = mapM_ (insToSymTabFrml n)
 
-insToSymTabFrml :: Int -> Frml -> Sems ()
-insToSymTabFrml n (by,ids,t) = mapM_ (insToSymTabVar n by t) $ reverse ids
+insToSymTabFrml :: Int -> (Bool,Frml) -> Sems ()
+insToSymTabFrml n (b,(by,ids,t)) = mapM_ (insToSymTabVar n by t b) $ reverse ids
 
-insToSymTabVar :: Int -> PassBy -> Type -> Id -> Sems ()
-insToSymTabVar n by ty var = lookupInVariableMap var >>= \case
+insToSymTabVar :: Int -> PassBy -> Type -> Bool -> Id -> Sems ()
+insToSymTabVar n by ty b var = lookupInVariableMap var >>= \case
   Nothing -> case by of
     Val -> insToVariableMapFormalVal var ty n
-    Ref -> insToVariableMapFormalRef var ty n
+    Ref -> insToVariableMapFormalRef var ty b n 
   _       -> errAtId "Duplicate Argument: " var
 
 checkResult :: Sems ()

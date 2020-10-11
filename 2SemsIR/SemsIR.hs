@@ -5,7 +5,7 @@ import Common (Sems,Expr(..),Id(..),Frml,TyOper,Type(..),Callable(..),RVal(..),L
               ,Local(..),(>=>),errAtId,searchCallableInSymTabs,(>>>),TyOperBool
               ,searchVarInSymTabs,lookupInLabelMap,toTType,errPos,put,get,modifyMod
               ,getLabelMap,toList,emptySymbolTable,getCallableMap,toName,emptyCodegen
-              ,modifyCodegen)
+              ,modifyCodegen,variableMap,VariableMap)
 import InitSymTab (initSymTab)
 import LocalsSemsIR (varsWithTypeListSemsIR,insToSymTabLabels,forwardSems
                     ,headerParentSems,headerChildSems,checkResult)
@@ -68,10 +68,11 @@ headerBodySemsIR h b = do
   headerParentSems h
   (e,parentsm:sms,m,cgen) <- get
   put $ (e,emptySymbolTable:parentsm:sms,m,cgen)
+  let parentFormals = toParFrmls (toList $ variableMap parentsm) h
   let codegen = do
                   entry <- addBlock "entry"
                   setBlock entry
-                  headerChildSems h
+                  headerChildSems parentFormals h
                   functionBodySemsIR b
   case h of
     ProcHeader id fs   -> defineFun (idString id) void (reverse fs) codegen 
@@ -79,6 +80,17 @@ headerBodySemsIR h b = do
   checkResult
   (_,_,m',_) <- get
   put (e,parentsm:sms,m',cgen)
+
+toParFrmls :: [(Id,TyOperBool)] -> Header -> [Frml]
+toParFrmls varmaplist = \case
+  ProcHeader id fs   -> toParFrmls' $ filter (isInTrueFrmls fs) varmaplist
+  FuncHeader id fs t -> toParFrmls' $ filter (isInTrueFrmls fs) varmaplist
+
+toParFrmls' :: [(Id,TyOperBool)] -> [Frml]
+toParFrmls' = undefined
+
+isInTrueFrmls :: [Frml] -> (Id,TyOperBool) -> Bool
+isInTrueFrmls = undefined
 
 stmtsSemsIR :: [Stmt] -> Sems ()
 stmtsSemsIR ss = mapM_ stmtSemsIR ss
@@ -213,7 +225,7 @@ exprTypeOperBool = \case
 
 lValTypeOper :: LVal -> Sems (Type,Operand)
 lValTypeOper = \case
-  IdL         id             -> searchVarInSymTabs id
+  IdL         id             -> searchVarInSymTabs id >>= \(ty,op,_) -> return (ty,op)
   Result      posn           -> resultTypeOper posn
   StrLiteral  str            -> strLiteralSemsIR str
   Indexing    posn lVal expr -> lValExprTypeOpers lVal expr >>= indexingCases posn

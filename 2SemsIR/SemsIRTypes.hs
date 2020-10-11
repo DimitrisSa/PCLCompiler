@@ -41,7 +41,7 @@ data Callable =
   FuncDclr [Frml] P.Type
   deriving(Show,Eq)
 
-type VariableMap = Map Id (P.Type,Operand)
+type VariableMap = Map Id TyOperBool
 type LabelMap    = Map Id Bool
 type CallableMap = Map Id (Callable,Operand)
 
@@ -177,7 +177,7 @@ frmlToArgTypes (by,ids,ty) = replicate (length ids) $ case by of
 lookupInMap :: Sems (Map Id a) -> Id -> Sems (Maybe a)
 lookupInMap getMap id = getMap >>= lookup id >>> return
 
-lookupInVariableMap :: Id -> Sems (Maybe (P.Type,Operand))
+lookupInVariableMap :: Id -> Sems (Maybe TyOperBool)
 lookupInVariableMap = lookupInMap getVariableMap
 
 lookupInLabelMap :: Id -> Sems (Maybe Bool)
@@ -186,7 +186,7 @@ lookupInLabelMap = lookupInMap getLabelMap
 lookupInCallableMap :: Id -> Sems (Maybe (Callable,Operand))
 lookupInCallableMap = lookupInMap getCallableMap
 
-searchVarInSymTabs :: Id -> Sems (P.Type,Operand)
+searchVarInSymTabs :: Id -> Sems TyOperBool
 searchVarInSymTabs id =
   getSymTabs >>= searchInSymTabs variableMap id "Undeclared variable: "
 
