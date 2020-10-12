@@ -1,0 +1,10 @@
+program WrongArgs;
+var b:integer;
+function mitsos(a:integer):integer;
+  begin
+    result := 1;
+  end;
+begin
+  (*b := mitsos();*)
+  b := mitsos(1.0);
+end.
