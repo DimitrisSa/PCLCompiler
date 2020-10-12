@@ -56,7 +56,9 @@ makeBlock (l, (BlockState _ s t)) = BasicBlock l (reverse s) (maketerm t)
 frmlToTys :: Frml -> [T.Type]
 frmlToTys (by,ids,ty) = replicate (length ids) $ case by of
   Val -> toTType ty 
-  _   -> toTType $ Pointer ty
+  _   -> case ty of
+    Array NoSize _ -> toTType ty
+    _              -> toTType $ Pointer ty
 
 tyToParam :: (Int,T.Type) -> Parameter
 tyToParam (i,ty) = Parameter ty (UnName $ fromIntegral i) []
@@ -317,7 +319,7 @@ insToVariableMap :: Id -> P.Type -> Sems ()
 insToVariableMap id ty = do
   var <- alloca $ toTType ty
   modify $ \(e,st:sts,m,cgen) ->
-    (e,st { variableMap = Map.insert id (ty,var) $ variableMap st }:sts,m,cgen)
+    (e,st { variableMap = Map.insert id (ty,var,True) $ variableMap st }:sts,m,cgen)
 
 insToVariableMapFormalVal :: Id -> P.Type -> Int -> Sems ()
 insToVariableMapFormalVal id ty n = do
@@ -330,15 +332,15 @@ insToVariableMapFormalVal id ty n = do
   let refN = LocalReference (ptr tty) nameN
   store refN refI
   modify $ \(e,st:sts,m,cgen) -> (e,st {
-      variableMap = Map.insert id (ty,refN) $ variableMap st
+      variableMap = Map.insert id (ty,refN,True) $ variableMap st
     }:sts,m,cgen)
 
-insToVariableMapFormalRef :: Id -> P.Type -> Int -> Sems ()
-insToVariableMapFormalRef id ty n = do
+insToVariableMapFormalRef :: Id -> P.Type -> Bool -> Sems ()
+insToVariableMapFormalRef id ty b = do
   i <- fresh
   let tty = toTType ty
   let refI = LocalReference tty (UnName (i-1))
   modify $ \(e,st:sts,m,cgen) -> (e,st {
-      variableMap = Map.insert id (ty,refI) $ variableMap st
+      variableMap = Map.insert id (ty,refI,b) $ variableMap st
     }:sts,m,cgen)
 

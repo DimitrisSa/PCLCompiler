@@ -1,10 +1,17 @@
 program example;
-var n : array [2] of char;
-  procedure print1 (var x : array of char);
-  var n : ^array of char;
+var x,n :integer;
+  procedure print2 (var x , n : integer);
   begin
-    n := @x
+    writeInteger(x);
+  end;
+  procedure print1 (var x , n : integer);
+    procedure print2 (var x , n : integer);
+    begin
+      writeInteger(1000);
+    end;
+  begin
+    print2(x,n)
   end;
 begin
-  print1(n)
+  print1(x,n);
 end.

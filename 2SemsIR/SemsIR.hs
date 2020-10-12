@@ -5,7 +5,7 @@ import Common (Sems,Expr(..),Id(..),Frml,TyOper,Type(..),Callable(..),RVal(..),L
               ,Local(..),(>=>),errAtId,searchCallableInSymTabs,(>>>),TyOperBool
               ,searchVarInSymTabs,lookupInLabelMap,toTType,errPos,put,get,modifyMod
               ,getLabelMap,toList,emptySymbolTable,getCallableMap,toName,emptyCodegen
-              ,modifyCodegen)
+              ,modifyCodegen,variableMap,VariableMap,PassBy(..),getVariableMap)
 import InitSymTab (initSymTab)
 import LocalsSemsIR (varsWithTypeListSemsIR,insToSymTabLabels,forwardSems
                     ,headerParentSems,headerChildSems,checkResult)
@@ -15,7 +15,8 @@ import ValSemsIR (binOpNumCases,comparisonCases,binOpBoolCases
 import StmtSemsIR (dispWithSems,dispWithoutSems,newNoExprSemsIR,newExprSemsIR
                   ,assignmentSemsIR',boolCases,labelCases,goToCases,returnIR)
 import SemsCodegen (cons,call,store,load,getElemPtr',alloca,setBlock,br
-                   ,cbr,addBlock,fresh,retVoid,defineFun,ret,getElemPtrInt)
+                   ,cbr,addBlock,fresh,retVoid,defineFun,ret,getElemPtrInt
+                   ,insToVariableMapFormalRef)
 import LLVM.AST (Operand,moduleName,Name)
 import LLVM.AST.Type (void)
 import Data.String.Transform (toShortByteString)
@@ -65,20 +66,50 @@ functionBodySemsIR b = do
 
 headerBodySemsIR :: Header -> Body -> Sems ()
 headerBodySemsIR h b = do
-  headerParentSems h
-  (e,parentsm:sms,m,cgen) <- get
-  put $ (e,emptySymbolTable:parentsm:sms,m,cgen)
+  parentVarMap <- getVariableMap
+  let parentFormals = toParFrmls (toList parentVarMap) h
+  let parentFormalIds = concat $ map (\(_,ids,_) -> ids) parentFormals
+  headerParentSems parentFormals parentFormalIds h
+  (e,sms,m,cgen) <- get
+  put $ (e,emptySymbolTable:sms,m,cgen)
   let codegen = do
                   entry <- addBlock "entry"
                   setBlock entry
-                  headerChildSems h
+ -- mapM_ (uncurry insToVariableMap . \(id,(ty,_,_)) -> (id,ty)) $ zip pids pArgs
+                  headerChildSems parentFormals h
+                  --getVariableMap >>= error . show
                   functionBodySemsIR b
   case h of
-    ProcHeader id fs   -> defineFun (idString id) void (reverse fs) codegen 
-    FuncHeader id fs t -> defineFun (idString id) (toTType t) (reverse fs) codegen
+    ProcHeader id fs   ->
+      defineFun (idString id) void (reverse fs ++ parentFormals) codegen 
+    FuncHeader id fs t ->
+      defineFun (idString id) (toTType t) (reverse fs ++ parentFormals) codegen
   checkResult
   (_,_,m',_) <- get
-  put (e,parentsm:sms,m',cgen)
+  put (e,sms,m',cgen)
+
+insToVariableMapParentFrmls :: [Frml] -> Sems ()
+insToVariableMapParentFrmls = mapM_ insToVariableMapParentFrml
+
+insToVariableMapParentFrml :: Frml -> Sems ()
+insToVariableMapParentFrml (_,ids,ty) = mapM_ (insToVariableMapParentId ty) ids
+
+insToVariableMapParentId :: Type -> Id -> Sems ()
+insToVariableMapParentId ty id = insToVariableMapFormalRef id ty False
+
+toParFrmls :: [(Id,TyOperBool)] -> Header -> [Frml]
+toParFrmls varmaplist = \case
+  ProcHeader id fs   -> toParFrmls' $ filter (not . isInTrueFrmls fs) varmaplist
+  FuncHeader id fs t -> toParFrmls' $ filter (not . isInTrueFrmls fs) varmaplist
+
+toParFrmls' :: [(Id,TyOperBool)] -> [Frml]
+toParFrmls' = map toParFrml
+
+toParFrml :: (Id,TyOperBool) -> Frml 
+toParFrml (id,(ty,op,_)) = (Ref,[id],ty)
+
+isInTrueFrmls :: [Frml] -> (Id,TyOperBool) -> Bool
+isInTrueFrmls fs (id,_) = elem id $ concat $ map (\(_,ids,_) -> ids) fs
 
 stmtsSemsIR :: [Stmt] -> Sems ()
 stmtsSemsIR ss = mapM_ stmtSemsIR ss
@@ -110,8 +141,8 @@ lValExprTypeOpers lVal expr = do
 
 callStmtSemsIR :: Id -> [Expr] -> Sems ()
 callStmtSemsIR id exprs = searchCallableInSymTabs id >>= \case
-  (ProcDclr fs,_) -> mapM exprTypeOperBool exprs >>= callStmtSemsIR' id fs 
-  (Proc     fs,_) -> mapM exprTypeOperBool exprs >>= callStmtSemsIR' id fs
+  (ProcDclr fs,_)     -> mapM exprTypeOperBool exprs >>= callStmtSemsIR' id fs []
+  (Proc     fs ids,_) -> mapM exprTypeOperBool exprs >>= callStmtSemsIR' id fs ids
   _               -> errAtId "Use of function in call statement: " id
 
 ifThenSemsIR :: (Int,Int) -> Expr -> Stmt -> Sems ()
@@ -213,7 +244,7 @@ exprTypeOperBool = \case
 
 lValTypeOper :: LVal -> Sems (Type,Operand)
 lValTypeOper = \case
-  IdL         id             -> searchVarInSymTabs id
+  IdL         id             -> searchVarInSymTabs id >>= \(ty,op,_) -> return (ty,op)
   Result      posn           -> resultTypeOper posn
   StrLiteral  str            -> strLiteralSemsIR str
   Indexing    posn lVal expr -> lValExprTypeOpers lVal expr >>= indexingCases posn
@@ -266,7 +297,7 @@ exprsTypeOpers exp1 exp2 = mapM exprTypeOper [exp1,exp2]
 
 callRValueSemsIR :: Id -> [Expr] -> Sems (Type,Operand)
 callRValueSemsIR id exprs = searchCallableInSymTabs id >>= \case
-  (FuncDclr fs t,_) -> mapM exprTypeOperBool exprs >>= callRValueSemsIR' id fs t 
-  (Func  fs t   ,_) -> mapM exprTypeOperBool exprs >>= callRValueSemsIR' id fs t
+  (FuncDclr fs t,_) -> mapM exprTypeOperBool exprs >>= callRValueSemsIR' id fs [] t 
+  (Func fs ids t,_) -> mapM exprTypeOperBool exprs >>= callRValueSemsIR' id fs ids t
   _                 -> errAtId "Use of procedure where a return value is required: " id
 

@@ -17,7 +17,8 @@ resultTypeOper posn = getEnv >>= \case
   InFunc id ty _ -> do
     setEnv (InFunc id ty True)
     insToVariableMap (dummy "result") ty
-    searchVarInSymTabs (dummy "result")
+    (ty,oper,_) <- searchVarInSymTabs (dummy "result")
+    return (ty,oper)
   InProc         -> errPos posn "Result in procedure"
 
 dereferenceCases :: (Int,Int) -> TyOper -> Sems TyOper
@@ -32,7 +33,6 @@ indexingCases posn = \case
     elemOp <- getElemPtrInBounds' lOp eOp
     right (t,elemOp)
   ((Array NoSize t,lOp),(IntT,eOp)) -> do
-    lOp <- load lOp
     elemOp <- getElemPtrOp' lOp eOp
     right (t,elemOp)
   ((Array _ _,_)  ,(_,_)     ) -> errPos posn "non-integer index"

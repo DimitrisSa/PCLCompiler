@@ -61,12 +61,12 @@ initSymTab = do
 -- insert Procedures/Functions to the Symbol Table and the Module
 insertProcToSymTabAndDefs :: String -> [Frml] -> Sems ()
 insertProcToSymTabAndDefs name frmls = do
-  insToCallableMap (dummy name) (Proc frmls)
+  insToCallableMap (dummy name) (Proc frmls [])
   defineFun name void frmls (codegenFromName name)
 
 insertFuncToSymTabAndDefs :: String -> [Frml] -> P.Type -> Sems ()
 insertFuncToSymTabAndDefs name frmls retty = do
-  insToCallableMap (dummy name) (Func frmls retty)
+  insToCallableMap (dummy name) (Func frmls [] retty)
   defineFun name (toTType retty) frmls (codegenFromName name)
 
 -- Get Code Generation Function from name
@@ -265,8 +265,7 @@ writeStringCodeGen :: Sems ()
 writeStringCodeGen = do 
   entry <- addBlock "entry"
   setBlock entry
-  strOp <- load $ LocalReference (ptr $ ptr i8) (UnName 0)
-  callVoid printf [ strOp ]
+  callVoid printf [ LocalReference (ptr i8) (UnName 0) ]
   retVoid
 
 readCodeGen :: String -> String -> Sems ()
@@ -312,15 +311,14 @@ readStringCodeGen = do
   entry <- addBlock "entry"
   setBlock entry
   let intOp = LocalReference i16 (UnName 0)
-  let strOp = LocalReference (ptr $ ptr i8) (UnName 1)
+  let strOp = LocalReference (ptr i8) (UnName 1)
   str <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 3 i8)) $ toName "scanfChar") 0
 
   while1    <- addBlock "while1"
   while2    <- addBlock "while2"
   whileExit <- addBlock "while.exit"
 
-  --eatSpace strOp
-  strOp <- load strOp
+  eatSpace strOp
 
   counter <- alloca i16
   store counter (toConsI16 0)
