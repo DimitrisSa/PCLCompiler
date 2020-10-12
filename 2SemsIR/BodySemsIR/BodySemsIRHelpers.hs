@@ -9,16 +9,20 @@ import Data.List.Index (indexed)
 
 callStmtSemsIR' :: Id -> [Frml] -> [TyOperBool] -> Sems ()
 callStmtSemsIR' id fs typeOperBools = do
-  args <- formalsExprsSemsIR id (formalsToTypes fs) typeOperBools
-  op <- idToFunOper id
-  callVoid op args
+  (funOp,args) <- callSemsIR id fs typeOperBools
+  callVoid funOp args
 
 callRValueSemsIR' :: Id -> [Frml] -> Type -> [TyOperBool] -> Sems TyOper
 callRValueSemsIR' id fs t typeOperBools = do
-  args <- formalsExprsSemsIR id (formalsToTypes fs) typeOperBools
-  op <- idToFunOper id
-  op <- call op args
+  (funOp,args) <- callSemsIR id fs typeOperBools
+  op <- call funOp args
   right (t,op)
+
+callSemsIR :: Id -> [Frml] -> [TyOperBool] -> Sems (Operand,[Operand])
+callSemsIR id fs typeOperBools = do
+  args <- formalsExprsSemsIR id (formalsToTypes fs) typeOperBools
+  funOp <- idToFunOper id
+  return (funOp,args)
 
 type ByTy = (PassBy,Type)
 

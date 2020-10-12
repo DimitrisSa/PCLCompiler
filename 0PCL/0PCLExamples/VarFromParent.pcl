@@ -1,5 +1,6 @@
 program varFromParent;
 var x,y:integer;
+forward function ok():integer;
 function ok():integer;
   begin
     result := y;

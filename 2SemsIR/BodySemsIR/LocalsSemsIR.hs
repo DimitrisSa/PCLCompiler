@@ -92,31 +92,35 @@ checkResult = getEnv >>= \case
   InFunc id _ False -> errAtId "Result not set for function: " id
   _                 -> return ()
 
-headerParentSems :: Header -> Sems ()
-headerParentSems = \case
-  ProcHeader id fs    -> lookupInCallableMap id >>= procCases id (reverse fs)
-  FuncHeader id fs ty -> lookupInCallableMap id >>= funcCases id (reverse fs) ty
+headerParentSems :: [Frml] -> Header -> Sems ()
+headerParentSems pfs = \case
+  ProcHeader id fs    -> lookupInCallableMap id >>= procCases id (reverse fs) pfs
+  FuncHeader id fs ty -> lookupInCallableMap id >>= funcCases id (reverse fs) pfs ty
 
-procCases :: Id -> [Frml] -> Maybe (Callable,Operand) -> Sems ()
-procCases id fs = \case
-  Just (ProcDclr fs',_) -> insToSymTabIfFrmlsMatch id fs fs'
-  Nothing               -> checkFrmls id fs >> insToCallableMap id (Proc fs)
+procCases :: Id -> [Frml] -> [Frml] -> Maybe (Callable,Operand) -> Sems ()
+procCases id fs pfs = \case
+  Just (ProcDclr fs',_) -> insToSymTabIfFrmlsMatch id fs fs' pfs
+  Nothing               -> checkFrmls id fs >> insToCallableMap id (Proc $ fs ++ pfs)
   _                     -> errAtId duplicateCallableErr id
 
-funcCases :: Id -> [Frml] -> Type -> Maybe (Callable,Operand) -> Sems ()
-funcCases id fs ty = \case
-  Just (FuncDclr fs' ty',_) -> insToSymTabIfFrmlsAndTypeMatch id fs fs' ty ty'
-  Nothing                   -> checkFrmlsType id fs ty >> insToCallableMap id (Func fs ty)
+funcCases :: Id -> [Frml] -> [Frml] -> Type -> Maybe (Callable,Operand) -> Sems ()
+funcCases id fs pfs ty = \case
+  Just (FuncDclr fs' ty',_) -> insToSymTabIfFrmlsAndTypeMatch id fs fs' pfs ty ty'
+  Nothing                   -> do
+    checkFrmlsType id fs ty
+    insToCallableMap id (Func (fs ++ pfs) ty)
   _                         -> errAtId duplicateCallableErr id
 
-insToSymTabIfFrmlsMatch :: Id -> [Frml] -> [Frml] -> Sems ()
-insToSymTabIfFrmlsMatch id fs fs' = sameTypes id fs fs' >> insToCallableMap id (Proc fs)
+insToSymTabIfFrmlsMatch :: Id -> [Frml] -> [Frml] -> [Frml] -> Sems ()
+insToSymTabIfFrmlsMatch id fs fs' pfs = do
+  sameTypes id fs fs'
+  insToCallableMap id (Proc $ fs ++ pfs)
 
-insToSymTabIfFrmlsAndTypeMatch :: Id -> [Frml] -> [Frml] -> Type -> Type -> Sems ()
-insToSymTabIfFrmlsAndTypeMatch id fs fs' ty ty' = do
+insToSymTabIfFrmlsAndTypeMatch :: Id -> [Frml] -> [Frml] -> [Frml] -> Type -> Type -> Sems ()
+insToSymTabIfFrmlsAndTypeMatch id fs fs' pfs ty ty' = do
   sameTypes id fs fs'
   case ty == ty' of
-    True -> insToCallableMap id (Func fs ty)
+    True -> insToCallableMap id (Func (fs ++ pfs) ty)
     _    -> errAtId "Result type missmatch between declaration and definition for: " id
 
 
