@@ -1,4 +1,7 @@
 odir/*.hi
+a.out
+llvmhs.ll
+llvmhs.s
 odir/*.hs
 odir/*.o
 *.swp
