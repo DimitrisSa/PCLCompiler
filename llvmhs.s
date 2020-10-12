@@ -408,12 +408,107 @@ chr:                                    # @chr
 	.size	chr, .Lfunc_end17-chr
 	.cfi_endproc
                                         # -- End function
-	.section	.rodata.cst8,"aM",@progbits,8
-	.p2align	3               # -- Begin function main
-.LCPI18_0:
-	.quad	0                       # double 0
-	.text
-	.globl	main
+	.globl	prime                   # -- Begin function prime
+	.p2align	4, 0x90
+	.type	prime,@function
+prime:                                  # @prime
+	.cfi_startproc
+# %bb.0:                                # %entry
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	.cfi_offset %rbp, -16
+	movq	%rsp, %rbp
+	.cfi_def_cfa_register %rbp
+	pushq	%rbx
+	pushq	%rax
+	.cfi_offset %rbx, -24
+	movw	%di, -10(%rbp)
+	testw	%di, %di
+	js	.LBB18_1
+# %bb.3:                                # %if.else
+	movswl	-10(%rbp), %eax
+	cmpl	$2, %eax
+	jge	.LBB18_5
+.LBB18_4:                               # %if.then1
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rsp
+	movb	$0, -16(%rax)
+	jmp	.LBB18_2
+.LBB18_1:                               # %if.then
+	movq	%rsp, %rbx
+	leaq	-16(%rbx), %rsp
+	movzwl	-10(%rbp), %edi
+	negw	%di
+	callq	prime
+	andb	$1, %al
+	movb	%al, -16(%rbx)
+	jmp	.LBB18_2
+.LBB18_5:                               # %if.else1
+	movzwl	-10(%rbp), %eax
+	cmpl	$2, %eax
+	jne	.LBB18_7
+# %bb.6:                                # %if.then2
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rsp
+	movb	$1, -16(%rax)
+	jmp	.LBB18_2
+.LBB18_7:                               # %if.else2
+	movzwl	-10(%rbp), %eax
+	movl	%eax, %ecx
+	shrl	$15, %ecx
+	addl	%eax, %ecx
+	andl	$65534, %ecx            # imm = 0xFFFE
+	cmpw	%cx, %ax
+	je	.LBB18_4
+# %bb.8:                                # %if.else3
+	movw	$3, -12(%rbp)
+	movzwl	-10(%rbp), %eax
+	movl	%eax, %ecx
+	shrl	$15, %ecx
+	addl	%eax, %ecx
+	sarw	%cx
+	movswl	%cx, %eax
+	cmpl	$3, %eax
+	jl	.LBB18_2
+	.p2align	4, 0x90
+.LBB18_9:                               # %while
+                                        # =>This Inner Loop Header: Depth=1
+	movzwl	-10(%rbp), %eax
+	cwtd
+	idivw	-12(%rbp)
+	testw	%dx, %dx
+	jne	.LBB18_11
+# %bb.10:                               # %if.then4
+                                        #   in Loop: Header=BB18_9 Depth=1
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rsp
+	movb	$0, -16(%rax)
+.LBB18_11:                              # %if.exit4
+                                        #   in Loop: Header=BB18_9 Depth=1
+	movzwl	-12(%rbp), %eax
+	addl	$2, %eax
+	movw	%ax, -12(%rbp)
+	movzwl	-10(%rbp), %ecx
+	movl	%ecx, %edx
+	shrl	$15, %edx
+	addl	%ecx, %edx
+	sarw	%dx
+	cmpw	%dx, %ax
+	jle	.LBB18_9
+.LBB18_2:                               # %if.exit
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rsp
+	movb	$1, -16(%rax)
+	movb	-16(%rax), %al
+	leaq	-8(%rbp), %rsp
+	popq	%rbx
+	popq	%rbp
+	retq
+.Lfunc_end18:
+	.size	prime, .Lfunc_end18-prime
+	.cfi_endproc
+                                        # -- End function
+	.globl	main                    # -- Begin function main
 	.p2align	4, 0x90
 	.type	main,@function
 main:                                   # @main
@@ -424,303 +519,97 @@ main:                                   # @main
 	.cfi_offset %rbp, -16
 	movq	%rsp, %rbp
 	.cfi_def_cfa_register %rbp
-	pushq	%r15
 	pushq	%r14
-	pushq	%r13
-	pushq	%r12
 	pushq	%rbx
-	subq	$744, %rsp              # imm = 0x2E8
-	.cfi_offset %rbx, -56
-	.cfi_offset %r12, -48
-	.cfi_offset %r13, -40
-	.cfi_offset %r14, -32
-	.cfi_offset %r15, -24
-	movabsq	$2334391967770110279, %r14 # imm = 0x20656D2065766947
-	movq	%r14, -536(%rbp)
-	movabsq	$7450489176113311329, %rax # imm = 0x6765746E69206E61
-	movq	%rax, -528(%rbp)
-	movl	$540701285, -520(%rbp)  # imm = 0x203A7265
-	movb	$0, -516(%rbp)
-	leaq	-536(%rbp), %rax
-	movq	%rax, -392(%rbp)
-	leaq	-392(%rbp), %rdi
-	callq	writeString
-	callq	readInteger
-	movw	%ax, -58(%rbp)
-	movabsq	$8728102690886935880, %r12 # imm = 0x7920732765726548
-	movq	%r12, -597(%rbp)
-	movabsq	$7310589492924151151, %r13 # imm = 0x65746E692072756F
-	movq	%r13, -589(%rbp)
-	movl	$980575591, -581(%rbp)  # imm = 0x3A726567
-	movw	$32, -577(%rbp)
-	leaq	-597(%rbp), %rax
-	movq	%rax, -384(%rbp)
-	leaq	-384(%rbp), %rdi
-	callq	writeString
-	movzwl	-58(%rbp), %edi
-	callq	writeInteger
-	movw	$10, -104(%rbp)
-	leaq	-104(%rbp), %rax
-	movq	%rax, -376(%rbp)
-	leaq	-376(%rbp), %rdi
-	callq	writeString
-	movabsq	$3107610355928556872, %rax # imm = 0x2B20732765726548
-	movq	%rax, -440(%rbp)
-	movabsq	$7955925892695292192, %rbx # imm = 0x6E692072756F7920
-	movq	%rbx, -432(%rbp)
-	movw	$25972, -424(%rbp)      # imm = 0x6574
-	movl	$980575591, -422(%rbp)  # imm = 0x3A726567
-	movw	$32, -418(%rbp)
-	leaq	-440(%rbp), %rax
-	movq	%rax, -368(%rbp)
-	leaq	-368(%rbp), %rdi
-	callq	writeString
-	movzwl	-58(%rbp), %edi
-	callq	writeInteger
-	movw	$10, -102(%rbp)
-	leaq	-102(%rbp), %rax
-	movq	%rax, -360(%rbp)
-	leaq	-360(%rbp), %rdi
-	callq	writeString
-	movabsq	$3251725544004412744, %rax # imm = 0x2D20732765726548
-	movq	%rax, -416(%rbp)
-	movq	%rbx, -408(%rbp)
-	movw	$25972, -400(%rbp)      # imm = 0x6574
-	movl	$980575591, -398(%rbp)  # imm = 0x3A726567
-	movw	$32, -394(%rbp)
-	leaq	-416(%rbp), %rax
-	movq	%rax, -352(%rbp)
-	leaq	-352(%rbp), %rdi
-	callq	writeString
-	movzwl	-58(%rbp), %edi
-	negw	%di
-	callq	writeInteger
-	movw	$10, -100(%rbp)
-	leaq	-100(%rbp), %rax
-	movq	%rax, -344(%rbp)
-	leaq	-344(%rbp), %rdi
-	callq	writeString
-	movq	%r12, -162(%rbp)
-	movq	%r13, -154(%rbp)
-	movw	$25959, -146(%rbp)      # imm = 0x6567
-	movabsq	$8030870729827493746, %rax # imm = 0x6F73626120732772
-	movq	%rax, -144(%rbp)
-	movl	$1702131052, -136(%rbp) # imm = 0x6574756C
-	movw	$30240, -132(%rbp)      # imm = 0x7620
-	movl	$1702194273, -130(%rbp) # imm = 0x65756C61
-	movw	$8250, -126(%rbp)       # imm = 0x203A
-	movb	$0, -124(%rbp)
-	leaq	-162(%rbp), %rax
-	movq	%rax, -336(%rbp)
-	leaq	-336(%rbp), %rdi
-	callq	writeString
-	movzwl	-58(%rbp), %edi
-	callq	abs
-                                        # kill: def %ax killed %ax def %eax
-	movl	%eax, %edi
-	callq	writeInteger
-	movw	$10, -98(%rbp)
-	leaq	-98(%rbp), %rax
-	movq	%rax, -328(%rbp)
-	leaq	-328(%rbp), %rdi
-	callq	writeString
-	movq	%r12, -703(%rbp)
-	movq	%r13, -695(%rbp)
-	movw	$25959, -687(%rbp)      # imm = 0x6567
-	movabsq	$7809634769682245490, %rax # imm = 0x6C61657220732772
-	movq	%rax, -685(%rbp)
-	movl	$1970365728, -677(%rbp) # imm = 0x75716520
-	movw	$30313, -673(%rbp)      # imm = 0x7669
-	movabsq	$9071470997498977, %rax # imm = 0x203A746E656C61
-	movq	%rax, -671(%rbp)
-	leaq	-703(%rbp), %rax
-	movq	%rax, -320(%rbp)
-	leaq	-320(%rbp), %rdi
-	callq	writeString
-	movswl	-58(%rbp), %eax
-	cvtsi2sdl	%eax, %xmm0
-	callq	writeReal
-	movw	$10, -96(%rbp)
-	leaq	-96(%rbp), %rax
-	movq	%rax, -312(%rbp)
-	leaq	-312(%rbp), %rdi
-	callq	writeString
-	movq	%r12, -643(%rbp)
-	movq	%r13, -635(%rbp)
-	movw	$25959, -627(%rbp)      # imm = 0x6567
-	movabsq	$5279154727390750578, %rax # imm = 0x4943534120732772
-	movq	%rax, -625(%rbp)
-	movl	$1751326793, -617(%rbp) # imm = 0x68632049
-	movw	$29281, -613(%rbp)      # imm = 0x7261
-	movabsq	$7809653424151160096, %rax # imm = 0x6C61766975716520
-	movq	%rax, -611(%rbp)
-	movl	$980708965, -603(%rbp)  # imm = 0x3A746E65
-	movw	$32, -599(%rbp)
-	leaq	-643(%rbp), %rax
-	movq	%rax, -304(%rbp)
-	leaq	-304(%rbp), %rdi
-	callq	writeString
-	movzwl	-58(%rbp), %edi
-	callq	chr
-	movzbl	%al, %edi
-	callq	writeChar
-	movw	$10, -94(%rbp)
-	leaq	-94(%rbp), %rax
-	movq	%rax, -296(%rbp)
-	leaq	-296(%rbp), %rdi
-	callq	writeString
-	leaq	-58(%rbp), %rax
-	movq	%rax, -776(%rbp)
-	movq	%r14, -663(%rbp)
-	movabsq	$7018134820192657505, %rax # imm = 0x61656C6F6F622061
-	movq	%rax, -655(%rbp)
-	movl	$2112110, -647(%rbp)    # imm = 0x203A6E
-	leaq	-663(%rbp), %rax
-	movq	%rax, -288(%rbp)
-	leaq	-288(%rbp), %rdi
-	callq	writeString
-	callq	readBoolean
-	andb	$1, %al
-	movb	%al, -62(%rbp)
-	movq	%r12, -575(%rbp)
-	movabsq	$7813586345752950127, %rax # imm = 0x6C6F6F622072756F
-	movq	%rax, -567(%rbp)
-	movl	$980312421, -559(%rbp)  # imm = 0x3A6E6165
-	movw	$32, -555(%rbp)
-	leaq	-575(%rbp), %rax
-	movq	%rax, -280(%rbp)
-	leaq	-280(%rbp), %rdi
-	callq	writeString
-	movzbl	-62(%rbp), %edi
-	callq	writeBoolean
-	movw	$10, -92(%rbp)
-	leaq	-92(%rbp), %rax
-	movq	%rax, -272(%rbp)
-	leaq	-272(%rbp), %rdi
-	callq	writeString
-	movabsq	$7935469156469728584, %rax # imm = 0x6E20732765726548
-	movq	%rax, -765(%rbp)
-	movabsq	$2338060278192698479, %rax # imm = 0x2072756F7920746F
-	movq	%rax, -757(%rbp)
-	movw	$28514, -749(%rbp)      # imm = 0x6F62
-	movabsq	$9071445009591407, %rax # imm = 0x203A6E61656C6F
-	movq	%rax, -747(%rbp)
-	leaq	-765(%rbp), %rax
-	movq	%rax, -264(%rbp)
-	leaq	-264(%rbp), %rdi
-	callq	writeString
-	movb	-62(%rbp), %al
-	xorb	$1, %al
-	movzbl	%al, %edi
-	callq	writeBoolean
-	movw	$10, -90(%rbp)
-	leaq	-90(%rbp), %rax
-	movq	%rax, -256(%rbp)
-	leaq	-256(%rbp), %rdi
-	callq	writeString
-	movq	%r14, -553(%rbp)
-	movabsq	$2322287723432517729, %rax # imm = 0x203A6C6165722061
-	movq	%rax, -545(%rbp)
-	movb	$0, -537(%rbp)
-	leaq	-553(%rbp), %rax
-	movq	%rax, -248(%rbp)
-	leaq	-248(%rbp), %rdi
-	callq	writeString
-	callq	readReal
-	movsd	%xmm0, -56(%rbp)
-	movq	%r12, -123(%rbp)
-	movabsq	$7809634769682199919, %r15 # imm = 0x6C6165722072756F
-	movq	%r15, -115(%rbp)
-	movw	$8250, -107(%rbp)       # imm = 0x203A
-	movb	$0, -105(%rbp)
-	leaq	-123(%rbp), %rax
-	movq	%rax, -240(%rbp)
-	leaq	-240(%rbp), %rdi
-	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	callq	writeReal
-	movw	$10, -88(%rbp)
+	subq	$112, %rsp
+	.cfi_offset %rbx, -32
+	.cfi_offset %r14, -24
+	movabsq	$2318339454418644048, %rax # imm = 0x202C657361656C50
+	movq	%rax, -88(%rbp)
+	movabsq	$7307218077898664295, %rax # imm = 0x6568742065766967
+	movq	%rax, -80(%rbp)
+	movw	$29984, -72(%rbp)       # imm = 0x7520
+	movabsq	$7883951509302767728, %rax # imm = 0x6D696C2072657070
+	movq	%rax, -70(%rbp)
+	movl	$975205481, -62(%rbp)   # imm = 0x3A207469
+	movw	$32, -58(%rbp)
 	leaq	-88(%rbp), %rax
-	movq	%rax, -232(%rbp)
-	leaq	-232(%rbp), %rdi
+	movq	%rax, -56(%rbp)
+	leaq	-56(%rbp), %rdi
 	callq	writeString
-	movabsq	$3107610355928556872, %rax # imm = 0x2B20732765726548
-	movq	%rax, -515(%rbp)
-	movabsq	$7309940821144336672, %r14 # imm = 0x65722072756F7920
-	movq	%r14, -507(%rbp)
-	movl	$540699745, -499(%rbp)  # imm = 0x203A6C61
-	movb	$0, -495(%rbp)
-	leaq	-515(%rbp), %rax
-	movq	%rax, -224(%rbp)
-	leaq	-224(%rbp), %rdi
+	callq	readInteger
+	movw	%ax, -20(%rbp)
+	movabsq	$8461736369875153488, %rax # imm = 0x756E20656D697250
+	movq	%rax, -117(%rbp)
+	movabsq	$7305437225760940653, %rax # imm = 0x656220737265626D
+	movq	%rax, -109(%rbp)
+	movabsq	$2319389466615445364, %rax # imm = 0x2030206E65657774
+	movq	%rax, -101(%rbp)
+	movl	$543452769, -93(%rbp)   # imm = 0x20646E61
+	movb	$0, -89(%rbp)
+	leaq	-117(%rbp), %rax
+	movq	%rax, -48(%rbp)
+	leaq	-48(%rbp), %rdi
 	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	callq	writeReal
-	movw	$10, -86(%rbp)
-	leaq	-86(%rbp), %rax
-	movq	%rax, -216(%rbp)
-	leaq	-216(%rbp), %rdi
+	movzwl	-20(%rbp), %edi
+	callq	writeInteger
+	movw	$2570, -25(%rbp)        # imm = 0xA0A
+	movb	$0, -23(%rbp)
+	leaq	-25(%rbp), %rax
+	movq	%rax, -40(%rbp)
+	leaq	-40(%rbp), %rdi
 	callq	writeString
-	movabsq	$3251725544004412744, %rax # imm = 0x2D20732765726548
-	movq	%rax, -494(%rbp)
-	movq	%r14, -486(%rbp)
-	movl	$540699745, -478(%rbp)  # imm = 0x203A6C61
-	movb	$0, -474(%rbp)
-	leaq	-494(%rbp), %rax
-	movq	%rax, -208(%rbp)
-	leaq	-208(%rbp), %rdi
+	movw	$0, -22(%rbp)
+	movswl	-20(%rbp), %eax
+	cmpl	$2, %eax
+	jl	.LBB19_2
+# %bb.1:                                # %if.then
+	incw	-22(%rbp)
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rcx
+	movq	%rcx, %rsp
+	movw	$2610, -16(%rax)        # imm = 0xA32
+	movb	$0, -14(%rax)
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rdi
+	movq	%rdi, %rsp
+	movq	%rcx, -16(%rax)
 	callq	writeString
-	xorpd	%xmm0, %xmm0
-	subsd	-56(%rbp), %xmm0
-	callq	writeReal
-	movw	$10, -84(%rbp)
-	leaq	-84(%rbp), %rax
-	movq	%rax, -200(%rbp)
-	leaq	-200(%rbp), %rdi
+.LBB19_2:                               # %if.exit
+	movswl	-20(%rbp), %eax
+	cmpl	$3, %eax
+	jl	.LBB19_4
+# %bb.3:                                # %if.then1
+	incw	-22(%rbp)
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rcx
+	movq	%rcx, %rsp
+	movw	$2611, -16(%rax)        # imm = 0xA33
+	movb	$0, -14(%rax)
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rdi
+	movq	%rdi, %rsp
+	movq	%rcx, -16(%rax)
 	callq	writeString
-	movq	%r12, -739(%rbp)
-	movq	%r15, -731(%rbp)
-	movw	$29479, -723(%rbp)      # imm = 0x7327
-	movabsq	$8391732706607784224, %rax # imm = 0x74756C6F73626120
-	movq	%rax, -721(%rbp)
-	movabsq	$4207898535199645797, %rax # imm = 0x3A65756C61762065
-	movq	%rax, -713(%rbp)
-	movw	$32, -705(%rbp)
-	leaq	-739(%rbp), %rax
-	movq	%rax, -192(%rbp)
-	leaq	-192(%rbp), %rdi
-	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	callq	fabs
-	callq	writeReal
-	movw	$10, -82(%rbp)
-	leaq	-82(%rbp), %rax
-	movq	%rax, -184(%rbp)
-	leaq	-184(%rbp), %rdi
-	callq	writeString
-	movq	%r12, -473(%rbp)
-	movq	%r15, %rbx
-	movq	%r15, -465(%rbp)
-	movw	$29479, -457(%rbp)      # imm = 0x7327
-	movabsq	$2334397744769233696, %rax # imm = 0x2065726175717320
-	movq	%rax, -455(%rbp)
-	movl	$1953460082, -447(%rbp) # imm = 0x746F6F72
-	movw	$8250, -443(%rbp)       # imm = 0x203A
-	movb	$0, -441(%rbp)
-	leaq	-473(%rbp), %rax
-	movq	%rax, -176(%rbp)
-	leaq	-176(%rbp), %rdi
-	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	ucomisd	.LCPI18_0, %xmm0
-	jb	.LBB18_2
-# %bb.1:
-	sqrtsd	%xmm0, %xmm0
-	jmp	.LBB18_3
-.LBB18_2:                               # %call.sqrt
-	callq	sqrt
-.LBB18_3:                               # %entry.split
-	callq	writeReal
+.LBB19_4:                               # %if.exit1
+	movw	$6, -18(%rbp)
+	movswl	-20(%rbp), %eax
+	cmpl	$6, %eax
+	jl	.LBB19_11
+	.p2align	4, 0x90
+.LBB19_5:                               # %while
+                                        # =>This Inner Loop Header: Depth=1
+	movzwl	-18(%rbp), %edi
+	decl	%edi
+	callq	prime
+	testb	$1, %al
+	je	.LBB19_7
+# %bb.6:                                # %if.then2
+                                        #   in Loop: Header=BB19_5 Depth=1
+	incw	-22(%rbp)
+	movzwl	-18(%rbp), %edi
+	decl	%edi
+	callq	writeInteger
 	movq	%rsp, %rax
 	leaq	-16(%rax), %rcx
 	movq	%rcx, %rsp
@@ -730,49 +619,25 @@ main:                                   # @main
 	movq	%rdi, %rsp
 	movq	%rcx, -16(%rax)
 	callq	writeString
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -32(%rax)
-	movq	%rbx, -24(%rax)
-	movw	$29479, -16(%rax)       # imm = 0x7327
-	movl	$1852404512, -14(%rax)  # imm = 0x6E697320
-	movw	$8250, -10(%rax)        # imm = 0x203A
-	movb	$0, -8(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	callq	sin
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -32(%rax)
-	movq	%rbx, -24(%rax)
-	movw	$29479, -16(%rax)       # imm = 0x7327
-	movl	$1936679712, -14(%rax)  # imm = 0x736F6320
-	movw	$8250, -10(%rax)        # imm = 0x203A
-	movb	$0, -8(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	callq	cos
-	callq	writeReal
+.LBB19_7:                               # %if.exit2
+                                        #   in Loop: Header=BB19_5 Depth=1
+	movzwl	-18(%rbp), %ebx
+	movzwl	-20(%rbp), %r14d
+	movl	%ebx, %edi
+	incl	%edi
+	callq	prime
+	cmpw	%r14w, %bx
+	je	.LBB19_10
+# %bb.8:                                # %if.exit2
+                                        #   in Loop: Header=BB19_5 Depth=1
+	testb	$1, %al
+	je	.LBB19_10
+# %bb.9:                                # %if.then3
+                                        #   in Loop: Header=BB19_5 Depth=1
+	incw	-22(%rbp)
+	movzwl	-18(%rbp), %edi
+	incl	%edi
+	callq	writeInteger
 	movq	%rsp, %rax
 	leaq	-16(%rax), %rcx
 	movq	%rcx, %rsp
@@ -782,23 +647,14 @@ main:                                   # @main
 	movq	%rdi, %rsp
 	movq	%rcx, -16(%rax)
 	callq	writeString
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -32(%rax)
-	movq	%rbx, -24(%rax)
-	movw	$29479, -16(%rax)       # imm = 0x7327
-	movl	$1851880480, -14(%rax)  # imm = 0x6E617420
-	movw	$8250, -10(%rax)        # imm = 0x203A
-	movb	$0, -8(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	callq	tan
-	callq	writeReal
+.LBB19_10:                              # %if.exit3
+                                        #   in Loop: Header=BB19_5 Depth=1
+	movzwl	-18(%rbp), %eax
+	addl	$6, %eax
+	movw	%ax, -18(%rbp)
+	cmpw	-20(%rbp), %ax
+	jle	.LBB19_5
+.LBB19_11:                              # %while.exit
 	movq	%rsp, %rax
 	leaq	-16(%rax), %rcx
 	movq	%rcx, %rsp
@@ -808,1891 +664,31 @@ main:                                   # @main
 	movq	%rdi, %rsp
 	movq	%rcx, -16(%rax)
 	callq	writeString
+	movzwl	-22(%rbp), %edi
+	callq	writeInteger
 	movq	%rsp, %rax
 	leaq	-32(%rax), %rcx
 	movq	%rcx, %rsp
-	movq	%r12, -32(%rax)
-	movq	%rbx, -24(%rax)
-	movw	$29479, -16(%rax)       # imm = 0x7327
-	movabsq	$4210409854150533408, %rdx # imm = 0x3A6E617463726120
-	movq	%rdx, -14(%rax)
-	movw	$32, -6(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	callq	arctan
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movabsq	$7286950810128377160, %rdx # imm = 0x6520732765726548
+	movabsq	$7935454064021762080, %rdx # imm = 0x6E20656D69727020
 	movq	%rdx, -32(%rax)
-	movabsq	$2334102053248397856, %rdx # imm = 0x2064657369617220
+	movabsq	$2986775449669102965, %rdx # imm = 0x2973287265626D75
 	movq	%rdx, -24(%rax)
-	movw	$28532, -16(%rax)       # imm = 0x6F74
-	movq	%r14, -14(%rax)
-	movl	$540699745, -6(%rax)    # imm = 0x203A6C61
-	movb	$0, -2(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	callq	exp
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%rbx, -40(%rax)
-	movw	$29479, -32(%rax)       # imm = 0x7327
-	movabsq	$7809649077626433056, %rdx # imm = 0x6C61727574616E20
-	movq	%rdx, -30(%rax)
-	movl	$1735355424, -22(%rax)  # imm = 0x676F6C20
-	movw	$29281, -18(%rax)       # imm = 0x7261
-	movl	$1835562089, -16(%rax)  # imm = 0x6D687469
-	movw	$8250, -12(%rax)        # imm = 0x203A
-	movb	$0, -10(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	callq	ln
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movabsq	$7310016643070193217, %rdx # imm = 0x6572656820646E41
-	movq	%rdx, -32(%rax)
-	movabsq	$2322205294599369511, %rdx # imm = 0x203A216970207327
-	movq	%rdx, -24(%rax)
-	movb	$0, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	callq	pi
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -32(%rax)
-	movq	%rbx, -24(%rax)
-	movw	$29728, -16(%rax)       # imm = 0x7420
-	movabsq	$7234316338069402994, %rdx # imm = 0x64657461636E7572
+	movw	$30496, -16(%rax)       # imm = 0x7720
+	movabsq	$7959390400868086373, %rdx # imm = 0x6E756F6620657265
 	movq	%rdx, -14(%rax)
-	movw	$8250, -6(%rax)         # imm = 0x203A
-	movb	$0, -4(%rax)
+	movl	$667236, -6(%rax)       # imm = 0xA2E64
 	movq	%rsp, %rax
 	leaq	-16(%rax), %rdi
 	movq	%rdi, %rsp
 	movq	%rcx, -16(%rax)
 	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	callq	trunc
-                                        # kill: def %ax killed %ax def %eax
-	movl	%eax, %edi
-	callq	writeInteger
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -32(%rax)
-	movq	%rbx, -24(%rax)
-	movw	$29216, -16(%rax)       # imm = 0x7220
-	movabsq	$2322278944502347119, %rdx # imm = 0x203A6465646E756F
-	movq	%rdx, -14(%rax)
-	movb	$0, -6(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	callq	round
-                                        # kill: def %ax killed %ax def %eax
-	movl	%eax, %edi
-	callq	writeInteger
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movabsq	$2334391967770110279, %rbx # imm = 0x20656D2065766947
-	movq	%rbx, %r14
-	movq	%r14, -32(%rax)
-	movabsq	$2322294320551632993, %rdx # imm = 0x203A726168632061
-	movq	%rdx, -24(%rax)
-	movb	$0, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	callq	readChar
-	movb	%al, -61(%rbp)
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -32(%rax)
-	movabsq	$8241983568020141423, %rdx # imm = 0x726168632072756F
-	movq	%rdx, -24(%rax)
-	movq	%rdx, %rbx
-	movw	$8250, -16(%rax)        # imm = 0x203A
-	movb	$0, -14(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movzbl	-61(%rbp), %edi
-	callq	writeChar
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -32(%rax)
-	movq	%rbx, -24(%rax)
-	movw	$29479, -16(%rax)       # imm = 0x7327
-	movabsq	$7142789588020576544, %rdx # imm = 0x6320494943534120
-	movq	%rdx, -14(%rax)
-	movl	$979723375, -6(%rax)    # imm = 0x3A65646F
-	movw	$32, -2(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movzbl	-61(%rbp), %edi
-	callq	ord
-                                        # kill: def %ax killed %ax def %eax
-	movl	%eax, %edi
-	callq	writeInteger
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r14, -32(%rax)
-	movabsq	$7450489176113311329, %r15 # imm = 0x6765746E69206E61
-	movq	%r15, -24(%rax)
-	movl	$540701285, -16(%rax)   # imm = 0x203A7265
-	movb	$0, -12(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	callq	readInteger
-	movw	%ax, -42(%rbp)
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r14, -32(%rax)
-	movabsq	$2338042655863172705, %rdx # imm = 0x20726568746F6E61
-	movq	%rdx, -24(%rax)
-	movw	$28265, -16(%rax)       # imm = 0x6E69
-	movabsq	$9071462256698740, %rdx # imm = 0x203A7265676574
-	movq	%rdx, -14(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	callq	readInteger
-	movw	%ax, -44(%rbp)
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8247620858620354674, %rdx # imm = 0x72756F79202B2072
-	movq	%rdx, -30(%rax)
-	movl	$1752461088, -22(%rax)  # imm = 0x68746F20
-	movw	$29285, -18(%rax)       # imm = 0x7265
-	movabsq	$8243108378414311712, %r14 # imm = 0x72656765746E6920
-	movq	%r14, -16(%rax)
-	movw	$8250, -8(%rax)         # imm = 0x203A
-	movb	$0, -6(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movzwl	-42(%rbp), %edi
-	addw	-44(%rbp), %di
-	callq	writeInteger
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8247620858620289138, %rdx # imm = 0x72756F79202A2072
-	movq	%rdx, -30(%rax)
-	movl	$1752461088, -22(%rax)  # imm = 0x68746F20
-	movw	$29285, -18(%rax)       # imm = 0x7265
-	movq	%r14, -16(%rax)
-	movw	$8250, -8(%rax)         # imm = 0x203A
-	movb	$0, -6(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movzwl	-42(%rbp), %edi
-	imulw	-44(%rbp), %di
-	callq	writeInteger
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8247620858620485746, %rdx # imm = 0x72756F79202D2072
-	movq	%rdx, -30(%rax)
-	movl	$1752461088, -22(%rax)  # imm = 0x68746F20
-	movw	$29285, -18(%rax)       # imm = 0x7265
-	movq	%r14, -16(%rax)
-	movw	$8250, -8(%rax)         # imm = 0x203A
-	movb	$0, -6(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movzwl	-42(%rbp), %edi
-	subw	-44(%rbp), %di
-	callq	writeInteger
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8247620858620616818, %rdx # imm = 0x72756F79202F2072
-	movq	%rdx, -30(%rax)
-	movl	$1752461088, -22(%rax)  # imm = 0x68746F20
-	movw	$29285, -18(%rax)       # imm = 0x7265
-	movq	%r14, -16(%rax)
-	movw	$8250, -8(%rax)         # imm = 0x203A
-	movb	$0, -6(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movswl	-42(%rbp), %eax
-	cvtsi2sdl	%eax, %xmm0
-	movswl	-44(%rbp), %eax
-	cvtsi2sdl	%eax, %xmm1
-	divsd	%xmm1, %xmm0
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8032487103338389618, %rdx # imm = 0x6F79207669642072
-	movq	%rdx, -30(%rax)
-	movl	$1864397429, -22(%rax)  # imm = 0x6F207275
-	movw	$26740, -18(%rax)       # imm = 0x6874
-	movabsq	$7450489176113312357, %rbx # imm = 0x6765746E69207265
-	movq	%rbx, -16(%rax)
-	movl	$540701285, -8(%rax)    # imm = 0x203A7265
-	movb	$0, -4(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movzwl	-42(%rbp), %eax
-	cwtd
-	idivw	-44(%rbp)
-                                        # kill: def %ax killed %ax def %eax
-	movl	%eax, %edi
-	callq	writeInteger
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8032487026130231410, %rdx # imm = 0x6F7920646F6D2072
-	movq	%rdx, -30(%rax)
-	movl	$1864397429, -22(%rax)  # imm = 0x6F207275
-	movw	$26740, -18(%rax)       # imm = 0x6874
-	movq	%rbx, -16(%rax)
-	movl	$540701285, -8(%rax)    # imm = 0x203A7265
-	movb	$0, -4(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movzwl	-42(%rbp), %eax
-	cwtd
-	idivw	-44(%rbp)
-                                        # kill: def %dx killed %dx def %edx
-	movl	%edx, %edi
-	callq	writeInteger
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8247620858621468786, %rdx # imm = 0x72756F79203C2072
-	movq	%rdx, -30(%rax)
-	movl	$1752461088, -22(%rax)  # imm = 0x68746F20
-	movw	$29285, -18(%rax)       # imm = 0x7265
-	movq	%r14, -16(%rax)
-	movw	$8250, -8(%rax)         # imm = 0x203A
-	movb	$0, -6(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movzwl	-42(%rbp), %eax
-	xorl	%edi, %edi
-	cmpw	-44(%rbp), %ax
-	setl	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8247620858621599858, %rdx # imm = 0x72756F79203E2072
-	movq	%rdx, -30(%rax)
-	movl	$1752461088, -22(%rax)  # imm = 0x68746F20
-	movw	$29285, -18(%rax)       # imm = 0x7265
-	movq	%r14, -16(%rax)
-	movw	$8250, -8(%rax)         # imm = 0x203A
-	movb	$0, -6(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movzwl	-42(%rbp), %eax
-	xorl	%edi, %edi
-	cmpw	-44(%rbp), %ax
-	setg	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8462115404225716338, %rdx # imm = 0x756F79203D3C2072
-	movq	%rdx, -30(%rax)
-	movl	$1953439858, -22(%rax)  # imm = 0x746F2072
-	movw	$25960, -18(%rax)       # imm = 0x6568
-	movabsq	$7306920471174914162, %rbx # imm = 0x656765746E692072
-	movq	%rbx, -16(%rax)
-	movl	$2112114, -8(%rax)      # imm = 0x203A72
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movzwl	-42(%rbp), %eax
-	xorl	%edi, %edi
-	cmpw	-44(%rbp), %ax
-	setle	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8462115404225847410, %rdx # imm = 0x756F79203D3E2072
-	movq	%rdx, -30(%rax)
-	movl	$1953439858, -22(%rax)  # imm = 0x746F2072
-	movw	$25960, -18(%rax)       # imm = 0x6568
-	movq	%rbx, -16(%rax)
-	movl	$2112114, -8(%rax)      # imm = 0x203A72
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movzwl	-42(%rbp), %eax
-	xorl	%edi, %edi
-	cmpw	-44(%rbp), %ax
-	setge	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8247620858621534322, %rdx # imm = 0x72756F79203D2072
-	movq	%rdx, -30(%rax)
-	movl	$1752461088, -22(%rax)  # imm = 0x68746F20
-	movw	$29285, -18(%rax)       # imm = 0x7265
-	movq	%r14, -16(%rax)
-	movw	$8250, -8(%rax)         # imm = 0x203A
-	movb	$0, -6(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movzwl	-42(%rbp), %eax
-	xorl	%edi, %edi
-	cmpw	-44(%rbp), %ax
-	sete	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8462115404242493554, %rdx # imm = 0x756F79203E3C2072
-	movq	%rdx, -30(%rax)
-	movl	$1953439858, -22(%rax)  # imm = 0x746F2072
-	movw	$25960, -18(%rax)       # imm = 0x6568
-	movq	%rbx, -16(%rax)
-	movl	$2112114, -8(%rax)      # imm = 0x203A72
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movzwl	-42(%rbp), %eax
-	xorl	%edi, %edi
-	cmpw	-44(%rbp), %ax
-	setne	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movabsq	$2334391967770110279, %rbx # imm = 0x20656D2065766947
-	movq	%rbx, -32(%rax)
-	movq	%r15, -24(%rax)
-	movl	$540701285, -16(%rax)   # imm = 0x203A7265
-	movb	$0, -12(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	callq	readInteger
-	movw	%ax, -42(%rbp)
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%rbx, -32(%rax)
-	movq	%rbx, %r15
-	movabsq	$2322287723432517729, %rdx # imm = 0x203A6C6165722061
-	movq	%rdx, -24(%rax)
-	movb	$0, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	callq	readReal
-	movsd	%xmm0, -56(%rbp)
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8247620858620354674, %rdx # imm = 0x72756F79202B2072
-	movq	%rdx, -30(%rax)
-	movabsq	$9071436419658272, %rbx # imm = 0x203A6C61657220
-	movq	%rbx, -22(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movswl	-42(%rbp), %eax
-	cvtsi2sdl	%eax, %xmm0
-	addsd	-56(%rbp), %xmm0
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8247620858620289138, %rdx # imm = 0x72756F79202A2072
-	movq	%rdx, -30(%rax)
-	movq	%rbx, -22(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movswl	-42(%rbp), %eax
-	xorps	%xmm0, %xmm0
-	cvtsi2sdl	%eax, %xmm0
-	mulsd	-56(%rbp), %xmm0
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8247620858620485746, %rdx # imm = 0x72756F79202D2072
-	movq	%rdx, -30(%rax)
-	movq	%rbx, -22(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movswl	-42(%rbp), %eax
-	xorps	%xmm0, %xmm0
-	cvtsi2sdl	%eax, %xmm0
-	subsd	-56(%rbp), %xmm0
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8247620858620616818, %rdx # imm = 0x72756F79202F2072
-	movq	%rdx, -30(%rax)
-	movq	%rbx, -22(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movswl	-42(%rbp), %eax
-	xorps	%xmm0, %xmm0
-	cvtsi2sdl	%eax, %xmm0
-	divsd	-56(%rbp), %xmm0
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8247620858621468786, %rdx # imm = 0x72756F79203C2072
-	movq	%rdx, -30(%rax)
-	movq	%rbx, -22(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	movswl	-42(%rbp), %eax
-	cvtsi2sdl	%eax, %xmm1
-	xorl	%edi, %edi
-	ucomisd	%xmm1, %xmm0
-	seta	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8247620858621599858, %rdx # imm = 0x72756F79203E2072
-	movq	%rdx, -30(%rax)
-	movq	%rbx, -22(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movswl	-42(%rbp), %eax
-	xorps	%xmm0, %xmm0
-	cvtsi2sdl	%eax, %xmm0
-	xorl	%edi, %edi
-	ucomisd	-56(%rbp), %xmm0
-	seta	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8462115404225716338, %rdx # imm = 0x756F79203D3C2072
-	movq	%rdx, -30(%rax)
-	movabsq	$2322287723432517746, %r14 # imm = 0x203A6C6165722072
-	movq	%r14, -22(%rax)
-	movb	$0, -14(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	movswl	-42(%rbp), %eax
-	xorps	%xmm1, %xmm1
-	cvtsi2sdl	%eax, %xmm1
-	xorl	%edi, %edi
-	ucomisd	%xmm1, %xmm0
-	setae	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8462115404225847410, %rdx # imm = 0x756F79203D3E2072
-	movq	%rdx, -30(%rax)
-	movq	%r14, -22(%rax)
-	movb	$0, -14(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movswl	-42(%rbp), %eax
-	xorps	%xmm0, %xmm0
-	cvtsi2sdl	%eax, %xmm0
-	xorl	%edi, %edi
-	ucomisd	-56(%rbp), %xmm0
-	setae	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8247620858621534322, %rdx # imm = 0x72756F79203D2072
-	movq	%rdx, -30(%rax)
-	movq	%rbx, -22(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movswl	-42(%rbp), %eax
-	xorps	%xmm0, %xmm0
-	cvtsi2sdl	%eax, %xmm0
-	cmpeqsd	-56(%rbp), %xmm0
-	movq	%xmm0, %rdi
-	andl	$1, %edi
-                                        # kill: def %edi killed %edi killed %rdi
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$25959, -32(%rax)       # imm = 0x6567
-	movabsq	$8462115404242493554, %rdx # imm = 0x756F79203E3C2072
-	movq	%rdx, -30(%rax)
-	movq	%r14, -22(%rax)
-	movb	$0, -14(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movswl	-42(%rbp), %eax
-	xorps	%xmm0, %xmm0
-	cvtsi2sdl	%eax, %xmm0
-	xorl	%edi, %edi
-	ucomisd	-56(%rbp), %xmm0
-	setne	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r15, %rbx
-	movq	%rbx, -32(%rax)
-	movabsq	$2322287723432517729, %rdx # imm = 0x203A6C6165722061
-	movq	%rdx, -24(%rax)
-	movb	$0, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	callq	readReal
-	movsd	%xmm0, -56(%rbp)
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%rbx, -32(%rax)
-	movabsq	$7450489176113311329, %rdx # imm = 0x6765746E69206E61
-	movq	%rdx, -24(%rax)
-	movl	$540701285, -16(%rax)   # imm = 0x203A7265
-	movb	$0, -12(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	callq	readInteger
-	movw	%ax, -42(%rbp)
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movabsq	$7809634769682199919, %rbx # imm = 0x6C6165722072756F
-	movq	%rbx, -40(%rax)
-	movw	$11040, -32(%rax)       # imm = 0x2B20
-	movabsq	$7955925892695292192, %r15 # imm = 0x6E692072756F7920
-	movq	%r15, -30(%rax)
-	movabsq	$9071462256698740, %r14 # imm = 0x203A7265676574
-	movq	%r14, -22(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movswl	-42(%rbp), %eax
-	xorps	%xmm0, %xmm0
-	cvtsi2sdl	%eax, %xmm0
-	addsd	-56(%rbp), %xmm0
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%rbx, -40(%rax)
-	movq	%rbx, %r13
-	movw	$10784, -32(%rax)       # imm = 0x2A20
-	movq	%r15, -30(%rax)
-	movq	%r14, -22(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movswl	-42(%rbp), %eax
-	xorps	%xmm0, %xmm0
-	cvtsi2sdl	%eax, %xmm0
-	mulsd	-56(%rbp), %xmm0
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$11552, -32(%rax)       # imm = 0x2D20
-	movq	%r15, -30(%rax)
-	movq	%r14, -22(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	movswl	-42(%rbp), %eax
-	cvtsi2sdl	%eax, %xmm1
-	subsd	%xmm1, %xmm0
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$12064, -32(%rax)       # imm = 0x2F20
-	movq	%r15, -30(%rax)
-	movq	%r14, -22(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	movswl	-42(%rbp), %eax
-	xorps	%xmm1, %xmm1
-	cvtsi2sdl	%eax, %xmm1
-	divsd	%xmm1, %xmm0
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$15392, -32(%rax)       # imm = 0x3C20
-	movq	%r15, -30(%rax)
-	movq	%r14, -22(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movswl	-42(%rbp), %eax
-	xorps	%xmm0, %xmm0
-	cvtsi2sdl	%eax, %xmm0
-	xorl	%edi, %edi
-	ucomisd	-56(%rbp), %xmm0
-	seta	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$15904, -32(%rax)       # imm = 0x3E20
-	movq	%r15, -30(%rax)
-	movq	%r14, -22(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	movswl	-42(%rbp), %eax
-	xorps	%xmm1, %xmm1
-	cvtsi2sdl	%eax, %xmm1
-	xorl	%edi, %edi
-	ucomisd	%xmm1, %xmm0
-	seta	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$15392, -32(%rax)       # imm = 0x3C20
-	movabsq	$7575180421944123453, %rbx # imm = 0x692072756F79203D
-	movq	%rbx, -30(%rax)
-	movabsq	$2322294337714877550, %r14 # imm = 0x203A72656765746E
-	movq	%r14, -22(%rax)
-	movb	$0, -14(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movswl	-42(%rbp), %eax
-	xorps	%xmm0, %xmm0
-	cvtsi2sdl	%eax, %xmm0
-	xorl	%edi, %edi
-	ucomisd	-56(%rbp), %xmm0
-	setae	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$15904, -32(%rax)       # imm = 0x3E20
-	movq	%rbx, -30(%rax)
-	movq	%r14, -22(%rax)
-	movb	$0, -14(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-56(%rbp), %xmm0        # xmm0 = mem[0],zero
-	movswl	-42(%rbp), %eax
-	xorps	%xmm1, %xmm1
-	cvtsi2sdl	%eax, %xmm1
-	xorl	%edi, %edi
-	ucomisd	%xmm1, %xmm0
-	setae	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$15648, -32(%rax)       # imm = 0x3D20
-	movq	%r15, -30(%rax)
-	movabsq	$9071462256698740, %rdx # imm = 0x203A7265676574
-	movq	%rdx, -22(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movswl	-42(%rbp), %eax
-	xorps	%xmm0, %xmm0
-	cvtsi2sdl	%eax, %xmm0
-	cmpeqsd	-56(%rbp), %xmm0
-	movq	%xmm0, %rdi
-	andl	$1, %edi
-                                        # kill: def %edi killed %edi killed %rdi
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$15392, -32(%rax)       # imm = 0x3C20
-	movabsq	$7575180421944123454, %rdx # imm = 0x692072756F79203E
-	movq	%rdx, -30(%rax)
-	movq	%r14, -22(%rax)
-	movb	$0, -14(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movswl	-42(%rbp), %eax
-	xorps	%xmm0, %xmm0
-	cvtsi2sdl	%eax, %xmm0
-	xorl	%edi, %edi
-	ucomisd	-56(%rbp), %xmm0
-	setne	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movabsq	$2334391967770110279, %rbx # imm = 0x20656D2065766947
-	movq	%rbx, -32(%rax)
-	movabsq	$2322287723432517729, %rdx # imm = 0x203A6C6165722061
-	movq	%rdx, -24(%rax)
-	movb	$0, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	callq	readReal
-	movsd	%xmm0, -80(%rbp)
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%rbx, -32(%rax)
-	movabsq	$2338042655863172705, %rdx # imm = 0x20726568746F6E61
-	movq	%rdx, -24(%rax)
-	movw	$25970, -16(%rax)       # imm = 0x6572
-	movl	$540699745, -14(%rax)   # imm = 0x203A6C61
-	movb	$0, -10(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	callq	readReal
-	movsd	%xmm0, -72(%rbp)
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$11040, -32(%rax)       # imm = 0x2B20
-	movabsq	$8389960306783123744, %r15 # imm = 0x746F2072756F7920
-	movq	%r15, -30(%rax)
-	movabsq	$7809634769682195816, %r14 # imm = 0x6C61657220726568
-	movq	%r14, -22(%rax)
-	movw	$8250, -14(%rax)        # imm = 0x203A
-	movb	$0, -12(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-80(%rbp), %xmm0        # xmm0 = mem[0],zero
-	addsd	-72(%rbp), %xmm0
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$10784, -32(%rax)       # imm = 0x2A20
-	movq	%r15, -30(%rax)
-	movq	%r14, -22(%rax)
-	movw	$8250, -14(%rax)        # imm = 0x203A
-	movb	$0, -12(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-80(%rbp), %xmm0        # xmm0 = mem[0],zero
-	mulsd	-72(%rbp), %xmm0
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$11552, -32(%rax)       # imm = 0x2D20
-	movq	%r15, -30(%rax)
-	movq	%r14, -22(%rax)
-	movw	$8250, -14(%rax)        # imm = 0x203A
-	movb	$0, -12(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-80(%rbp), %xmm0        # xmm0 = mem[0],zero
-	subsd	-72(%rbp), %xmm0
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$12064, -32(%rax)       # imm = 0x2F20
-	movq	%r15, -30(%rax)
-	movq	%r14, -22(%rax)
-	movw	$8250, -14(%rax)        # imm = 0x203A
-	movb	$0, -12(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-80(%rbp), %xmm0        # xmm0 = mem[0],zero
-	divsd	-72(%rbp), %xmm0
-	callq	writeReal
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$15392, -32(%rax)       # imm = 0x3C20
-	movq	%r15, -30(%rax)
-	movq	%r14, -22(%rax)
-	movw	$8250, -14(%rax)        # imm = 0x203A
-	movb	$0, -12(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-72(%rbp), %xmm0        # xmm0 = mem[0],zero
-	xorl	%edi, %edi
-	ucomisd	-80(%rbp), %xmm0
-	seta	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$15904, -32(%rax)       # imm = 0x3E20
-	movq	%r15, -30(%rax)
-	movq	%r14, -22(%rax)
-	movw	$8250, -14(%rax)        # imm = 0x203A
-	movb	$0, -12(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-80(%rbp), %xmm0        # xmm0 = mem[0],zero
-	xorl	%edi, %edi
-	ucomisd	-72(%rbp), %xmm0
-	seta	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$15392, -32(%rax)       # imm = 0x3C20
-	movabsq	$8007525986171691069, %rbx # imm = 0x6F2072756F79203D
-	movq	%rbx, -30(%rax)
-	movl	$1919248500, -22(%rax)  # imm = 0x72656874
-	movw	$29216, -18(%rax)       # imm = 0x7220
-	movl	$980181349, -16(%rax)   # imm = 0x3A6C6165
-	movw	$32, -12(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-72(%rbp), %xmm0        # xmm0 = mem[0],zero
-	xorl	%edi, %edi
-	ucomisd	-80(%rbp), %xmm0
-	setae	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$15904, -32(%rax)       # imm = 0x3E20
-	movq	%rbx, -30(%rax)
-	movl	$1919248500, -22(%rax)  # imm = 0x72656874
-	movw	$29216, -18(%rax)       # imm = 0x7220
-	movl	$980181349, -16(%rax)   # imm = 0x3A6C6165
-	movw	$32, -12(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-80(%rbp), %xmm0        # xmm0 = mem[0],zero
-	xorl	%edi, %edi
-	ucomisd	-72(%rbp), %xmm0
-	setae	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$15648, -32(%rax)       # imm = 0x3D20
-	movq	%r15, -30(%rax)
-	movq	%r14, -22(%rax)
-	movw	$8250, -14(%rax)        # imm = 0x203A
-	movb	$0, -12(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-72(%rbp), %xmm0        # xmm0 = mem[0],zero
-	cmpeqsd	-80(%rbp), %xmm0
-	movq	%xmm0, %rdi
-	andl	$1, %edi
-                                        # kill: def %edi killed %edi killed %rdi
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%r13, -40(%rax)
-	movw	$15392, -32(%rax)       # imm = 0x3C20
-	movabsq	$8007525986171691070, %rdx # imm = 0x6F2072756F79203E
-	movq	%rdx, -30(%rax)
-	movl	$1919248500, -22(%rax)  # imm = 0x72656874
-	movw	$29216, -18(%rax)       # imm = 0x7220
-	movl	$980181349, -16(%rax)   # imm = 0x3A6C6165
-	movw	$32, -12(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movsd	-80(%rbp), %xmm0        # xmm0 = mem[0],zero
-	xorl	%edi, %edi
-	ucomisd	-72(%rbp), %xmm0
-	setne	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movabsq	$2334391967770110279, %rbx # imm = 0x20656D2065766947
-	movq	%rbx, -32(%rax)
-	movabsq	$7018134820192657505, %rdx # imm = 0x61656C6F6F622061
-	movq	%rdx, -24(%rax)
-	movl	$2112110, -16(%rax)     # imm = 0x203A6E
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	callq	readBoolean
-	andb	$1, %al
-	movb	%al, -46(%rbp)
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%rbx, -32(%rax)
-	movabsq	$2338042655863172705, %r14 # imm = 0x20726568746F6E61
-	movq	%r14, -24(%rax)
-	movw	$28514, -16(%rax)       # imm = 0x6F62
-	movabsq	$9071445009591407, %rdx # imm = 0x203A6E61656C6F
-	movq	%rdx, -14(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	callq	readBoolean
-	andb	$1, %al
-	movb	%al, -45(%rbp)
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movabsq	$7813586345752950127, %rbx # imm = 0x6C6F6F622072756F
-	movq	%rbx, -40(%rax)
-	movw	$24933, -32(%rax)       # imm = 0x6165
-	movabsq	$8032487026112667758, %rdx # imm = 0x6F7920646E61206E
-	movq	%rdx, -30(%rax)
-	movl	$1864397429, -22(%rax)  # imm = 0x6F207275
-	movw	$26740, -18(%rax)       # imm = 0x6874
-	movabsq	$7308338819493818981, %rdx # imm = 0x656C6F6F62207265
-	movq	%rdx, -16(%rax)
-	movl	$540700257, -8(%rax)    # imm = 0x203A6E61
-	movb	$0, -4(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movb	-45(%rbp), %al
-	andb	-46(%rbp), %al
-	movzbl	%al, %edi
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%rbx, -40(%rax)
-	movw	$24933, -32(%rax)       # imm = 0x6165
-	movabsq	$8462115405118251118, %rdx # imm = 0x756F7920726F206E
-	movq	%rdx, -30(%rax)
-	movl	$1953439858, -22(%rax)  # imm = 0x746F2072
-	movw	$25960, -18(%rax)       # imm = 0x6568
-	movabsq	$7018134820192657522, %r13 # imm = 0x61656C6F6F622072
-	movq	%r13, -16(%rax)
-	movl	$2112110, -8(%rax)      # imm = 0x203A6E
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movb	-45(%rbp), %al
-	orb	-46(%rbp), %al
-	movzbl	%al, %edi
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%rbx, -40(%rax)
-	movw	$24933, -32(%rax)       # imm = 0x6165
-	movabsq	$8247620858621534318, %rdx # imm = 0x72756F79203D206E
-	movq	%rdx, -30(%rax)
-	movl	$1752461088, -22(%rax)  # imm = 0x68746F20
-	movw	$29285, -18(%rax)       # imm = 0x7265
-	movabsq	$7953749933313450528, %rdx # imm = 0x6E61656C6F6F6220
-	movq	%rdx, -16(%rax)
-	movw	$8250, -8(%rax)         # imm = 0x203A
-	movb	$0, -6(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movb	-45(%rbp), %al
-	xorb	-46(%rbp), %al
-	xorb	$1, %al
-	movzbl	%al, %edi
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%rbx, -40(%rax)
-	movw	$24933, -32(%rax)       # imm = 0x6165
-	movabsq	$8462115404242493550, %rdx # imm = 0x756F79203E3C206E
-	movq	%rdx, -30(%rax)
-	movl	$1953439858, -22(%rax)  # imm = 0x746F2072
-	movw	$25960, -18(%rax)       # imm = 0x6568
-	movq	%r13, -16(%rax)
-	movl	$2112110, -8(%rax)      # imm = 0x203A6E
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movb	-45(%rbp), %al
-	xorb	-46(%rbp), %al
-	movzbl	%al, %edi
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movabsq	$2334391967770110279, %rbx # imm = 0x20656D2065766947
-	movq	%rbx, -32(%rax)
-	movabsq	$2322294320551632993, %rdx # imm = 0x203A726168632061
-	movq	%rdx, -24(%rax)
-	movb	$0, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	callq	readChar
-	movb	%al, -60(%rbp)
-	movq	%rsp, %rax
-	leaq	-32(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%rbx, -32(%rax)
-	movq	%r14, -24(%rax)
-	movw	$26723, -16(%rax)       # imm = 0x6863
-	movl	$540701281, -14(%rax)   # imm = 0x203A7261
-	movb	$0, -10(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	callq	readChar
-	movb	%al, -59(%rbp)
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movabsq	$8241983568020141423, %rbx # imm = 0x726168632072756F
-	movq	%rbx, -40(%rax)
-	movw	$15648, -32(%rax)       # imm = 0x3D20
-	movq	%r15, -30(%rax)
-	movabsq	$8241983568020137320, %rdx # imm = 0x7261686320726568
-	movq	%rdx, -22(%rax)
-	movw	$8250, -14(%rax)        # imm = 0x203A
-	movb	$0, -12(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movb	-60(%rbp), %al
-	xorl	%edi, %edi
-	cmpb	-59(%rbp), %al
-	sete	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movq	%rsp, %rax
-	leaq	-48(%rax), %rcx
-	movq	%rcx, %rsp
-	movq	%r12, -48(%rax)
-	movq	%rbx, -40(%rax)
-	movw	$15392, -32(%rax)       # imm = 0x3C20
-	movabsq	$8007525986171691070, %rdx # imm = 0x6F2072756F79203E
-	movq	%rdx, -30(%rax)
-	movl	$1919248500, -22(%rax)  # imm = 0x72656874
-	movw	$25376, -18(%rax)       # imm = 0x6320
-	movl	$980574568, -16(%rax)   # imm = 0x3A726168
-	movw	$32, -12(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	movb	-60(%rbp), %al
-	xorl	%edi, %edi
-	cmpb	-59(%rbp), %al
-	setne	%dil
-	callq	writeBoolean
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rcx
-	movq	%rcx, %rsp
-	movw	$10, -16(%rax)
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movq	%rcx, -16(%rax)
-	callq	writeString
-	leaq	-40(%rbp), %rsp
+	leaq	-16(%rbp), %rsp
 	popq	%rbx
-	popq	%r12
-	popq	%r13
 	popq	%r14
-	popq	%r15
 	popq	%rbp
 	retq
-.Lfunc_end18:
-	.size	main, .Lfunc_end18-main
+.Lfunc_end19:
+	.size	main, .Lfunc_end19-main
 	.cfi_endproc
                                         # -- End function
 	.type	.LscanfChar,@object     # @scanfChar
