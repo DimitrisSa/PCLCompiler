@@ -1,0 +1,11 @@
+program varFromParent;
+var x,y:integer;
+function ok(x:real):integer;
+  begin
+    result := y;
+  end;
+begin
+  y := 1;
+  x := ok();
+  writeInteger(x);
+end.

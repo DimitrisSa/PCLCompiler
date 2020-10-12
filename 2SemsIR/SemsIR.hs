@@ -67,7 +67,8 @@ headerBodySemsIR :: Header -> Body -> Sems ()
 headerBodySemsIR h b = do
   parentVarMap <- getVariableMap
   let parentFormals = toParFrmls (toList parentVarMap) h
-  headerParentSems parentFormals h
+  let parentFormalIds = concat $ map (\(_,ids,_) -> reverse ids) parentFormals
+  headerParentSems parentFormals parentFormalIds h
   (e,sms,m,cgen) <- get
   put $ (e,emptySymbolTable:sms,m,cgen)
   let codegen = do
@@ -128,8 +129,8 @@ lValExprTypeOpers lVal expr = do
 
 callStmtSemsIR :: Id -> [Expr] -> Sems ()
 callStmtSemsIR id exprs = searchCallableInSymTabs id >>= \case
-  (ProcDclr fs,_) -> mapM exprTypeOperBool exprs >>= callStmtSemsIR' id fs 
-  (Proc     fs,_) -> mapM exprTypeOperBool exprs >>= callStmtSemsIR' id fs
+  (ProcDclr fs,_)     -> mapM exprTypeOperBool exprs >>= callStmtSemsIR' id fs []
+  (Proc     fs ids,_) -> mapM exprTypeOperBool exprs >>= callStmtSemsIR' id fs ids
   _               -> errAtId "Use of function in call statement: " id
 
 ifThenSemsIR :: (Int,Int) -> Expr -> Stmt -> Sems ()
@@ -284,7 +285,7 @@ exprsTypeOpers exp1 exp2 = mapM exprTypeOper [exp1,exp2]
 
 callRValueSemsIR :: Id -> [Expr] -> Sems (Type,Operand)
 callRValueSemsIR id exprs = searchCallableInSymTabs id >>= \case
-  (FuncDclr fs t,_) -> mapM exprTypeOperBool exprs >>= callRValueSemsIR' id fs t 
-  (Func  fs t   ,_) -> mapM exprTypeOperBool exprs >>= callRValueSemsIR' id fs t
+  (FuncDclr fs t,_) -> mapM exprTypeOperBool exprs >>= callRValueSemsIR' id fs [] t 
+  (Func fs ids t,_) -> mapM exprTypeOperBool exprs >>= callRValueSemsIR' id fs ids t
   _                 -> errAtId "Use of procedure where a return value is required: " id
 

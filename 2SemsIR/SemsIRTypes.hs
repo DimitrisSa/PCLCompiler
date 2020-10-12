@@ -35,8 +35,8 @@ data BlockState
 data Env = InProc | InFunc Id P.Type Bool
 
 data Callable =
-  Proc [Frml]            |
-  Func [Frml] P.Type     |
+  Proc [Frml] [Id]            |
+  Func [Frml] [Id] P.Type     |
   ProcDclr [Frml]        |
   FuncDclr [Frml] P.Type
   deriving(Show,Eq)
@@ -145,8 +145,8 @@ calToOper cal name = consGlobalRef (calToTy cal) name
 
 calToTy :: Callable -> T.Type
 calToTy = \case
-  Proc frmls        -> procToTy frmls
-  Func frmls ty     -> funcToTy frmls ty
+  Proc frmls _       -> procToTy frmls
+  Func frmls _ ty     -> funcToTy frmls ty
   ProcDclr frmls    -> procToTy frmls
   FuncDclr frmls ty -> funcToTy frmls ty
 

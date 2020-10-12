@@ -1,26 +1,28 @@
 module BodySemsIRHelpers where
 import SemsCodegen (call,getElemPtrInBounds,callVoid,load,sitofp)
 import Parser (ArrSize(..),Frml,Id(..),idString,Type(..),PassBy(..))
-import SemsIRTypes (TyOper,TyOperBool,Sems,(>>>),errAtId,errPos,searchCallableInSymTabs)
+import SemsIRTypes (TyOper,TyOperBool,Sems,(>>>),errAtId,errPos,searchCallableInSymTabs
+                   ,searchVarInSymTabs)
 import Helpers (symbatos,formalsToTypes)
 import Control.Monad.Trans.Either (right)
 import LLVM.AST (Operand)
 import Data.List.Index (indexed)
 
-callStmtSemsIR' :: Id -> [Frml] -> [TyOperBool] -> Sems ()
-callStmtSemsIR' id fs typeOperBools = do
-  (funOp,args) <- callSemsIR id fs typeOperBools
+callStmtSemsIR' :: Id -> [Frml] -> [Id] -> [TyOperBool] -> Sems ()
+callStmtSemsIR' id fs pids typeOperBools = do
+  (funOp,args) <- callSemsIR id fs pids typeOperBools
   callVoid funOp args
 
-callRValueSemsIR' :: Id -> [Frml] -> Type -> [TyOperBool] -> Sems TyOper
-callRValueSemsIR' id fs t typeOperBools = do
-  (funOp,args) <- callSemsIR id fs typeOperBools
+callRValueSemsIR' :: Id -> [Frml] -> [Id]  -> Type -> [TyOperBool] -> Sems TyOper
+callRValueSemsIR' id fs pids t typeOperBools = do
+  (funOp,args) <- callSemsIR id fs pids typeOperBools
   op <- call funOp args
   right (t,op)
 
-callSemsIR :: Id -> [Frml] -> [TyOperBool] -> Sems (Operand,[Operand])
-callSemsIR id fs typeOperBools = do
-  args <- formalsExprsSemsIR id (formalsToTypes fs) typeOperBools
+callSemsIR :: Id -> [Frml] -> [Id] -> [TyOperBool] -> Sems (Operand,[Operand])
+callSemsIR id fs pids typeOperBools = do
+  pArgs <- mapM searchVarInSymTabs pids
+  args <- formalsExprsSemsIR id (formalsToTypes fs) $ typeOperBools ++ pArgs
   funOp <- idToFunOper id
   return (funOp,args)
 
