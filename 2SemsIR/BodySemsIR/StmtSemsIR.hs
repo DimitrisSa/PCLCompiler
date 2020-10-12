@@ -14,7 +14,7 @@ returnIR = getEnv >>= \case
   InProc            -> retVoid
   InFunc id ty bool -> do
     op <- lookupInVariableMap (dummy "result") >>= \case
-      Just (_,op,_) -> return op
+      Just (_,op) -> return op
       Nothing     -> error "Shouldn't happen"
     op <- load op
     ret op 

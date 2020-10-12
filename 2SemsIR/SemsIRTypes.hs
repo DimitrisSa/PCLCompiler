@@ -35,13 +35,13 @@ data BlockState
 data Env = InProc | InFunc Id P.Type Bool
 
 data Callable =
-  Proc [Frml] [Id]            |
-  Func [Frml] [Id] P.Type     |
+  Proc [Frml]            |
+  Func [Frml] P.Type     |
   ProcDclr [Frml]        |
   FuncDclr [Frml] P.Type
   deriving(Show,Eq)
 
-type VariableMap = Map Id TyOperBool
+type VariableMap = Map Id (P.Type,Operand)
 type LabelMap    = Map Id Bool
 type CallableMap = Map Id (Callable,Operand)
 
@@ -145,8 +145,8 @@ calToOper cal name = consGlobalRef (calToTy cal) name
 
 calToTy :: Callable -> T.Type
 calToTy = \case
-  Proc frmls _       -> procToTy frmls
-  Func frmls _ ty     -> funcToTy frmls ty
+  Proc frmls        -> procToTy frmls
+  Func frmls ty     -> funcToTy frmls ty
   ProcDclr frmls    -> procToTy frmls
   FuncDclr frmls ty -> funcToTy frmls ty
 
@@ -177,7 +177,7 @@ frmlToArgTypes (by,ids,ty) = replicate (length ids) $ case by of
 lookupInMap :: Sems (Map Id a) -> Id -> Sems (Maybe a)
 lookupInMap getMap id = getMap >>= lookup id >>> return
 
-lookupInVariableMap :: Id -> Sems (Maybe TyOperBool)
+lookupInVariableMap :: Id -> Sems (Maybe (P.Type,Operand))
 lookupInVariableMap = lookupInMap getVariableMap
 
 lookupInLabelMap :: Id -> Sems (Maybe Bool)
@@ -186,7 +186,7 @@ lookupInLabelMap = lookupInMap getLabelMap
 lookupInCallableMap :: Id -> Sems (Maybe (Callable,Operand))
 lookupInCallableMap = lookupInMap getCallableMap
 
-searchVarInSymTabs :: Id -> Sems TyOperBool
+searchVarInSymTabs :: Id -> Sems (P.Type,Operand)
 searchVarInSymTabs id =
   getSymTabs >>= searchInSymTabs variableMap id "Undeclared variable: "
 

@@ -17,8 +17,7 @@ resultTypeOper posn = getEnv >>= \case
   InFunc id ty _ -> do
     setEnv (InFunc id ty True)
     insToVariableMap (dummy "result") ty
-    (ty,oper,_) <- searchVarInSymTabs (dummy "result")
-    return (ty,oper)
+    searchVarInSymTabs (dummy "result")
   InProc         -> errPos posn "Result in procedure"
 
 dereferenceCases :: (Int,Int) -> TyOper -> Sems TyOper

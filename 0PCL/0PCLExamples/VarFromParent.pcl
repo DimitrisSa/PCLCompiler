@@ -1,6 +1,6 @@
 program varFromParent;
 var x,y:integer;
-function ok(x:real):integer;
+function ok():integer;
   begin
     result := y;
   end;

@@ -17,8 +17,8 @@ varsWithTypeSemsIR (vars,ty) = mapM_ (insToSymTabVarWithType ty) $ reverse vars
 insToSymTabVarWithType :: Type -> Id -> Sems ()
 insToSymTabVarWithType ty id = do
   lookupInVariableMap id >>= \case 
-    Just (_,_,True) -> errAtId "Duplicate Variable: " id
-    _               -> return ()
+    Nothing -> return ()
+    _       -> errAtId "Duplicate Variable: " id
   case fullType ty of
     True -> return ()
     _    -> errAtId "Can't declare 'array of': " id
@@ -56,35 +56,28 @@ insToSymTabLabels = mapM_ $ \label -> lookupInLabelMap label >>= \case
   Nothing -> insToLabelMap label False
   _       -> errAtId "Duplicate label declaration: " label
 
-headerChildSems :: [Frml] -> Header -> Sems ()
-headerChildSems pfs = \case
-  ProcHeader _ fs     -> headerChildSems' (trueFrmls fs ++ falseFrmls pfs) 
-  FuncHeader id fs ty -> headerChildSems' (trueFrmls fs ++ falseFrmls pfs) >>
-                         setEnv (InFunc id ty False)
+headerChildSems :: Header -> Sems ()
+headerChildSems = \case
+  ProcHeader _ fs     -> headerChildSems' fs
+  FuncHeader id fs ty -> headerChildSems' fs >> setEnv (InFunc id ty False)
 
-trueFrmls :: [Frml] -> [(Bool,Frml)]
-trueFrmls = map (\f -> (True,f))
-
-falseFrmls :: [Frml] -> [(Bool,Frml)]
-falseFrmls = map (\f -> (False,f))
-
-headerChildSems' :: [(Bool,Frml)] -> Sems ()
-headerChildSems' bfs = do
-  let n = sum $ map (\(_,(_,ids,_)) -> length ids) bfs
-  insToSymTabFrmls n $ reverse bfs
+headerChildSems' :: [Frml] -> Sems ()
+headerChildSems' fs = do
+  let n = sum $ map (\(_,ids,_) -> length ids) fs
+  insToSymTabFrmls n $ reverse fs
   setCount $ 2*n
 
-insToSymTabFrmls :: Int -> [(Bool,Frml)] -> Sems ()
+insToSymTabFrmls :: Int -> [Frml] -> Sems ()
 insToSymTabFrmls n = mapM_ (insToSymTabFrml n)
 
-insToSymTabFrml :: Int -> (Bool,Frml) -> Sems ()
-insToSymTabFrml n (b,(by,ids,t)) = mapM_ (insToSymTabVar n by t b) $ reverse ids
+insToSymTabFrml :: Int -> Frml -> Sems ()
+insToSymTabFrml n (by,ids,t) = mapM_ (insToSymTabVar n by t) $ reverse ids
 
-insToSymTabVar :: Int -> PassBy -> Type -> Bool -> Id -> Sems ()
-insToSymTabVar n by ty b var = lookupInVariableMap var >>= \case
+insToSymTabVar :: Int -> PassBy -> Type -> Id -> Sems ()
+insToSymTabVar n by ty var = lookupInVariableMap var >>= \case
   Nothing -> case by of
     Val -> insToVariableMapFormalVal var ty n
-    Ref -> insToVariableMapFormalRef var ty b n 
+    Ref -> insToVariableMapFormalRef var ty n
   _       -> errAtId "Duplicate Argument: " var
 
 checkResult :: Sems ()
@@ -92,35 +85,31 @@ checkResult = getEnv >>= \case
   InFunc id _ False -> errAtId "Result not set for function: " id
   _                 -> return ()
 
-headerParentSems :: [Frml] -> [Id] -> Header -> Sems ()
-headerParentSems pfs ids = \case
-  ProcHeader id fs    -> lookupInCallableMap id >>= procCases id (reverse fs) pfs ids 
-  FuncHeader id fs ty -> lookupInCallableMap id >>= funcCases id (reverse fs) pfs ids ty
+headerParentSems :: Header -> Sems ()
+headerParentSems = \case
+  ProcHeader id fs    -> lookupInCallableMap id >>= procCases id (reverse fs)
+  FuncHeader id fs ty -> lookupInCallableMap id >>= funcCases id (reverse fs) ty
 
-procCases :: Id -> [Frml] -> [Frml] -> [Id] -> Maybe (Callable,Operand) -> Sems ()
-procCases id fs pfs ids = \case
-  Just (ProcDclr fs',_) -> insToSymTabIfFrmlsMatch id fs fs' pfs ids
-  Nothing               -> checkFrmls id fs >> insToCallableMap id (Proc (fs ++ pfs) ids)
+procCases :: Id -> [Frml] -> Maybe (Callable,Operand) -> Sems ()
+procCases id fs = \case
+  Just (ProcDclr fs',_) -> insToSymTabIfFrmlsMatch id fs fs'
+  Nothing               -> checkFrmls id fs >> insToCallableMap id (Proc fs)
   _                     -> errAtId duplicateCallableErr id
 
-funcCases :: Id -> [Frml] -> [Frml] -> [Id] -> Type -> Maybe (Callable,Operand) -> Sems ()
-funcCases id fs pfs ids ty = \case
-  Just (FuncDclr fs' ty',_) -> insToSymTabIfFrmlsAndTypeMatch id fs fs' pfs ids ty ty'
-  Nothing                   -> do
-    checkFrmlsType id fs ty
-    insToCallableMap id (Func (fs ++ pfs) ids ty)
+funcCases :: Id -> [Frml] -> Type -> Maybe (Callable,Operand) -> Sems ()
+funcCases id fs ty = \case
+  Just (FuncDclr fs' ty',_) -> insToSymTabIfFrmlsAndTypeMatch id fs fs' ty ty'
+  Nothing                   -> checkFrmlsType id fs ty >> insToCallableMap id (Func fs ty)
   _                         -> errAtId duplicateCallableErr id
 
-insToSymTabIfFrmlsMatch :: Id -> [Frml] -> [Frml] -> [Frml] -> [Id] -> Sems ()
-insToSymTabIfFrmlsMatch id fs fs' pfs ids = do
-  sameTypes id fs fs'
-  insToCallableMap id (Proc (fs ++ pfs) ids)
+insToSymTabIfFrmlsMatch :: Id -> [Frml] -> [Frml] -> Sems ()
+insToSymTabIfFrmlsMatch id fs fs' = sameTypes id fs fs' >> insToCallableMap id (Proc fs)
 
-insToSymTabIfFrmlsAndTypeMatch :: Id -> [Frml] -> [Frml] -> [Frml] -> [Id] -> Type -> Type -> Sems ()
-insToSymTabIfFrmlsAndTypeMatch id fs fs' pfs ids ty ty' = do
+insToSymTabIfFrmlsAndTypeMatch :: Id -> [Frml] -> [Frml] -> Type -> Type -> Sems ()
+insToSymTabIfFrmlsAndTypeMatch id fs fs' ty ty' = do
   sameTypes id fs fs'
   case ty == ty' of
-    True -> insToCallableMap id (Func (fs ++ pfs) ids ty)
+    True -> insToCallableMap id (Func fs ty)
     _    -> errAtId "Result type missmatch between declaration and definition for: " id
 
 
