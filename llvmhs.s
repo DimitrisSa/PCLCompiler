@@ -447,51 +447,68 @@ main:                                   # @main
 	.cfi_offset %rbp, -16
 	movq	%rsp, %rbp
 	.cfi_def_cfa_register %rbp
-	subq	$80, %rsp
-	movabsq	$2334391967770110279, %rax # imm = 0x20656D2065766947
-	movq	%rax, -70(%rbp)
-	movabsq	$7450489176113311329, %rax # imm = 0x6765746E69206E61
-	movq	%rax, -62(%rbp)
-	movw	$29285, -54(%rbp)       # imm = 0x7265
-	movabsq	$7793278083660669216, %rax # imm = 0x6C274920646E6120
-	movq	%rax, -52(%rbp)
-	movl	$1702109292, -44(%rbp)  # imm = 0x6574206C
-	movw	$27756, -40(%rbp)       # imm = 0x6C6C
-	movabsq	$2334669044968290592, %rax # imm = 0x20666920756F7920
-	movq	%rax, -38(%rbp)
-	movl	$1931965545, -30(%rbp)  # imm = 0x73277469
-	movabsq	$8532478965287186464, %rax # imm = 0x76697469736F7020
-	movq	%rax, -26(%rbp)
-	movw	$8293, -18(%rbp)        # imm = 0x2065
-	movabsq	$8386097666477552239, %rax # imm = 0x746167656E20726F
-	movq	%rax, -16(%rbp)
-	movl	$979727977, -8(%rbp)    # imm = 0x3A657669
-	movw	$32, -4(%rbp)
-	leaq	-70(%rbp), %rdi
+	subq	$48, %rsp
+	movabsq	$2322289643283179847, %rax # imm = 0x203A6E2065766947
+	movq	%rax, -34(%rbp)
+	movb	$0, -26(%rbp)
+	leaq	-34(%rbp), %rdi
+	callq	writeString
+	callq	readInteger
+	movw	%ax, -8(%rbp)
+	movabsq	$2322286344748296519, %rax # imm = 0x203A6B2065766947
+	movq	%rax, -25(%rbp)
+	movb	$0, -17(%rbp)
+	leaq	-25(%rbp), %rdi
 	callq	writeString
 	callq	readInteger
 	movw	%ax, -2(%rbp)
+	movw	$0, -6(%rbp)
+	movq	$0, -16(%rbp)
+	movw	$65, -4(%rbp)
 	testw	%ax, %ax
-	js	.LBB18_2
-# %bb.1:                                # %if.then
+	jle	.LBB18_2
+	.p2align	4, 0x90
+.LBB18_1:                               # %while
+                                        # =>This Inner Loop Header: Depth=1
+	movzwl	-4(%rbp), %eax
+	imull	$137, %eax, %eax
+	movzwl	-6(%rbp), %ecx
+	leal	221(%rax,%rcx), %eax
+                                        # kill: def %ax killed %ax killed %eax
+	cwtd
+	idivw	-8(%rbp)
+	movw	%dx, -4(%rbp)
+	movswl	%dx, %eax
+	xorps	%xmm0, %xmm0
+	cvtsi2sdl	%eax, %xmm0
+	addsd	-16(%rbp), %xmm0
+	movsd	%xmm0, -16(%rbp)
+	incl	%ecx
+	movw	%cx, -6(%rbp)
+	cmpw	-2(%rbp), %cx
+	jl	.LBB18_1
+.LBB18_2:                               # %while.exit
+	cmpw	$0, -2(%rbp)
+	jle	.LBB18_4
+# %bb.3:                                # %if.then
 	movq	%rsp, %rax
 	leaq	-16(%rax), %rdi
 	movq	%rdi, %rsp
-	movabsq	$8317990321449825353, %rcx # imm = 0x736F702073277449
-	movq	%rcx, -16(%rax)
-	movl	$1986622569, -8(%rax)   # imm = 0x76697469
-	jmp	.LBB18_3
-.LBB18_2:                               # %if.else
-	movq	%rsp, %rax
-	leaq	-16(%rax), %rdi
-	movq	%rdi, %rsp
-	movabsq	$7450482244204328009, %rcx # imm = 0x67656E2073277449
-	movq	%rcx, -16(%rax)
-	movl	$1986622561, -8(%rax)   # imm = 0x76697461
-.LBB18_3:                               # %if.exit
-	movw	$2661, -4(%rax)         # imm = 0xA65
-	movb	$0, -2(%rax)
+	movl	$1851876685, -16(%rax)  # imm = 0x6E61654D
+	movw	$8250, -12(%rax)        # imm = 0x203A
+	movb	$0, -10(%rax)
 	callq	writeString
+	movsd	-16(%rbp), %xmm0        # xmm0 = mem[0],zero
+	movswl	-2(%rbp), %eax
+	cvtsi2sdl	%eax, %xmm1
+	divsd	%xmm1, %xmm0
+	callq	writeReal
+	movq	%rsp, %rax
+	leaq	-16(%rax), %rdi
+	movq	%rdi, %rsp
+	movw	$10, -16(%rax)
+	callq	writeString
+.LBB18_4:                               # %if.exit
 	movq	%rbp, %rsp
 	popq	%rbp
 	retq
