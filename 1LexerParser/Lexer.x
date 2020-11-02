@@ -1,5 +1,7 @@
 {
 module Lexer where
+import LongDouble
+import Data.Word
 }
 
 %wrapper "monad"
@@ -60,7 +62,7 @@ tokens :-
   while                 { \(p,_,_,_) _ -> return $ TWhile         p }
   @id                   { \(p,_,_,s) l -> return $ TId            (take l s) p }
   @int                  { \(p,_,_,s) l -> return $ TIntconst      (read $ take l s) p }
-  @real                 { \(p,_,_,s) l -> return $ TRealconst     (read $ take l s) p }
+  @real                 { \(p,_,_,s) l -> return $ TRealconst (x8680Read $ take l s) p }
   @comment              ;
   @char                 { \(p,_,_,s) l -> return $ TCharconst     (read $ take l s) p }
   @string               { \(p,_,_,s) l ->
@@ -89,64 +91,64 @@ tokens :-
 
 {
 data Token =
-  TAnd                {posn :: AlexPosn} |
-  TArray              {posn :: AlexPosn} |
-  TBegin              {posn :: AlexPosn} |
-  TBoolean            {posn :: AlexPosn} |
-  TChar               {posn :: AlexPosn} |
-  TDispose            {posn :: AlexPosn} |
-  TDivInt             {posn :: AlexPosn} |
-  TDo                 {posn :: AlexPosn} |
-  TElse               {posn :: AlexPosn} |
-  TEnd                {posn :: AlexPosn} |
-  TFalse              {posn :: AlexPosn} |
-  TForward            {posn :: AlexPosn} |
-  TFunction           {posn :: AlexPosn} |
-  TGoto               {posn :: AlexPosn} |
-  TIf                 {posn :: AlexPosn} |
-  TInteger            {posn :: AlexPosn} |
-  TLabel              {posn :: AlexPosn} |
-  TMod                {posn :: AlexPosn} |
-  TNew                {posn :: AlexPosn} |
-  TNil                {posn :: AlexPosn} |
-  TNot                {posn :: AlexPosn} |
-  TOf                 {posn :: AlexPosn} |
-  TOr                 {posn :: AlexPosn} |
-  TProcedure          {posn :: AlexPosn} |
-  TProgram            {posn :: AlexPosn} |
-  TReal               {posn :: AlexPosn} |
-  TResult             {posn :: AlexPosn} |
-  TReturn             {posn :: AlexPosn} |
-  TThen               {posn :: AlexPosn} |
-  TTrue               {posn :: AlexPosn} |
-  TVar                {posn :: AlexPosn} |
-  TWhile              {posn :: AlexPosn} |
-  TId          {getId    ::String,posn :: AlexPosn} |
-  TIntconst    {getInt   ::Int   ,posn :: AlexPosn} |
-  TRealconst   {getReal  ::Double,posn :: AlexPosn} |
-  TCharconst   {getChar  ::Char  ,posn :: AlexPosn} |
-  TStringconst {getString::String,posn :: AlexPosn} |
-  TLogiceq            {posn :: AlexPosn} |
-  TGreater            {posn :: AlexPosn} |
-  TSmaller            {posn :: AlexPosn} |
-  TDifferent          {posn :: AlexPosn} |
-  TGreaterequal       {posn :: AlexPosn} |
-  TSmallerequal       {posn :: AlexPosn} |
-  TAdd                {posn :: AlexPosn} |
-  TMinus              {posn :: AlexPosn} |
-  TMul                {posn :: AlexPosn} |
-  TDivReal            {posn :: AlexPosn} |
-  TPointer            {posn :: AlexPosn} |
-  TAdress             {posn :: AlexPosn} |
-  TEq                 {posn :: AlexPosn} |
-  TSeperator          {posn :: AlexPosn} |
-  TDot                {posn :: AlexPosn} |
-  TLeftparen          {posn :: AlexPosn} |
-  TRightparen         {posn :: AlexPosn} |
-  TUpdown             {posn :: AlexPosn} |
-  TComma              {posn :: AlexPosn} |
-  TLeftbracket        {posn :: AlexPosn} |
-  TRightbracket       {posn :: AlexPosn} |
+  TAnd          {posn :: AlexPosn}                   |
+  TArray        {posn :: AlexPosn}                   |
+  TBegin        {posn :: AlexPosn}                   |
+  TBoolean      {posn :: AlexPosn}                   |
+  TChar         {posn :: AlexPosn}                   |
+  TDispose      {posn :: AlexPosn}                   |
+  TDivInt       {posn :: AlexPosn}                   |
+  TDo           {posn :: AlexPosn}                   |
+  TElse         {posn :: AlexPosn}                   |
+  TEnd          {posn :: AlexPosn}                   |
+  TFalse        {posn :: AlexPosn}                   |
+  TForward      {posn :: AlexPosn}                   |
+  TFunction     {posn :: AlexPosn}                   |
+  TGoto         {posn :: AlexPosn}                   |
+  TIf           {posn :: AlexPosn}                   |
+  TInteger      {posn :: AlexPosn}                   |
+  TLabel        {posn :: AlexPosn}                   |
+  TMod          {posn :: AlexPosn}                   |
+  TNew          {posn :: AlexPosn}                   |
+  TNil          {posn :: AlexPosn}                   |
+  TNot          {posn :: AlexPosn}                   |
+  TOf           {posn :: AlexPosn}                   |
+  TOr           {posn :: AlexPosn}                   |
+  TProcedure    {posn :: AlexPosn}                   |
+  TProgram      {posn :: AlexPosn}                   |
+  TReal         {posn :: AlexPosn}                   |
+  TResult       {posn :: AlexPosn}                   |
+  TReturn       {posn :: AlexPosn}                   |
+  TThen         {posn :: AlexPosn}                   |
+  TTrue         {posn :: AlexPosn}                   |
+  TVar          {posn :: AlexPosn}                   |
+  TWhile        {posn :: AlexPosn}                   |
+  TId           {getId    ::String,posn :: AlexPosn} |
+  TIntconst     {getInt   ::Int   ,posn :: AlexPosn} |
+  TRealconst    {getReal  ::(Word16,Word64),posn :: AlexPosn} |
+  TCharconst    {getChar  ::Char  ,posn :: AlexPosn} |
+  TStringconst  {getString::String,posn :: AlexPosn} |
+  TLogiceq      {posn :: AlexPosn}                   |
+  TGreater      {posn :: AlexPosn}                   |
+  TSmaller      {posn :: AlexPosn}                   |
+  TDifferent    {posn :: AlexPosn}                   |
+  TGreaterequal {posn :: AlexPosn}                   |
+  TSmallerequal {posn :: AlexPosn}                   |
+  TAdd          {posn :: AlexPosn}                   |
+  TMinus        {posn :: AlexPosn}                   |
+  TMul          {posn :: AlexPosn}                   |
+  TDivReal      {posn :: AlexPosn}                   |
+  TPointer      {posn :: AlexPosn}                   |
+  TAdress       {posn :: AlexPosn}                   |
+  TEq           {posn :: AlexPosn}                   |
+  TSeperator    {posn :: AlexPosn}                   |
+  TDot          {posn :: AlexPosn}                   |
+  TLeftparen    {posn :: AlexPosn}                   |
+  TRightparen   {posn :: AlexPosn}                   |
+  TUpdown       {posn :: AlexPosn}                   |
+  TComma        {posn :: AlexPosn}                   |
+  TLeftbracket  {posn :: AlexPosn}                   |
+  TRightbracket {posn :: AlexPosn}                   |
   Eof
   deriving (Eq,Show)
 
@@ -166,5 +168,8 @@ correctStrLit (c1:c2:str) = case c1 of
   _    -> c1 : correctStrLit (c2:str)
 
 correctStrLit s = s
+
+x8680Read :: String -> (Word16,Word64)
+x8680Read = wholeMetatropi
 
 }

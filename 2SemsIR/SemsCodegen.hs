@@ -1,5 +1,6 @@
 module SemsCodegen where
 
+import Prelude hiding (lookup)
 import Data.List (sortBy)
 import Data.Function (on)
 import LLVM.AST (Operand(..),Name(..),Instruction(..),Named(..),Terminator(..)
@@ -9,29 +10,77 @@ import LLVM.AST.Global (Parameter(..),BasicBlock(..),parameters,basicBlocks,retu
 import LLVM.AST.Attribute (ParameterAttribute)
 import LLVM.AST.FloatingPointPredicate (FloatingPointPredicate)
 import LLVM.AST.IntegerPredicate (IntegerPredicate)
-import SemsIRTypes (Sems,blocks,BlockState(..),currentBlock,Names,names,count
+import SemsIRTypes (Sems,blocks,BlockState(..),currentBlock,Names,names,count,VarType(..)
                    ,blockCount,toConsI16,getFromCodegen,modifyCodegen,toShortName,toTType
-                   ,(>>>),addGlobalDef,emptyCodegen,consGlobalRef,toName,variableMap)
+                   ,(>>>),addGlobalDef,emptyCodegen,consGlobalRef,toName,variableMap
+                   ,get2ndVarMap,parIdsToParTys,setCount,getCount,getSymTabs,getVariableMap
+                   ,lookupIn2ndVarNumMap,get2ndVarIds,VariableMap,searchCallableInSymTabs)
 import Data.List.Index (indexed)
+import Data.Map (lookup,toList)
 import Data.String.Transform (toShortByteString)
-import Parser as P (Id,Frml,PassBy(..),ArrSize(..),Type(..))
-import LLVM.AST.Type as T (Type(..),void,double,i1,i8,i16,i32,i64,ptr)
+import Parser as P (Id(..),Frml,PassBy(..),ArrSize(..),Type(..))
+import LLVM.AST.Type as T (Type(..),void,x86_fp80,i1,i8,i16,i32,i64,ptr)
 import Control.Monad.State (modify)
 import qualified Data.Map as Map (toList,lookup,insert)
 import qualified LLVM.AST.CallingConvention as CC (CallingConvention(..))
 import qualified LLVM.AST.Constant as C (Constant(..))
 
+type InsType = Id -> T.Type -> P.Type -> Int -> Sems ()
+
+insVarsInMap :: InsType -> [Id] -> [(Int,(P.Type,T.Type))] -> Sems ()
+insVarsInMap insf parIds parTys = mapM_ (insVarInMap insf) $ zip parIds parTys
+
+insVarInMap :: InsType -> (Id,(Int,(P.Type,T.Type))) -> Sems ()
+insVarInMap insf (id,(n,(pt,tt))) = insf id tt pt n
+
+forIdsToForTys :: VariableMap -> [Id] -> [(P.Type,T.Type)]
+forIdsToForTys parVM = map (forIdsToForTy parVM) 
+  
+forIdsToForTy :: VariableMap -> Id -> (P.Type,T.Type)
+forIdsToForTy parVM fid = case lookup (fid,ToPass) parVM of
+  Just (ty,_) -> (ty,toTType $ Pointer ty)
+  Nothing     -> error $ "Should have found: " ++ idString fid ++ " map: \n" ++
+                    show parVM
+
 -- Add function definition to Module in state
-defineFun :: String -> T.Type -> [Frml] -> Sems () -> Sems ()
-defineFun name retty frmls codegen = do
+defineFun :: [Id] -> [Id] -> String -> T.Type -> [Frml] -> Sems () -> Sems ()
+defineFun parIds forIds name retty frmls codegen = do
+  tys <- case length parIds + length forIds == 0 of --
+    True -> return []
+    _    -> do
+      parVM <-get2ndVarMap --
+      let n = sum $ map (\(_,ids,_) -> length ids) frmls
+      let parTys = map (\(x,a) -> (x+n,a) ) $ indexed $ parIdsToParTys parVM parIds --
+      insVarsInMap insToVariableMapPar parIds parTys
+      let n' = length parTys
+      let parTys' = map (\(_,(_,t)) -> t) parTys
+      --case name == "strlen" of
+      --  True -> error $ show (map idString forIds) -- ++ "\n" ++ show parVM
+      --  _    -> return ()
+      --case name == "ok2" of
+      --  True -> getVariableMap >>= error . show 
+      --  _    -> return ()
+      --let diff = maxVarNum - myVarNum
+      let forTys = map (\(x,a) -> (x+n+n',a) ) $ indexed $ forIdsToForTys parVM forIds --
+      --error $ show $ forTys
+      insVarsInMap insToVariableMapFor forIds forTys
+      let forTys' = map (\(_,(_,t)) -> t) forTys
+      --error $ show $ forTys
+      --(cal,op) <- searchCallableInSymTabs $ dummy name
+      --error $ show ref
+      return $ parTys' ++ forTys'
   modifyCodegen $ \_ -> emptyCodegen -- flush previous codegen state
   codegen                            -- modify codegen state 
   blocks <- createBlocks             -- create blocks based on the new codegen state
+  --case name == "ok3" of
+  --  True -> getVariableMap >>=
+  --            error . show . map (\(x,y) -> (idString x,y)). map fst . toList
+  --  _    -> return ()
   addGlobalDef functionDefaults {
       returnType = retty
     , name = toName name
     , parameters =  (
-        map tyToParam $ indexed $ concat $ map frmlToTys frmls
+        map tyToParam $ indexed $ (concat $ map frmlToTys frmls) ++ tys -- ++ forTys'
       , False
       )
     , basicBlocks = blocks
@@ -56,9 +105,7 @@ makeBlock (l, (BlockState _ s t)) = BasicBlock l (reverse s) (maketerm t)
 frmlToTys :: Frml -> [T.Type]
 frmlToTys (by,ids,ty) = replicate (length ids) $ case by of
   Val -> toTType ty 
-  _   -> case ty of
-    Array NoSize _ -> toTType ty
-    _              -> toTType $ Pointer ty
+  _   -> toTType $ Pointer ty
 
 tyToParam :: (Int,T.Type) -> Parameter
 tyToParam (i,ty) = Parameter ty (UnName $ fromIntegral i) []
@@ -166,11 +213,15 @@ freeType = ptr $ FunctionType {
   , isVarArg = False
   }
 
-[acos,atan,log] = map (consGlobalRef mathType) ["acos","atan","log"]
+[acosl,atanl,logl] = map (consGlobalRef mathType) ["acosl","atanl","logl"]
+
+[fabsl,sqrtl,sinl,cosl,tanl,expl] = map (consGlobalRef mathType)
+  ["fabsl","sqrtl","sinl","cosl","tanl","expl"] 
+
 
 mathType = ptr $ FunctionType {
-    resultType = double
-  , argumentTypes = [double]
+    resultType = x86_fp80
+  , argumentTypes = [x86_fp80]
   , isVarArg = False
   }
 
@@ -185,25 +236,25 @@ strcmpType = ptr $ FunctionType {
 
 -- Instructions
 fadd :: Operand -> Operand -> Sems Operand
-fadd a b = instr double $ FAdd noFastMathFlags a b []
+fadd a b = instr x86_fp80 $ FAdd noFastMathFlags a b []
 
 add :: Operand -> Operand -> Sems Operand
 add a b = instr i16 $ Add False False a b []
 
 fsub :: Operand -> Operand -> Sems Operand
-fsub a b = instr double $ FSub noFastMathFlags a b []
+fsub a b = instr x86_fp80 $ FSub noFastMathFlags a b []
 
 sub :: Operand -> Operand -> Sems Operand
 sub a b = instr i16 $ Sub False False a b []
 
 fmul :: Operand -> Operand -> Sems Operand
-fmul a b = instr double $ FMul noFastMathFlags a b []
+fmul a b = instr x86_fp80 $ FMul noFastMathFlags a b []
 
 mul :: Operand -> Operand -> Sems Operand
 mul a b = instr i16 $ LLVM.AST.Mul False False a b []
 
 fdiv :: Operand -> Operand -> Sems Operand
-fdiv a b = instr double $ FDiv noFastMathFlags a b []
+fdiv a b = instr x86_fp80 $ FDiv noFastMathFlags a b []
 
 sdiv :: Operand -> Operand -> Sems Operand
 sdiv a b = instr i16 $ SDiv False a b []
@@ -227,7 +278,7 @@ phi :: T.Type -> [(Operand, Name)] -> Sems Operand
 phi ty incoming = instr ty $ Phi ty incoming []
 
 sitofp :: Operand -> Sems Operand
-sitofp a = instr double $ SIToFP a double []
+sitofp a = instr x86_fp80 $ SIToFP a x86_fp80 []
 
 fptosi :: Operand -> Sems Operand
 fptosi a = instr i16 $ FPToSI a i16 []
@@ -260,6 +311,9 @@ load ptr = instr (ptrToRetty ptr) $ Load False ptr Nothing 0 []
 zext :: Operand -> Sems Operand
 zext op = instr i16 $ ZExt op i16 []
 
+fpext :: Operand -> Sems Operand
+fpext op = instr x86_fp80 $ FPExt op x86_fp80 []
+
 zext64 :: Operand -> Sems Operand
 zext64 op = instr i64 $ ZExt op i64 []
 
@@ -277,27 +331,27 @@ ptrToRetty = \case
   
 getElemPtr :: Operand -> Operand -> Sems Operand
 getElemPtr arrPtr ind =
-  instr double $ GetElementPtr False arrPtr [toConsI16 0,ind] []
+  instr x86_fp80 $ GetElementPtr False arrPtr [toConsI16 0,ind] []
 
 getElemPtrInt :: Operand -> Int -> Sems Operand
 getElemPtrInt arrPtr ind =
-  instr double $ GetElementPtr False arrPtr [toConsI16 0,toConsI16 ind] []
+  instr x86_fp80 $ GetElementPtr False arrPtr [toConsI16 0,toConsI16 ind] []
 
 getElemPtrInBounds :: Operand -> Int -> Sems Operand
 getElemPtrInBounds arrPtr ind =
-  instr double $ GetElementPtr True arrPtr [toConsI16 0,toConsI16 ind] []
+  instr x86_fp80 $ GetElementPtr True arrPtr [toConsI16 0,toConsI16 ind] []
 
 getElemPtrInBounds' :: Operand -> Operand -> Sems Operand
 getElemPtrInBounds' arrPtr ind =
-  instr double $ GetElementPtr True arrPtr [toConsI16 0,ind] []
+  instr x86_fp80 $ GetElementPtr True arrPtr [toConsI16 0,ind] []
 
 getElemPtr' :: Operand -> Int -> Sems Operand
 getElemPtr' arrPtr ind =
-  instr double $ GetElementPtr False arrPtr [toConsI16 ind] []
+  instr x86_fp80 $ GetElementPtr False arrPtr [toConsI16 ind] []
 
 getElemPtrOp' :: Operand -> Operand -> Sems Operand
 getElemPtrOp' arrPtr ind =
-  instr double $ GetElementPtr False arrPtr [ind] []
+  instr x86_fp80 $ GetElementPtr False arrPtr [ind] []
 
 -- Terminators
 br :: Name -> Sems ()
@@ -318,8 +372,8 @@ cons = ConstantOperand
 insToVariableMap :: Id -> P.Type -> Sems ()
 insToVariableMap id ty = do
   var <- alloca $ toTType ty
-  modify $ \(e,st:sts,m,cgen) ->
-    (e,st { variableMap = Map.insert id (ty,var,True) $ variableMap st }:sts,m,cgen)
+  modify $ \(e,st:sts,m,cgen,i) ->
+    (e,st { variableMap = Map.insert (id,Mine) (ty,var) $ variableMap st }:sts,m,cgen,i)
 
 insToVariableMapFormalVal :: Id -> P.Type -> Int -> Sems ()
 insToVariableMapFormalVal id ty n = do
@@ -331,16 +385,32 @@ insToVariableMapFormalVal id ty n = do
   modifyBlock (blk { stack = (nameN := Alloca tty Nothing 0 []) : stack blk } )
   let refN = LocalReference (ptr tty) nameN
   store refN refI
-  modify $ \(e,st:sts,m,cgen) -> (e,st {
-      variableMap = Map.insert id (ty,refN,True) $ variableMap st
-    }:sts,m,cgen)
+  modify $ \(e,st:sts,m,cgen,i) -> (e,st {
+      variableMap = Map.insert (id,Mine) (ty,refN) $ variableMap st
+    }:sts,m,cgen,i)
 
-insToVariableMapFormalRef :: Id -> P.Type -> Bool -> Sems ()
-insToVariableMapFormalRef id ty b = do
+insToVariableMapFormalRef :: Id -> P.Type -> Int -> Sems ()
+insToVariableMapFormalRef id ty n = do
   i <- fresh
   let tty = toTType ty
   let refI = LocalReference tty (UnName (i-1))
-  modify $ \(e,st:sts,m,cgen) -> (e,st {
-      variableMap = Map.insert id (ty,refI,b) $ variableMap st
-    }:sts,m,cgen)
+  modify $ \(e,st:sts,m,cgen,i) -> (e,st {
+      variableMap = Map.insert (id,Mine) (ty,refI) $ variableMap st
+    }:sts,m,cgen,i)
 
+insToVariableMapPar :: Id -> T.Type -> P.Type -> Int -> Sems ()
+insToVariableMapPar id tty ty n = do
+  let refI = LocalReference tty (UnName $ fromIntegral n)
+  modify $ \(e,st:sts,m,cgen,i) -> (e,st {
+      variableMap = Map.insert (id,ToUse) (ty,refI) $ variableMap st
+    }:sts,m,cgen,i)
+
+insToVariableMapFor :: Id -> T.Type -> P.Type -> Int -> Sems ()
+insToVariableMapFor id tty ty n = do
+  let refI = LocalReference tty (UnName $ fromIntegral n)
+  modify $ \(e,st:sts,m,cgen,i) -> (e,st {
+      variableMap = Map.insert (id,ToPass) (ty,refI) $ variableMap st
+    }:sts,m,cgen,i)
+
+dummy :: String -> Id
+dummy s = Id (0,0) s

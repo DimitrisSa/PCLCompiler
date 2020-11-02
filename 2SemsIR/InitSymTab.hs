@@ -9,12 +9,15 @@ import LLVM.AST.Linkage (Linkage(..))
 import LLVM.AST.IntegerPredicate (IntegerPredicate(..))
 import Data.Char (ord)
 import Data.Word (Word64)
+import Helpers (x8680Read)
 import SemsCodegen (ret,phi,setBlock,br,printf,callVoid,cbr,add,icmp,call,strcmp
-                   ,scanf,allocaNum,getElemPtrInBounds,addBlock,retVoid,cons
-                   ,store,getElemPtrOp',load,sub,alloca,fresh,getBlock,acos,fcmp,fsub
-                   ,fptosi,sitofp,zext,truncTo,defineFun,atan,log,orInstr)
+                   ,scanf,allocaNum,getElemPtrInBounds,addBlock,retVoid,cons,fpext
+                   ,store,getElemPtrOp',load,sub,alloca,fresh,getBlock,acosl,fcmp,fsub
+                   ,fptosi,sitofp,zext,truncTo,defineFun,atanl,logl,orInstr
+                   ,fabsl,sqrtl,sinl,cosl,tanl,expl)
+import LLVM.AST.Float as F (SomeFloat(..))
 import Common as P hiding (void) 
-import LLVM.AST.Type as T (Type,i1,i8,i16,i32,i64,ptr,double,void,Type(..))
+import LLVM.AST.Type as T (Type,i1,i8,i16,i32,i64,ptr,x86_fp80,void,Type(..))
 import qualified LLVM.AST.Constant as C (Constant(..))
 import qualified LLVM.AST.FloatingPointPredicate as FP (FloatingPointPredicate(..))
 
@@ -26,6 +29,7 @@ initSymTab = do
   acosDef
   atanDef
   logDef
+  mathDefs
   strcmpDef
   freeDef
   mallocDef
@@ -61,27 +65,33 @@ initSymTab = do
 -- insert Procedures/Functions to the Symbol Table and the Module
 insertProcToSymTabAndDefs :: String -> [Frml] -> Sems ()
 insertProcToSymTabAndDefs name frmls = do
-  insToCallableMap (dummy name) (Proc frmls [])
-  defineFun name void frmls (codegenFromName name)
+  insToCallableMap [] (dummy name) (Proc frmls) --
+  defineFun [] [] name void frmls (codegenFromName name)
 
 insertFuncToSymTabAndDefs :: String -> [Frml] -> P.Type -> Sems ()
 insertFuncToSymTabAndDefs name frmls retty = do
-  insToCallableMap (dummy name) (Func frmls [] retty)
-  defineFun name (toTType retty) frmls (codegenFromName name)
+  insToCallableMap [] (dummy name) (Func frmls retty) --
+  defineFun [] [] name (toTType retty) frmls (codegenFromName name)
 
 -- Get Code Generation Function from name
 codegenFromName = \case
   "writeInteger" -> writeCodeGen ".intStr" "hi"
   "writeBoolean" -> writeBooleanCodeGen
   "writeChar"    -> writeCodeGen ".charStr" "c"
-  "writeReal"    -> writeCodeGen ".realStr" "lf"
+  "writeReal"    -> writeCodeGen ".realStr" "Lf"
   "writeString"  -> writeStringCodeGen
   "readString"   -> readStringCodeGen
   "readInteger"  -> readCodeGen ".scanInt" "hi"
   "readBoolean"  -> readBooleanCodeGen
   "readChar"     -> readCodeGen ".scanChar" "c"
-  "readReal"     -> readCodeGen ".scanReal" "lf"
+  "readReal"     -> readCodeGen ".scanReal" "Lf"
   "abs"          -> absCodeGen
+  "fabs"         -> mathCodeGen fabsl
+  "sqrt"         -> mathCodeGen sqrtl
+  "sin"          -> mathCodeGen sinl
+  "cos"          -> mathCodeGen cosl
+  "tan"          -> mathCodeGen tanl
+  "exp"          -> mathCodeGen expl
   "arctan"       -> arctanCodeGen
   "ln"           -> lnCodeGen
   "pi"           -> piCodeGen
@@ -147,12 +157,15 @@ truncCodeGen :: Sems ()
 truncCodeGen = do
   entry <- addBlock "entry"
   setBlock entry
-  int <- fptosi $ LocalReference double (UnName 0)
+  int <- fptosi $ LocalReference x86_fp80 (UnName 0)
   ret int
+
+(w16,w64) = x8680Read "0.0"
+zeroCons = cons $ C.Float $ X86_FP80 w16 w64
 
 roundCodeGen :: Sems ()
 roundCodeGen = do
-  let arg = LocalReference double (UnName 0)
+  let arg = LocalReference x86_fp80 (UnName 0)
   entry   <- addBlock "entry"
   pos     <- addBlock "pos"
   posUp   <- addBlock "posUp"
@@ -166,11 +179,14 @@ roundCodeGen = do
   int <- fptosi arg
   intDouble <- sitofp int
   diff <- fsub arg intDouble
-  cond1 <- fcmp FP.OLT arg $ cons $ C.Float $ Double 0
+  cond1 <- fcmp FP.OLT arg $ cons $ C.Float $ F.X86_FP80 w16 w64
   cbr cond1 neg pos
 
   setBlock neg
-  cond2 <- fcmp FP.OGT diff $ cons $ C.Float $ Double (-0.5)
+  let (w16',w64') = x8680Read "0.5"
+  let fp80_0_5 = cons $ C.Float $ F.X86_FP80 w16' w64'
+  fp80_minus_0_5 <- fsub zeroCons fp80_0_5 
+  cond2 <- fcmp FP.OGT diff fp80_minus_0_5 
   cbr cond2 negUp negDown
 
   setBlock negUp
@@ -182,7 +198,7 @@ roundCodeGen = do
   br exit
 
   setBlock pos
-  cond3 <- fcmp FP.OGE diff $ cons $ C.Float $ Double 0.5
+  cond3 <- fcmp FP.OGE diff fp80_0_5
   cbr cond3 posUp posDown
 
   setBlock posUp
@@ -201,7 +217,10 @@ piCodeGen :: Sems ()
 piCodeGen = do
   entry <- addBlock "entry"
   setBlock entry
-  pi <- call acos [cons $ C.Float $ Double (-1)]
+  let (w16_1,w64_1) = x8680Read "1.0"
+  let oneCons = cons $ C.Float $ X86_FP80 w16_1 w64_1
+  minusOne <- fsub zeroCons oneCons
+  pi <- call acosl [minusOne]
   ret pi
 
 writeCodeGen :: String -> String -> Sems ()
@@ -218,7 +237,7 @@ typeFromStr :: String -> T.Type
 typeFromStr = \case
   "c"  -> i8
   "hi" -> i16
-  "lf"  -> double
+  "Lf"  -> x86_fp80
   s    -> error $ "typeFromStr: invalid str: " ++ s
 
 writeBooleanCodeGen :: Sems ()
@@ -249,23 +268,29 @@ writeBooleanCodeGen = do
   callVoid printf [str]
   retVoid
 
+mathCodeGen fun = do 
+  entry <- addBlock "entry"
+  setBlock entry
+  call fun [ LocalReference x86_fp80 (UnName 0) ] >>= ret
+
 arctanCodeGen :: Sems ()
 arctanCodeGen = do 
   entry <- addBlock "entry"
   setBlock entry
-  call atan [ LocalReference double (UnName 0) ] >>= ret
+  call atanl [ LocalReference x86_fp80 (UnName 0) ] >>= ret
 
 lnCodeGen :: Sems ()
 lnCodeGen = do 
   entry <- addBlock "entry"
   setBlock entry
-  call log [ LocalReference double (UnName 0) ] >>= ret
+  call logl [ LocalReference x86_fp80 (UnName 0) ] >>= ret
 
 writeStringCodeGen :: Sems ()
 writeStringCodeGen = do 
   entry <- addBlock "entry"
   setBlock entry
-  callVoid printf [ LocalReference (ptr i8) (UnName 0) ]
+  strOp <- load $ LocalReference (ptr $ ptr i8) (UnName 0)
+  callVoid printf [ strOp ]
   retVoid
 
 readCodeGen :: String -> String -> Sems ()
@@ -311,14 +336,15 @@ readStringCodeGen = do
   entry <- addBlock "entry"
   setBlock entry
   let intOp = LocalReference i16 (UnName 0)
-  let strOp = LocalReference (ptr i8) (UnName 1)
+  let strOp = LocalReference (ptr $ ptr i8) (UnName 1)
   str <- getElemPtrInBounds (consGlobalRef (ptr (ArrayType 3 i8)) $ toName "scanfChar") 0
 
   while1    <- addBlock "while1"
   while2    <- addBlock "while2"
   whileExit <- addBlock "while.exit"
 
-  eatSpace strOp
+  --eatSpace strOp
+  strOp <- load strOp
 
   counter <- alloca i16
   store counter (toConsI16 0)
@@ -430,30 +456,44 @@ freeDef = addGlobalDef functionDefaults {
 
 acosDef :: Sems ()
 acosDef = addGlobalDef functionDefaults {
-    returnType = double
-  , name = toName "acos"
+    returnType = x86_fp80
+  , name = toName "acosl"
   , parameters = (
-      [ Parameter double (UnName 0) [] ]
+      [ Parameter x86_fp80 (UnName 0) [] ]
     , False
     )
   } 
 
 atanDef :: Sems ()
 atanDef = addGlobalDef functionDefaults {
-    returnType = double
-  , name = toName "atan"
+    returnType = x86_fp80
+  , name = toName "atanl"
   , parameters = (
-      [ Parameter double (UnName 0) [] ]
+      [ Parameter x86_fp80 (UnName 0) [] ]
     , False
     )
   } 
 
 logDef :: Sems ()
 logDef = addGlobalDef functionDefaults {
-    returnType = double
-  , name = toName "log"
+    returnType = x86_fp80
+  , name = toName "logl"
   , parameters = (
-      [ Parameter double (UnName 0) [] ]
+      [ Parameter x86_fp80 (UnName 0) [] ]
+    , False
+    )
+  } 
+
+
+mathDefs :: Sems ()
+mathDefs = mapM_ mathDef ["fabsl","sqrtl","sinl","cosl","tanl","expl"] 
+
+mathDef :: String -> Sems ()
+mathDef name = addGlobalDef functionDefaults {
+    returnType = x86_fp80
+  , name = toName name
+  , parameters = (
+      [ Parameter x86_fp80 (UnName 0) [] ]
     , False
     )
   } 

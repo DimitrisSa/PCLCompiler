@@ -1,23 +1,32 @@
 module StmtSemsIR where
 import Prelude hiding (lookup)
 import Common (ArrSize(..),Type(..),Sems,TyOper,Id,toTType,symbatos,fullType,errPos,(>>>)
-              ,toConsI64,errAtId,insToLabelMap,getEnv,Env(..),lookupInVariableMap)
+              ,toConsI64,errAtId,insToLabelMap,getEnv,Env(..),lookupInVariableMap
+              ,VarType(..))
 import LLVM.AST (Operand)
 import LLVM.AST.Type (i8)
 import InitSymTab (dummy)
-import SemsCodegen (store,getElemPtrInt,cons,sitofp,free,callVoid,call,load,bitcast,malloc
-                   ,mul,zext64,retVoid,ret)
+import SemsCodegen (store,getElemPtrInBounds,cons,sitofp,free,callVoid,call,load,bitcast
+                   ,malloc,mul,zext64,retVoid,ret,alloca,addBlock,setBlock,fresh)
 import qualified LLVM.AST.Constant as C (Constant(..))
 
 returnIR :: Sems ()
-returnIR = getEnv >>= \case
-  InProc            -> retVoid
-  InFunc id ty bool -> do
-    op <- lookupInVariableMap (dummy "result") >>= \case
-      Just (_,op,_) -> return op
-      Nothing     -> error "Shouldn't happen"
-    op <- load op
-    ret op 
+returnIR = do
+  env <- getEnv 
+  case env of
+    InProc            -> retVoid
+    InFunc id ty bool -> do
+      op <- lookupInVariableMap (dummy "result",Mine) >>= \case
+        Just (_,op) -> return op
+        Nothing     -> error "Shouldn't happen"
+      op <- load op
+      ret op 
+
+returnIRNext :: Sems ()
+returnIRNext = do
+  i <- fresh
+  nextBlock <- addBlock $ "next" ++ show i
+  setBlock nextBlock
 
 labelCases :: Id -> Maybe Bool -> Sems ()
 labelCases id = \case
@@ -41,7 +50,7 @@ pointerCases posn err = \case
   _              -> errPos posn err
 
 newPointerCases :: (Int,Int) -> TyOper -> Sems TyOper
-newPointerCases posn = pointerCases posn "non-pointer in new statement"
+newPointerCases posn = pointerCases posn "Non-pointer in new statement"
 
 mallocBytes :: Common.Type -> Int
 mallocBytes = \case
@@ -91,7 +100,7 @@ caseFalseThrowErr posn err = \case
   _    -> errPos posn err
 
 dispPointerCases :: (Int,Int) -> TyOper -> Sems TyOper
-dispPointerCases posn = pointerCases posn "non-pointer in dispose statement"
+dispPointerCases posn = pointerCases posn "Non-pointer in dispose statement"
 
 dispWithoutSems :: (Int,Int) -> TyOper -> Sems ()
 dispWithoutSems posn (lt,lOp) = do
@@ -119,8 +128,18 @@ assignmentSemsIR' posn ((lt,lOp),(et,eOp)) = do
   eOp' <- case (lt,et) of 
           (RealT,IntT)    -> sitofp eOp
           (Pointer t,Nil) -> return $ cons $ C.Null $ toTType $ Pointer t
-          (Pointer (Array NoSize t1),Pointer (Array (Size _) _)) -> getElemPtrInt eOp 0
+          (Pointer (Array NoSize t1),Pointer (Array (Size _) _)) ->
+            assignmentSizeToNoSize t1 eOp
           _               -> return eOp
   store lOp eOp'
 
-assignmentSemsIRErr lt et ="type mismatch in assignment -> " ++ show lt ++ " " ++ show et
+assignmentSizeToNoSize :: Type -> Operand -> Sems Operand
+assignmentSizeToNoSize t1 eOp =  do
+  eOp' <- getElemPtrInBounds eOp 0
+  eOp  <- alloca $ toTType  $ Pointer t1
+  store eOp eOp'
+  return eOp
+
+assignmentSemsIRErr lt et = concat ["Type mismatch in assignment: \n"
+                                   ,"\tLeft type: ",show lt,"\n"
+                                   ,"\tRight type: ",show et]

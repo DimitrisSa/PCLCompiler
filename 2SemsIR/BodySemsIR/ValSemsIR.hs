@@ -1,14 +1,16 @@
 module ValSemsIR where
 import Prelude hiding (EQ)
 import Common (Id(..),Type(..),PassBy(..),Sems,TyOper,Env(..),ArrSize(..),errAtId,errPos
-              ,symbatos,setEnv,getEnv,toTType,searchVarInSymTabs)
+              ,symbatos,setEnv,getEnv,toTType,lookupInVariableMap,VarType(..))
 import Control.Monad.Trans.Either (right)
 import LLVM.AST.IntegerPredicate (IntegerPredicate(..))
 import SemsCodegen (icmp,cons,fsub,sub,fcmp,fdiv,fmul,fadd,sitofp,mul,add,srem,sdiv
                    ,orInstr,andInstr,getElemPtrOp',load,getElemPtrInBounds'
                    ,insToVariableMap,alloca)
 import LLVM.AST.Float (SomeFloat(..))
+import Helpers (x8680Read)
 import InitSymTab (dummy)
+import LLVM.AST.Float as F (SomeFloat(..))
 import qualified LLVM.AST.FloatingPointPredicate as FP (FloatingPointPredicate(..))
 import qualified LLVM.AST.Constant as C (Constant(..))
 
@@ -16,9 +18,9 @@ resultTypeOper :: (Int,Int) -> Sems TyOper
 resultTypeOper posn = getEnv >>= \case
   InFunc id ty _ -> do
     setEnv (InFunc id ty True)
-    insToVariableMap (dummy "result") ty
-    (ty,oper,_) <- searchVarInSymTabs (dummy "result")
-    return (ty,oper)
+    lookupInVariableMap (dummy "result",Mine) >>= \case
+      Nothing   -> error "Result should be there"
+      Just tyop -> return tyop
   InProc         -> errPos posn "Result in procedure"
 
 dereferenceCases :: (Int,Int) -> TyOper -> Sems TyOper
@@ -33,9 +35,10 @@ indexingCases posn = \case
     elemOp <- getElemPtrInBounds' lOp eOp
     right (t,elemOp)
   ((Array NoSize t,lOp),(IntT,eOp)) -> do
+    lOp <- load lOp
     elemOp <- getElemPtrOp' lOp eOp
     right (t,elemOp)
-  ((Array _ _,_)  ,(_,_)     ) -> errPos posn "non-integer index"
+  ((Array _ _,_)  ,(_,_)     ) -> errPos posn "Non-integer index"
   _                            -> errPos posn "indexing non-array"
 
 comparisonCases :: (Int,Int) -> String -> [TyOper] -> Sems TyOper 
@@ -245,7 +248,8 @@ unaryOpNumCases posn a = \case
     let oper' = case a of "'+'" -> oper; "'-'" -> operMinus
     right (IntT,oper')
   (RealT,oper) -> do
-    operMinus <- fsub (cons $ C.Float $ Double 0.0) oper
+    let (w16,w64) = x8680Read "0"
+    operMinus <- fsub (cons $ C.Float $ F.X86_FP80 w16 w64) oper
     let oper' = case a of "'+'" -> oper; "'-'" -> operMinus
     right (RealT,oper')
   _     -> errPos posn $ nonNumAfErr ++ a 

@@ -3,6 +3,7 @@ module Parser where
 import Lexer
 import Prelude hiding (getChar)
 import Data.Either
+import Data.Word
 }
 
 %name parse
@@ -236,7 +237,9 @@ data Body = Body [Local] [Stmt]
   deriving(Show)
 
 data Id        = Id {idPosn :: (Int,Int), idString:: String}
-  deriving(Show)
+
+instance Show Id where
+  show = idString
 
 instance Eq Id where
   x == y = idString x == idString y
@@ -267,10 +270,25 @@ data Type =
   CharT              |
   Array ArrSize Type |
   Pointer Type
-  deriving(Show,Eq)
+  deriving(Eq)
+
+instance Show Type where
+  show = \case
+    Nil          -> "nil"
+    IntT         -> "integer"
+    RealT        -> "real"
+    BoolT        -> "boolean"
+    CharT        -> "char"
+    Array size t -> "array " ++ show size ++ "of " ++ show t
+    Pointer t    -> "^" ++ show t 
 
 data ArrSize = Size Int | NoSize
-  deriving(Show,Eq)
+  deriving(Eq)
+
+instance Show ArrSize where
+  show = \case
+    Size i -> "[" ++ show i ++ "] "
+    NoSize -> ""
 
 data Stmt =
   Empty                               |
@@ -313,7 +331,7 @@ data RVal =
   IntR    Int                 |
   TrueR                       |
   FalseR                      |
-  RealR   Double              |
+  RealR   (Word16,Word64)     |
   CharR   Char                |
   ParenR  RVal                |
   NilR                        |

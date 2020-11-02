@@ -1,6 +1,8 @@
 module Helpers where
 import Parser (Type(..),ArrSize(..),PassBy,Frml)
 import SemsIRTypes ((>>>))
+import LongDouble
+import Data.Word
 
 fullType :: Type -> Bool
 fullType = \case Array NoSize _ -> False; _ -> True
@@ -15,3 +17,6 @@ formalsToTypes = map formalToTypes >>> concat
 
 formalToTypes :: Frml -> [(PassBy,Type)]
 formalToTypes (pb,ids,ty) = map (\_ -> (pb,ty)) ids
+
+x8680Read :: String -> (Word16,Word64)
+x8680Read = wholeMetatropi

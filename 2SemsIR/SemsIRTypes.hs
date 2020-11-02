@@ -2,14 +2,14 @@ module SemsIRTypes where
 import Prelude hiding (lookup)
 import Control.Monad.State (State,modify,get)
 import Control.Monad.Trans.Either (EitherT,left)
-import Data.Map (Map,empty,insert,lookup)
+import Data.Map (Map,empty,insert,lookup,adjust)
 import LLVM.AST (Operand(..),Module,Global,moduleDefinitions,Definition(..),Terminator(..)
                 ,Name(..),Named,Instruction,defaultModule)
 import LLVM.AST.Constant (Constant(..))
 import Data.Bits.Extras (w64)
 import Data.String.Transform (toShortByteString)
 import Parser as P (ArrSize(..),Type(..),Id(..),Frml,PassBy(..))
-import LLVM.AST.Type as T (Type(..),ptr,i1,i8,i16,double,void)
+import LLVM.AST.Type as T (Type(..),ptr,i1,i8,i16,x86_fp80,void)
 import qualified LLVM.AST.Constant as C (Constant(..))
 
 -- Codegen State
@@ -33,61 +33,79 @@ data BlockState
 
 -- Semantics State
 data Env = InProc | InFunc Id P.Type Bool
+  deriving (Show)
 
 data Callable =
-  Proc [Frml] [Id]            |
-  Func [Frml] [Id] P.Type     |
+  Proc [Frml]            |
+  Func [Frml] P.Type     |
   ProcDclr [Frml]        |
   FuncDclr [Frml] P.Type
   deriving(Show,Eq)
 
-type VariableMap = Map Id TyOperBool
+data VarType = Mine | ToUse | ToPass
+  deriving (Show,Eq,Ord)
+
+type VariableMap = Map (Id,VarType) (P.Type,Operand)
 type LabelMap    = Map Id Bool
 type CallableMap = Map Id (Callable,Operand)
+type FatherMap   = Map Id ([Id],[Id],Int,[SymbolTable])
+type VarNumMap   = Map Id Int
 
 data SymbolTable = SymbolTable {
    variableMap :: VariableMap
   ,labelMap    :: LabelMap
   ,callableMap :: CallableMap
+  ,fatherMap   :: FatherMap
+  ,forwardIds  :: [(Id,Bool)]
+  ,varNumMap   :: VarNumMap
+  ,varIds      :: (Int,[Id])
   }
+  deriving (Show)
 
 type TyOperBool = (P.Type,Operand,Bool)
 type TyOper = (P.Type,Operand)
 type Error = String
+type StateType = (Env,[SymbolTable],Module,CodegenState,Int)
 
 -- All of the state (Semantics,Module,Codegen)
-type Sems  = EitherT Error (State (Env,[SymbolTable],Module,CodegenState))
+type Sems  = EitherT Error (State StateType)
 
 -- Initial state
 emptyCodegen :: CodegenState
 emptyCodegen = CodegenState (toShortName "entry") empty 1 0 empty
 
 emptySymbolTable :: SymbolTable
-emptySymbolTable = SymbolTable empty empty empty
+emptySymbolTable = SymbolTable empty empty empty empty [] empty (0,[])
 
-initState :: (Env,[SymbolTable],Module,CodegenState)
-initState = (InProc,[emptySymbolTable],defaultModule,emptyCodegen)
+initState :: StateType
+initState = (InProc,[emptySymbolTable],defaultModule,emptyCodegen,0)
 
 -- Composition with arguments in a more logical order
 infixl 9 >>>
 (>>>) = (flip (.))
 
+getLevel :: Sems Int
+getLevel = get >>= (\(_,_,_,_,l) -> l) >>> return
+
 -- Codegen State operations
 modifyCodegen :: (CodegenState -> CodegenState) -> Sems ()
-modifyCodegen f = modify $ \(env,sts,m,cgen) -> (env,sts,m,f cgen)
+modifyCodegen f = modify $ \(env,sts,m,cgen,i) -> (env,sts,m,f cgen,i)
 
-setCount :: Int -> Sems ()
-setCount i = modifyCodegen $ \s -> s { count = fromIntegral i }
+setCount :: Word -> Sems ()
+setCount i = modifyCodegen $ \s -> s { count = i }
+
+getCount :: Sems Word
+getCount = getFromCodegen count
 
 getFromCodegen :: (CodegenState -> a) -> Sems a
-getFromCodegen f = get >>= (\(_,_,_,x) -> f x) >>> return
+getFromCodegen f = get >>= (\(_,_,_,x,_) -> f x) >>> return
 
 toShortName :: String -> Name
 toShortName = toShortByteString >>> Name
 
 -- Module State operations
 getDefs :: Sems [Definition]
-getDefs = get >>= (\(_,_,x,_) -> moduleDefinitions x) >>> return
+getDefs = get >>= (\(_,_,x,_,_) -> moduleDefinitions x) >>> return
 
 addDef :: Definition -> Sems ()
 addDef d = modifyMod $ \s -> s { moduleDefinitions = (moduleDefinitions s) ++ [d] }
@@ -96,21 +114,24 @@ addGlobalDef :: Global -> Sems ()
 addGlobalDef = GlobalDefinition >>> addDef
 
 modifyMod :: (Module -> Module) -> Sems ()
-modifyMod f = modify $ \(env,sts,m,cgen) -> (env,sts,f m,cgen)
+modifyMod f = modify $ \(env,sts,m,cgen,i) -> (env,sts,f m,cgen,i)
 
 -- Environment State operations
 getEnv :: Sems Env
-getEnv = get >>= (\(x,_,_,_) -> x) >>> return
+getEnv = get >>= (\(x,_,_,_,_) -> x) >>> return
 
 setEnv :: Env -> Sems ()
-setEnv env = modify $ \(_,sts,m,cgen) -> (env,sts,m,cgen)
+setEnv env = modify $ \(_,sts,m,cgen,i) -> (env,sts,m,cgen,i)
 
 -- Symbol Tables State operations
 getSymTabs :: Sems [SymbolTable]
-getSymTabs = get >>= (\(_,x,_,_) -> x) >>> return
+getSymTabs = get >>= (\(_,x,_,_,_) -> x) >>> return
 
 getMap :: (SymbolTable -> a) -> Sems a
 getMap map = getSymTabs >>= head >>> map >>> return
+
+get2ndVarMap :: Sems VariableMap
+get2ndVarMap = getSymTabs >>= tail >>> head >>> variableMap >>> return
 
 getVariableMap :: Sems VariableMap
 getVariableMap = getMap variableMap
@@ -121,15 +142,85 @@ getLabelMap = getMap labelMap
 getCallableMap :: Sems CallableMap
 getCallableMap = getMap callableMap
 
-insToLabelMap :: Id -> Bool -> Sems ()
-insToLabelMap label b = modify $ \(e,st:sts,m,cgen) ->
-  (e,st { labelMap = insert label b $ labelMap st }:sts,m,cgen)
+getFatherMap :: Sems FatherMap
+getFatherMap = getMap fatherMap
 
-insToCallableMap :: Id -> Callable -> Sems ()
-insToCallableMap id cal = modify $ \(e,st:sts,m,cgen) ->
+getVarNumMap :: Sems VarNumMap
+getVarNumMap = getMap varNumMap
+
+get2ndVarNumMap :: Sems VarNumMap
+get2ndVarNumMap = getSymTabs >>= tail >>> head >>> varNumMap >>> return
+
+getVarIds :: Sems (Int,[Id])
+getVarIds = getMap varIds
+
+get2ndVarIds :: Sems (Int,[Id])
+get2ndVarIds = getSymTabs >>= tail >>> head >>> varIds >>> return
+
+getVarIdsInLevel :: Int -> Sems (Int,[Id])
+getVarIdsInLevel level =
+  getSymTabs >>= reverse >>> (!!(level -1)) >>> varIds >>> return
+
+getVarIdsNum :: Sems Int
+getVarIdsNum = getVarIds >>= fst >>> return
+
+modifyVarIds :: ((Int,[Id]) -> (Int,[Id])) -> Sems ()
+modifyVarIds f = modify $ \(e,st:sts,m,cgen,i) ->
+  (e,st { varIds = f $ varIds st }:sts,m,cgen,i)
+
+insToLabelMap :: Id -> Bool -> Sems ()
+insToLabelMap label b = modify $ \(e,st:sts,m,cgen,i) ->
+  (e,st { labelMap = insert label b $ labelMap st }:sts,m,cgen,i)
+
+insToCallableMap :: [Id] -> Id -> Callable -> Sems ()
+insToCallableMap pids id cal = do
+  parVM <- getVariableMap --
+  let parTys = map snd $ parIdsToParTys parVM pids --
+  modify $ \(e,st:sts,m,cgen,i) ->
+    (e,st {
+       callableMap = insert id (cal,calToOper parTys cal $ idToName id) $ callableMap st
+     }:sts,m,cgen,i)
+
+insTo2ndVarMap :: Id -> TyOper -> Sems ()
+insTo2ndVarMap id tyop = modify $ \(e,st1:st:sts,m,cgen,i) ->
+  (e,st1:st { variableMap = insert (id,ToPass) tyop $ variableMap st }:sts,m,cgen,i)
+
+modify2ndCallableMap :: Id -> (Operand -> Operand) -> Sems ()
+modify2ndCallableMap id f = modify $ \(e,st1:st:sts,m,cgen,i) ->
+  (e,st1:st {
+    callableMap = adjust (\(cal,op) -> (cal,f op)) id $ callableMap st
+  }:sts,m,cgen,i)
+
+modifyCallableMap :: Id -> (Operand -> Operand) -> Sems ()
+modifyCallableMap id f = modify $ \(e,st:sts,m,cgen,i) ->
   (e,st {
-       callableMap = insert id (cal,calToOper cal $ idToName id) $ callableMap st
-     }:sts,m,cgen)
+    callableMap = adjust (\(cal,op) -> (cal,f op)) id $ callableMap st
+  }:sts,m,cgen,i)
+
+parIdsToParTys :: VariableMap -> [Id] -> [(P.Type,T.Type)]
+parIdsToParTys parVM = map (parIdsToParTy parVM) 
+  
+parIdsToParTy :: VariableMap -> Id -> (P.Type,T.Type)
+parIdsToParTy parVM pid = case lookup (pid,Mine) parVM of
+  Just (ty,_) -> (ty,toTType $ Pointer ty)
+  Nothing     -> case lookup (pid,ToUse) parVM of
+    Just (ty,_) -> (ty,toTType $ Pointer ty)
+    Nothing     -> case lookup (pid,ToPass) parVM of
+      Just (ty,_) -> (ty,toTType $ Pointer ty)
+      Nothing     -> error $ "Should have found: " ++ idString pid ++ " map: \n" ++
+                        show parVM
+
+insToFatherMap :: Id -> ([Id],[Id],Int,[SymbolTable]) -> Sems ()
+insToFatherMap id state = modify $ \(e,st:sts,m,cgen,i) ->
+  (e,st { fatherMap = insert id state $ fatherMap st }:sts,m,cgen,i)
+
+insToVarNumMap :: Id -> Int -> Sems ()
+insToVarNumMap id num = modify $ \(e,st:sts,m,cgen,i) ->
+  (e,st { varNumMap = insert id num $ varNumMap st }:sts,m,cgen,i)
+
+insToForwardIds :: Id -> Bool -> Sems ()
+insToForwardIds id b = modify $ \(e,st:sts,m,cgen,i) ->
+  (e,st { forwardIds = (id,b):forwardIds st }:sts,m,cgen,i)
 
 toName :: String -> Name
 toName = toShortByteString >>> Name
@@ -140,27 +231,27 @@ idToName = idString >>> toName
 consGlobalRef :: T.Type -> Name -> Operand
 consGlobalRef ty name = ConstantOperand $ C.GlobalReference ty name
 
-calToOper :: Callable -> Name -> Operand
-calToOper cal name = consGlobalRef (calToTy cal) name
+calToOper :: [T.Type] -> Callable -> Name -> Operand
+calToOper parTys cal name = consGlobalRef (calToTy parTys cal) name
 
-calToTy :: Callable -> T.Type
-calToTy = \case
-  Proc frmls _       -> procToTy frmls
-  Func frmls _ ty     -> funcToTy frmls ty
-  ProcDclr frmls    -> procToTy frmls
-  FuncDclr frmls ty -> funcToTy frmls ty
+calToTy :: [T.Type] -> Callable -> T.Type --
+calToTy parTys = \case
+  Proc frmls        -> procToTy frmls parTys
+  Func frmls ty     -> funcToTy frmls ty parTys
+  ProcDclr frmls    -> procToTy frmls parTys
+  FuncDclr frmls ty -> funcToTy frmls ty parTys
 
-funcToTy :: [Frml] -> P.Type -> T.Type
-funcToTy frmls ty = ptr $ FunctionType {
+funcToTy :: [Frml] -> P.Type -> [T.Type] -> T.Type
+funcToTy frmls ty parTys = ptr $ FunctionType {
     resultType = toTType ty
-  , argumentTypes = frmlsToArgTypes frmls
+  , argumentTypes = frmlsToArgTypes frmls ++ parTys
   , isVarArg = False
   }
 
-procToTy :: [Frml] -> T.Type
-procToTy frmls = ptr $ FunctionType {
+procToTy :: [Frml] -> [T.Type] -> T.Type
+procToTy frmls parTys = ptr $ FunctionType {
     resultType = T.void
-  , argumentTypes = frmlsToArgTypes frmls
+  , argumentTypes = frmlsToArgTypes frmls  ++ parTys
   , isVarArg = False
   }
 
@@ -170,15 +261,13 @@ frmlsToArgTypes = concat . map frmlToArgTypes
 frmlToArgTypes :: Frml -> [T.Type]
 frmlToArgTypes (by,ids,ty) = replicate (length ids) $ case by of
   Val -> toTType ty 
-  _   -> case ty of
-    P.Array NoSize _ -> toTType ty
-    _              -> toTType $ Pointer ty
+  _   -> toTType $ Pointer ty
 
 lookupInMap :: Sems (Map Id a) -> Id -> Sems (Maybe a)
 lookupInMap getMap id = getMap >>= lookup id >>> return
 
-lookupInVariableMap :: Id -> Sems (Maybe TyOperBool)
-lookupInVariableMap = lookupInMap getVariableMap
+lookupInVariableMap :: (Id,VarType) -> Sems (Maybe (P.Type,Operand))
+lookupInVariableMap idVarT = getVariableMap >>= lookup idVarT >>> return
 
 lookupInLabelMap :: Id -> Sems (Maybe Bool)
 lookupInLabelMap = lookupInMap getLabelMap
@@ -186,13 +275,24 @@ lookupInLabelMap = lookupInMap getLabelMap
 lookupInCallableMap :: Id -> Sems (Maybe (Callable,Operand))
 lookupInCallableMap = lookupInMap getCallableMap
 
-searchVarInSymTabs :: Id -> Sems TyOperBool
-searchVarInSymTabs id =
-  getSymTabs >>= searchInSymTabs variableMap id "Undeclared variable: "
+lookupInVarNumMap :: Id -> Sems (Maybe Int)
+lookupInVarNumMap = lookupInMap getVarNumMap
+
+lookupIn2ndVarNumMap :: Id -> Sems (Maybe Int)
+lookupIn2ndVarNumMap = lookupInMap get2ndVarNumMap
 
 searchCallableInSymTabs :: Id -> Sems (Callable,Operand)
 searchCallableInSymTabs id = getSymTabs >>= 
   searchInSymTabs callableMap id "Undeclared function or procedure in call: "
+
+searchInAncestorMaps :: Id -> Sems ([Id],[Id],Int,[SymbolTable])
+searchInAncestorMaps id = getSymTabs >>= 
+  searchInSymTabs fatherMap id (error $ "should have found in ancestors: " ++ idString id)
+
+searchInVarNumMaps :: Id -> Sems Int
+searchInVarNumMaps id = getSymTabs >>= 
+  searchInSymTabs varNumMap id
+    (error $ "Should have found in varNumMap myVarNum: " ++ idString id)
 
 searchInSymTabs :: (SymbolTable -> Map Id a) -> Id -> Error -> [SymbolTable] -> Sems a
 searchInSymTabs map id err = \case
@@ -212,7 +312,7 @@ toTType :: P.Type -> T.Type
 toTType = \case
   Nil             -> undefined
   IntT            -> i16
-  RealT           -> double
+  RealT           -> x86_fp80
   BoolT           -> i1
   CharT           -> i8
   P.Array size ty -> arrayToTType ty size

@@ -1,8 +1,0 @@
-program IfThenElse;
-var a:integer;
-begin
-  writeString("Give me an integer and I\'ll tell you if it\'s positive or negative: ");
-  a := readInteger();
-  if a >= 0 then writeString("It\'s positive\n")
-  else writeString("It\'s negative\n")
-end.
