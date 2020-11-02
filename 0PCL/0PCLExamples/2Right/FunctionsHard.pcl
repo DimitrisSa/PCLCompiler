@@ -1,0 +1,17 @@
+program functionsHard;
+var a:integer;
+forward function ok2():integer;
+function ok1():integer;
+  begin
+    result := ok2();
+  end;
+var b:integer;
+function ok2():integer;
+  begin
+    result := readInteger()+b;
+  end;
+begin
+  b := 100;
+  a := ok1();
+  writeInteger(a);
+end.

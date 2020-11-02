@@ -1,0 +1,9 @@
+program ArgInNoArgs;
+var a:integer;
+function ok():integer;
+  begin
+    result := 1;
+  end;
+begin
+  a := ok(a);
+end.

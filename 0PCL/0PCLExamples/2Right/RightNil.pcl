@@ -1,0 +1,11 @@
+program RN;
+var a:^integer;b:^real;c:^char;d:^boolean;e:^array of integer;f:^array [3] of integer;g:^^^^integer;
+begin
+  a := nil;
+  b := nil;
+  c := nil;
+  d := nil;
+  e := nil;
+  f := nil;
+  g := nil;
+end.

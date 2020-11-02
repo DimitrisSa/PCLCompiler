@@ -1,0 +1,5 @@
+program Symbatoi2;
+var a:^array [2] of integer;b:^array of integer;
+begin
+  a := b;
+end.

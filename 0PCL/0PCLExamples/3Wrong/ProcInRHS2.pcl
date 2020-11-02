@@ -1,0 +1,10 @@
+program ProcInRHS;
+procedure ok1();
+  begin
+  end;
+function ok2():integer;
+  begin
+    result := ok1()
+  end;
+begin
+end.

@@ -1,0 +1,22 @@
+program example;
+  procedure print1 ();
+    forward procedure print3();
+    procedure print2 ();
+    begin
+      print3()
+    end;
+    var a:real;
+    procedure print3 ();
+    begin
+      a := 1.0;
+      writeReal(a);
+    end;
+  begin
+    print2();
+  end;
+  var b:real;
+begin
+  b := 2.0;
+  print1();
+  writeReal(b);
+end.

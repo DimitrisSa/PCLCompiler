@@ -1,0 +1,6 @@
+program Symbatoi2;
+  procedure ok(a:array of integer);
+  begin
+  end;
+begin
+end.

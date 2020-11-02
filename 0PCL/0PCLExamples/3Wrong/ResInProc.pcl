@@ -1,0 +1,7 @@
+program ResultIntProc;
+procedure ok1(x:integer);
+  begin
+    result := x;
+  end;
+begin
+end.

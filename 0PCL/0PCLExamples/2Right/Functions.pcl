@@ -1,0 +1,19 @@
+program functions;
+var a:integer;
+forward function ok2():integer;
+function ok1():integer;
+  begin
+    writeString("I\'m function ok1.I\'m calling ok2 to steal her integer\n");
+    result := ok2();
+  end;
+function ok2():integer;
+  begin
+    writeString("I\'m function ok2. Give me an integer: ");
+    result := readInteger();
+  end;
+begin
+  writeString("Hello main here.I\'m calling ok1 to steal her integer\n");
+  a := ok1();
+  writeString("Main again here is the integer: ");
+  writeInteger(a);
+end.

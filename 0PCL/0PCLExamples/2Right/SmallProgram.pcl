@@ -1,0 +1,13 @@
+program smpe;
+function ok():integer;
+  begin
+    if true then
+    begin
+      result := 1;
+      return
+    end;
+    result := 0;
+  end;
+begin
+  writeInteger(ok());
+end.

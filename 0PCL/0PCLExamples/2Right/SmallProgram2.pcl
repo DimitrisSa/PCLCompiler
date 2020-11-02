@@ -1,0 +1,10 @@
+program smpe;
+function ok():integer;
+  var x:integer;
+  begin
+    if true then result := 1
+    else result := 0;
+  end;
+begin
+  writeInteger(ok());
+end.

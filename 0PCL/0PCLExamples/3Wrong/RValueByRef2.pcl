@@ -1,0 +1,9 @@
+program RValueByRef;
+var a:integer;
+function ok(var d:integer):integer;
+  begin
+    result := 1;
+  end;
+begin
+  a := ok(a+1);
+end.

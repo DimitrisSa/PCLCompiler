@@ -1,0 +1,5 @@
+program Symbatoi1;
+var a:integer;b:real;
+begin
+  a := b;
+end.

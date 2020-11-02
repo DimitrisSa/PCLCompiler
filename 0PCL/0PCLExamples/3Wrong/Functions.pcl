@@ -1,0 +1,6 @@
+program ResultNotSet;
+function ok1(x:integer):integer;
+  begin
+  end;
+begin
+end.

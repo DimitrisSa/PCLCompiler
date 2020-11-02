@@ -1,0 +1,14 @@
+program example;
+  procedure ok1 ();
+    procedure ok2 ();
+    begin
+    end;
+    var k,l : integer;
+  begin
+  end;
+var k,l : integer;
+  procedure ok3 ();
+  begin
+  end;
+begin
+end.

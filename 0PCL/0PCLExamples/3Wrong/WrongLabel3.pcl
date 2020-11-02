@@ -1,0 +1,6 @@
+program WrongArgs;
+label mitsos;
+begin
+mitsos: ;
+mitsos:
+end.

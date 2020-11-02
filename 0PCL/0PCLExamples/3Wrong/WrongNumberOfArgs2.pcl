@@ -1,0 +1,9 @@
+program WrongNumOfArgs;
+var a,b,c:integer;
+function ok(d,e:integer;f:integer):integer;
+  begin
+    result := 1;
+  end;
+begin
+  a := ok(a,b);
+end.

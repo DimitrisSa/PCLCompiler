@@ -1,0 +1,8 @@
+program WrongLabel;
+function ok():integer;
+  begin
+    z:
+  end;
+label z;
+begin
+end.

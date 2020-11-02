@@ -1,0 +1,14 @@
+program functions;
+var a:integer;
+function ok1():integer;
+  function ok2():integer;
+    begin
+      result := b;
+    end;
+  begin
+    result := a;
+  end;
+var b:integer;
+begin
+  a := ok1();
+end.

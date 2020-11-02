@@ -1,0 +1,5 @@
+program StrLitAss;
+var a: array [2] of char;
+begin
+  a := "ab"
+end.

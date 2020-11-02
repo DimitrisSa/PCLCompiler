@@ -1,0 +1,6 @@
+program WrongArgs;
+var a:^real;
+begin
+new a;
+dispose [] a;
+end.

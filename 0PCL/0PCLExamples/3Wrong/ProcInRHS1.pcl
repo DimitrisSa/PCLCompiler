@@ -1,0 +1,8 @@
+program ProcInRHS;
+var a:integer;
+procedure ok();
+  begin
+  end;
+begin
+  a := ok();
+end.

@@ -1,0 +1,8 @@
+program Symbatoi2;
+var b:^array of integer;
+  procedure ok(a:^array [2] of integer);
+  begin
+  end;
+begin
+  ok(b)
+end.

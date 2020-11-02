@@ -1,0 +1,16 @@
+program proceduresHard;
+forward procedure ok2();
+procedure ok1();
+  begin
+    ok2()
+  end;
+var a:integer;
+procedure ok2();
+  begin
+    a := 1;
+  end;
+begin
+  a := 0;
+  ok1();
+  writeInteger(a);
+end.

@@ -1,0 +1,5 @@
+program Test80bitReals;
+begin 
+  writeReal(1234.1234);
+  writeString("\n");
+end.

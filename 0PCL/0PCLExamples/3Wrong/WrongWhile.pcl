@@ -1,0 +1,5 @@
+program Symbatoi1;
+var a:integer;b:integer;
+begin
+  while 'c' do a := b;
+end.

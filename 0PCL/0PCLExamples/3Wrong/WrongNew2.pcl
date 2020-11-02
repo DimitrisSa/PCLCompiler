@@ -1,0 +1,5 @@
+program WrongArgs;
+var a:^array of real;
+begin
+new a;
+end.

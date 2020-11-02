@@ -1,0 +1,18 @@
+program example;
+  var a:real;
+  procedure print1 ();
+    procedure print2 ();
+      procedure print3 ();
+      begin
+        a := 1;
+      end;
+    begin
+      print3();
+    end;
+  begin
+    print2();
+  end;
+begin
+  print1();
+  writeReal(a);
+end.
