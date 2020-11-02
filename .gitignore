@@ -1,5 +1,5 @@
 dist
 0PCLCompiler
-3IntermediateFiles/*
+3IntermediateFiles/llvmhs*
 llvmhs.s
 a.out
