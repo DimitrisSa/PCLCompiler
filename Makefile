@@ -18,7 +18,7 @@ CopyExec:
 	cp dist/build/0PCLCompiler/0PCLCompiler .
 
 clean:
-	rm -rf 1LexerParser/$(l).hs 1LexerParser/$(p).hs dist 3IntermediateFiles/* ./a.out ./0PCLCompiler ./*.s ./*.asm ./*.ll ./*.imm
+	rm -rf 1LexerParser/$(l).hs 1LexerParser/$(p).hs dist 3IntermediateFiles/llvmhs* ./a.out ./0PCLCompiler ./*.s ./*.asm ./*.ll ./*.imm
 
 distclean:
-	rm -rf 1LexerParser/$(l).hs 1LexerParser/$(p).hs dist 3IntermediateFiles/* ./a.out  ./*.s ./*.asm ./*.ll ./*.imm
+	rm -rf 1LexerParser/$(l).hs 1LexerParser/$(p).hs dist 3IntermediateFiles/llvmhs* ./a.out  ./*.s ./*.asm ./*.ll ./*.imm
