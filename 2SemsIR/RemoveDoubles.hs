@@ -106,8 +106,16 @@ transformStmt = \case
   Label id stmt              -> return . Label id =<< transformStmt stmt
   GoTo id                    -> return $ GoTo id
   Return                     -> return $ Return
-  New posn new lVal          -> return . New posn new =<< transformLVal lVal
+  New posn new lVal          -> do
+    new' <- transformNew new
+    lVal' <- transformLVal lVal
+    return $ New posn new' lVal'
   Dispose posn disptype lVal -> return . Dispose posn disptype =<< transformLVal lVal
+
+transformNew :: New -> Unique New
+transformNew = \case
+  NewNoExpr -> return NewNoExpr
+  NewExpr e -> return . NewExpr =<< transformExpr e
 
 transformExpr :: Expr -> Unique Expr
 transformExpr = \case
