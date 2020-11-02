@@ -536,17 +536,113 @@ chr:                                    # @chr
 	.size	chr, .Lfunc_end23-chr
 	.cfi_endproc
                                         # -- End function
-	.globl	ok                      # -- Begin function ok
+	.globl	move                    # -- Begin function move
 	.p2align	4, 0x90
-	.type	ok,@function
-ok:                                     # @ok
+	.type	move,@function
+move:                                   # @move
 	.cfi_startproc
 # %bb.0:                                # %entry
-	movzwl	(%rsi), %eax
-	movw	%ax, -2(%rsp)
+	pushq	%r14
+	.cfi_def_cfa_offset 16
+	pushq	%rbx
+	.cfi_def_cfa_offset 24
+	subq	$56, %rsp
+	.cfi_def_cfa_offset 80
+	.cfi_offset %rbx, -24
+	.cfi_offset %r14, -16
+	movq	%rsi, %r14
+	movq	%rdi, %rbx
+	movabsq	$8030593374882262861, %rax # imm = 0x6F72662065766F4D
+	movq	%rax, 21(%rsp)
+	movw	$8301, 29(%rsp)         # imm = 0x206D
+	movb	$0, 31(%rsp)
+	leaq	21(%rsp), %rax
+	movq	%rax, 48(%rsp)
+	leaq	48(%rsp), %rdi
+	callq	writeString
+	movq	%rbx, %rdi
+	callq	writeString
+	movl	$544175136, 16(%rsp)    # imm = 0x206F7420
+	movb	$0, 20(%rsp)
+	leaq	16(%rsp), %rax
+	movq	%rax, 40(%rsp)
+	leaq	40(%rsp), %rdi
+	callq	writeString
+	movq	%r14, %rdi
+	callq	writeString
+	movw	$2606, 13(%rsp)         # imm = 0xA2E
+	movb	$0, 15(%rsp)
+	leaq	13(%rsp), %rax
+	movq	%rax, 32(%rsp)
+	leaq	32(%rsp), %rdi
+	callq	writeString
+	addq	$56, %rsp
+	popq	%rbx
+	popq	%r14
 	retq
 .Lfunc_end24:
-	.size	ok, .Lfunc_end24-ok
+	.size	move, .Lfunc_end24-move
+	.cfi_endproc
+                                        # -- End function
+	.globl	hanoi                   # -- Begin function hanoi
+	.p2align	4, 0x90
+	.type	hanoi,@function
+hanoi:                                  # @hanoi
+	.cfi_startproc
+# %bb.0:                                # %entry
+	pushq	%r15
+	.cfi_def_cfa_offset 16
+	pushq	%r14
+	.cfi_def_cfa_offset 24
+	pushq	%r12
+	.cfi_def_cfa_offset 32
+	pushq	%rbx
+	.cfi_def_cfa_offset 40
+	subq	$24, %rsp
+	.cfi_def_cfa_offset 64
+	.cfi_offset %rbx, -40
+	.cfi_offset %r12, -32
+	.cfi_offset %r14, -24
+	.cfi_offset %r15, -16
+	movq	%r8, %r14
+	movq	%rdx, %r12
+	movq	%rsi, %r15
+	movq	%rdi, %rbx
+	movw	%cx, 22(%rsp)
+	testw	%cx, %cx
+	jle	.LBB25_2
+# %bb.1:                                # %if.then
+	movzwl	22(%rsp), %ecx
+	decl	%ecx
+	movq	%rbx, %rdi
+	movq	%r12, %rsi
+	movq	%r15, %rdx
+	movq	%r14, %r8
+	callq	hanoi
+	movq	%r15, (%rsp)
+	leaq	22(%rsp), %r8
+	movq	%rbx, %rdi
+	movq	%r15, %rsi
+	movq	%r12, %rdx
+	movq	%r14, %rcx
+	movq	%rbx, %r9
+	callq	move
+	movzwl	22(%rsp), %ecx
+	decl	%ecx
+	movq	%r12, %rdi
+	movq	%r15, %rsi
+	movq	%rbx, %rdx
+	movq	%r14, %r8
+	callq	hanoi
+.LBB25_2:                               # %if.exit
+	addq	$24, %rsp
+	popq	%rbx
+	popq	%r12
+	popq	%r14
+	popq	%r15
+	retq
+.Lfunc_end25:
+	.size	hanoi, .Lfunc_end25-hanoi
 	.cfi_endproc
                                         # -- End function
 	.globl	main                    # -- Begin function main
@@ -555,19 +651,58 @@ ok:                                     # @ok
 main:                                   # @main
 	.cfi_startproc
 # %bb.0:                                # %entry
-	pushq	%rax
-	.cfi_def_cfa_offset 16
-	movw	$1, 6(%rsp)
-	leaq	4(%rsp), %rdi
-	leaq	6(%rsp), %rsi
-	callq	ok
-	movw	%ax, 4(%rsp)
-	movzwl	4(%rsp), %edi
-	callq	writeInteger
-	popq	%rax
+	subq	$136, %rsp
+	.cfi_def_cfa_offset 144
+	movabsq	$2318339454418644048, %rax # imm = 0x202C657361656C50
+	movq	%rax, 74(%rsp)
+	movabsq	$7307218077898664295, %rax # imm = 0x6568742065766967
+	movq	%rax, 82(%rsp)
+	movw	$28192, 90(%rsp)        # imm = 0x6E20
+	movabsq	$7381153989982842229, %rax # imm = 0x666F207265626D75
+	movq	%rax, 92(%rsp)
+	movabsq	$4188474541525791264, %rax # imm = 0x3A2073676E697220
+	movq	%rax, 100(%rsp)
+	movw	$32, 108(%rsp)
+	leaq	74(%rsp), %rax
+	movq	%rax, 64(%rsp)
+	leaq	64(%rsp), %rdi
+	callq	writeString
+	callq	readInteger
+	movw	%ax, 12(%rsp)
+	movabsq	$8316213806999357450, %rax # imm = 0x736920657265480A
+	movq	%rax, 110(%rsp)
+	movabsq	$7813590461488591904, %rax # imm = 0x6C6F732065687420
+	movq	%rax, 118(%rsp)
+	movabsq	$736937147716170869, %rax # imm = 0xA3A206E6F697475
+	movq	%rax, 126(%rsp)
+	movw	$10, 134(%rsp)
+	leaq	110(%rsp), %rax
+	movq	%rax, 56(%rsp)
+	leaq	56(%rsp), %rdi
+	callq	writeString
+	movl	$1952867692, 14(%rsp)   # imm = 0x7466656C
+	movb	$0, 18(%rsp)
+	movl	$1751607666, 26(%rsp)   # imm = 0x68676972
+	movw	$116, 30(%rsp)
+	movl	$1684302189, 19(%rsp)   # imm = 0x6464696D
+	movw	$25964, 23(%rsp)        # imm = 0x656C
+	movb	$0, 25(%rsp)
+	leaq	14(%rsp), %rax
+	movq	%rax, 48(%rsp)
+	leaq	26(%rsp), %rax
+	movq	%rax, 40(%rsp)
+	leaq	19(%rsp), %rax
+	movq	%rax, 32(%rsp)
+	movzwl	12(%rsp), %ecx
+	leaq	48(%rsp), %rdi
+	leaq	40(%rsp), %rsi
+	leaq	32(%rsp), %rdx
+	leaq	12(%rsp), %r8
+	callq	hanoi
+	addq	$136, %rsp
 	retq
-.Lfunc_end25:
-	.size	main, .Lfunc_end25-main
+.Lfunc_end26:
+	.size	main, .Lfunc_end26-main
 	.cfi_endproc
                                         # -- End function
 	.type	.LscanfChar,@object     # @scanfChar
