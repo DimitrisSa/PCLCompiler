@@ -4,3 +4,4 @@ dist
 llvmhs.s
 a.out
 1LexerParser/*.hs
+*.swp
