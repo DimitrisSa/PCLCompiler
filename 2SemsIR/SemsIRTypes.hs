@@ -47,7 +47,7 @@ data VarType = Mine | ToUse | ToPass
 
 type VariableMap = Map (Id,VarType) (P.Type,Operand)
 type LabelMap    = Map Id Bool
-type CallableMap = Map Id (Callable,Operand)
+type CallableMap = Map Id (Callable,Operand,Bool)
 type FatherMap   = Map Id ([Id],[Id],Int,[SymbolTable])
 type VarNumMap   = Map Id Int
 
@@ -172,13 +172,16 @@ insToLabelMap :: Id -> Bool -> Sems ()
 insToLabelMap label b = modify $ \(e,st:sts,m,cgen,i) ->
   (e,st { labelMap = insert label b $ labelMap st }:sts,m,cgen,i)
 
-insToCallableMap :: [Id] -> Id -> Callable -> Sems ()
-insToCallableMap pids id cal = do
+insToCallableMap :: [Id] -> Id -> Callable -> Bool -> Sems ()
+insToCallableMap pids id cal b = do
   parVM <- getVariableMap --
   let parTys = map snd $ parIdsToParTys parVM pids --
+  let idToName'' = case b of
+                    True  -> idToName
+                    False -> idToName'
   modify $ \(e,st:sts,m,cgen,i) ->
     (e,st {
-       callableMap = insert id (cal,calToOper parTys cal $ idToName id) $ callableMap st
+       callableMap = insert id (cal,calToOper parTys cal $ idToName'' id,b) $ callableMap st
      }:sts,m,cgen,i)
 
 insTo2ndVarMap :: Id -> TyOper -> Sems ()
@@ -188,13 +191,13 @@ insTo2ndVarMap id tyop = modify $ \(e,st1:st:sts,m,cgen,i) ->
 modify2ndCallableMap :: Id -> (Operand -> Operand) -> Sems ()
 modify2ndCallableMap id f = modify $ \(e,st1:st:sts,m,cgen,i) ->
   (e,st1:st {
-    callableMap = adjust (\(cal,op) -> (cal,f op)) id $ callableMap st
+    callableMap = adjust (\(cal,op,b) -> (cal,f op,b)) id $ callableMap st
   }:sts,m,cgen,i)
 
 modifyCallableMap :: Id -> (Operand -> Operand) -> Sems ()
 modifyCallableMap id f = modify $ \(e,st:sts,m,cgen,i) ->
   (e,st {
-    callableMap = adjust (\(cal,op) -> (cal,f op)) id $ callableMap st
+    callableMap = adjust (\(cal,op,b) -> (cal,f op,b)) id $ callableMap st
   }:sts,m,cgen,i)
 
 parIdsToParTys :: VariableMap -> [Id] -> [(P.Type,T.Type)]
@@ -227,6 +230,9 @@ toName = toShortByteString >>> Name
 
 idToName :: Id -> Name
 idToName = idString >>> toName
+
+idToName' :: Id -> Name
+idToName' = idString >>> (++".") >>> toName
 
 consGlobalRef :: T.Type -> Name -> Operand
 consGlobalRef ty name = ConstantOperand $ C.GlobalReference ty name
@@ -272,7 +278,7 @@ lookupInVariableMap idVarT = getVariableMap >>= lookup idVarT >>> return
 lookupInLabelMap :: Id -> Sems (Maybe Bool)
 lookupInLabelMap = lookupInMap getLabelMap
 
-lookupInCallableMap :: Id -> Sems (Maybe (Callable,Operand))
+lookupInCallableMap :: Id -> Sems (Maybe (Callable,Operand,Bool))
 lookupInCallableMap = lookupInMap getCallableMap
 
 lookupInVarNumMap :: Id -> Sems (Maybe Int)
@@ -281,7 +287,7 @@ lookupInVarNumMap = lookupInMap getVarNumMap
 lookupIn2ndVarNumMap :: Id -> Sems (Maybe Int)
 lookupIn2ndVarNumMap = lookupInMap get2ndVarNumMap
 
-searchCallableInSymTabs :: Id -> Sems (Callable,Operand)
+searchCallableInSymTabs :: Id -> Sems (Callable,Operand,Bool)
 searchCallableInSymTabs id = getSymTabs >>= 
   searchInSymTabs callableMap id "Undeclared function or procedure in call: "
 

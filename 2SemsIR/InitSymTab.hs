@@ -65,13 +65,13 @@ initSymTab = do
 -- insert Procedures/Functions to the Symbol Table and the Module
 insertProcToSymTabAndDefs :: String -> [Frml] -> Sems ()
 insertProcToSymTabAndDefs name frmls = do
-  insToCallableMap [] (dummy name) (Proc frmls) --
-  defineFun [] [] name void frmls (codegenFromName name)
+  insToCallableMap [] (dummy name) (Proc frmls) False
+  defineFun [] [] (name ++ ".") void frmls (codegenFromName name)
 
 insertFuncToSymTabAndDefs :: String -> [Frml] -> P.Type -> Sems ()
 insertFuncToSymTabAndDefs name frmls retty = do
-  insToCallableMap [] (dummy name) (Func frmls retty) --
-  defineFun [] [] name (toTType retty) frmls (codegenFromName name)
+  insToCallableMap [] (dummy name) (Func frmls retty) False
+  defineFun [] [] (name ++ ".") (toTType retty) frmls (codegenFromName name)
 
 -- Get Code Generation Function from name
 codegenFromName = \case

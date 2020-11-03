@@ -55,12 +55,10 @@ localsSemsIR locals = do
   mapM_ localSemsIR1 locals 
   modifyVarIds $ \(i,ids) -> (i,reverse ids)
   mapM_ localSemsIR2 locals 
-  --getVarNumMap >>= error . show 
-  --getVarIds >>= error . show 
   getCallableMap >>= toList >>> mapM_ (\case
-    (id,(ProcDclr _  ,_)) -> errAtId "No definition for procedure declaration: " id
-    (id,(FuncDclr _ _,_)) -> errAtId "No definition for function declaration: " id
-    _                     -> return ())
+    (id,(ProcDclr _  ,_,_)) -> errAtId "No definition for procedure declaration: " id
+    (id,(FuncDclr _ _,_,_)) -> errAtId "No definition for function declaration: " id
+    _                       -> return ())
 
 addIdsToVarIds :: [([Id],Type)] -> Sems () 
 addIdsToVarIds = mapM_ addIdsToVarIds' . reverse
@@ -90,14 +88,16 @@ getForwardCals cm = map (getForwardCal $ cm)
 
 getForwardCal :: CallableMap -> Id -> (Id,Callable,Operand)
 getForwardCal cm id = case lookup id cm of
-  Just (cal,op) -> (id,cal,op)
-  _             -> error $ "Should have found in callable map forward id: " ++ idString id
+  Just (cal,op,b) -> (id,cal,op)
+  _               -> error $ errString ++ idString id
+
+errString = "Should have found in callable map forward id: "
 
 insToCalMapForwardCals :: CallableMap -> [(Id,Callable,Operand)] -> CallableMap
 insToCalMapForwardCals cm = foldl insToCalMapForwardCal cm 
 
 insToCalMapForwardCal :: CallableMap -> (Id,Callable,Operand) -> CallableMap
-insToCalMapForwardCal cm (id,cal,op) = insert id (cal,op) cm 
+insToCalMapForwardCal cm (id,cal,op) = insert id (cal,op,True) cm 
 
 calcToPassIds :: Int -> Sems ([Id],[Id])
 calcToPassIds myVarNum = do
@@ -154,7 +154,7 @@ correctReferenceVarMap2 varMap2 calMap2 id forIds =
   --  True -> error $ show forIds
   --  _    -> 
   let forTys = getAdditionalReferenceTypes varMap2 forIds in
-  adjust (\(cal,op) -> (cal,f forTys op)) id calMap2
+  adjust (\(cal,op,b) -> (cal,f forTys op,b)) id calMap2
 
 correctReference' :: Id -> [T.Type] -> Sems ()
 correctReference' id forTys = do
@@ -305,8 +305,8 @@ lValExprTypeOpers lVal expr = do
 
 callStmtSemsIR :: Id -> [Expr] -> Sems ()
 callStmtSemsIR id exprs = searchCallableInSymTabs id >>= \case
-  (ProcDclr fs,_) -> mapM exprTypeOperBool exprs >>= callStmtSemsIR' id fs 
-  (Proc     fs,_) -> mapM exprTypeOperBool exprs >>= callStmtSemsIR' id fs
+  (ProcDclr fs,_,_) -> mapM exprTypeOperBool exprs >>= callStmtSemsIR' id fs 
+  (Proc     fs,_,_) -> mapM exprTypeOperBool exprs >>= callStmtSemsIR' id fs
   _               -> errAtId "Use of function in call statement: " id
 
 ifThenSemsIR :: (Int,Int) -> Expr -> Stmt -> Sems ()
@@ -463,7 +463,7 @@ exprsTypeOpers exp1 exp2 = mapM exprTypeOper [exp1,exp2]
 
 callRValueSemsIR :: Id -> [Expr] -> Sems (Type,Operand)
 callRValueSemsIR id exprs = searchCallableInSymTabs id >>= \case
-  (FuncDclr fs t,_) -> mapM exprTypeOperBool exprs >>= callRValueSemsIR' id fs t 
-  (Func  fs t   ,_) -> mapM exprTypeOperBool exprs >>= callRValueSemsIR' id fs t
-  _                 -> errAtId "Use of procedure where a return value is required: " id
+  (FuncDclr fs t,_,_) -> mapM exprTypeOperBool exprs >>= callRValueSemsIR' id fs t 
+  (Func  fs t   ,_,_) -> mapM exprTypeOperBool exprs >>= callRValueSemsIR' id fs t
+  _                   -> errAtId "Use of procedure where a return value is required: " id
 

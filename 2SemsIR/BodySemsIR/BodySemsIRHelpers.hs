@@ -5,7 +5,7 @@ import Parser (ArrSize(..),Frml,Id(..),idString,Type(..),PassBy(..))
 import SemsIRTypes (TyOper,TyOperBool,Sems,(>>>),errAtId,errPos,searchCallableInSymTabs
                    ,toTType,VariableMap,searchInAncestorMaps,getVariableMap,getLevel
                    ,VarType(..),get2ndVarIds,lookupInVariableMap,searchInVarNumMaps
-                   ,getVarIdsInLevel)
+                   ,getVarIdsInLevel,lookupInCallableMap)
 import Helpers (symbatos,formalsToTypes)
 import Control.Monad.Trans.Either (right)
 import LLVM.AST (Operand)
@@ -48,17 +48,17 @@ callRValueSemsIR' id fs t typeOperBools = do
 callSemsIR :: Id -> [Frml] -> [TyOperBool] -> Sems (Operand,[Operand])
 callSemsIR id fs typeOperBools = do
   childArgs <- formalsExprsSemsIR id (formalsToTypes fs) typeOperBools
-  op <- idToFunOper id
-  (parIds,parForIds,level,_) <- case not $ elem (idString id) predefinedNames of
+  (op,b) <- idToFunOper id
+  (parIds,parForIds,level,_) <- case b{-not $ elem (idString id) predefinedNames-} of
     True -> searchInAncestorMaps id
     _    -> return ([],[],0,mempty)
   --case idString id == "ok2" of
   --  True -> error $ "ok2 level:" ++ show level
   --  _    -> return ()
-  pArgs <- case not $ elem (idString id) predefinedNames of
+  pArgs <- case b{-not $ elem (idString id) predefinedNames-} of
     True -> parOps id parIds level
     _    -> return []
-  fArgs <- case not $ elem (idString id) predefinedNames of
+  fArgs <- case b{-not $ elem (idString id) predefinedNames-} of
     True -> do
       hisVarNum <- searchInVarNumMaps id 
       forIds <- calcForIds hisVarNum level
@@ -133,7 +133,7 @@ errorAtArg i (Id posn str) t1 t2 =
                        ,"\tExpected type: ", show t1,"\n"
                        ,"\tGiven type: ", show t2]
 
-idToFunOper id = searchCallableInSymTabs id >>= \(_,op) -> return op
+idToFunOper id = searchCallableInSymTabs id >>= \(_,op,b) -> return (op,b)
 
 predefinedNames = ["writeInteger","writeBoolean","writeChar","writeReal","writeString"
                   ,"readString","readInteger","readBoolean","readChar","readReal","abs"
