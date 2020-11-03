@@ -1,0 +1,13 @@
+program main;
+
+   procedure aaa (var a : integer);
+   begin
+      writeInteger(a)
+    end;
+
+   var i : integer;
+
+begin
+   i := 3;
+   aaa(i+5)
+end.
