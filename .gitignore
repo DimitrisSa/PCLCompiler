@@ -3,3 +3,4 @@ dist
 3IntermediateFiles/llvmhs*
 llvmhs.s
 a.out
+1LexerParser/*.hs
