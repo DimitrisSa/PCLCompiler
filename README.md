@@ -7,5 +7,5 @@ versions:
  - cabal: 1.24.0.2
 
 Usage:
-make 
-./OPCLCompiler [options] [filename]
+ - make 
+ - ./OPCLCompiler [options] [filename]
