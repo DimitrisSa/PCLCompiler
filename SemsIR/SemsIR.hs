@@ -32,8 +32,8 @@ import BodySemsIRHelpers (callRValueSemsIR',callStmtSemsIR',lookUpChildThenParen
 import LLVM.AST.Float as F (SomeFloat(..))
 import qualified LLVM.AST.Constant as C (Constant(..))
 
-programSemsIR :: Program -> Sems ()
-programSemsIR (P id body) = do
+semanticsAndIRFunction :: Program -> Sems ()
+semanticsAndIRFunction (P id body) = do
   modifyMod $ \mod -> mod { moduleName = toShortByteString $ idString id }
   initSymTab
   defineFun [] [] "main" T.void [] $ do

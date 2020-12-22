@@ -1,10 +1,11 @@
 module Main where
-import SemsIR (programSemsIR)
+import SemsIR (semanticsAndIRFunction)
 import Parser (Program,lexAndParse)
 import SemsIRTypes (Error,(>>>),initState)
 import System.Exit (die)
 import Control.Monad.Trans.Either (runEitherT)
 import Control.Monad.State (runState,evalState)
+import Control.Monad ((>=>))
 import LLVM.AST as A (Module)
 import LLVM.Module (withModuleFromAST,moduleLLVMAssembly)
 import LLVM.Context (withContext)
@@ -15,9 +16,7 @@ import System.Environment (getArgs)
 import RemoveDoubles (removeDoubles,initUniqueState)
 
 main :: IO ()
-main = do
-  args <- getArgs
-  codegenDependingOnArgs args
+main = getArgs >>= compileDependingOnArgs
 
 possibleArgs :: [[String]]
 possibleArgs = [ ["-O","-i","-f"], ["-O","-i"], ["-O","-f"], ["-i","-f"], ["-i"], ["-f"] ]
@@ -25,51 +24,47 @@ possibleArgs = [ ["-O","-i","-f"], ["-O","-i"], ["-O","-f"], ["-i","-f"], ["-i"]
 possibleArgsPermutations :: [[[String]]]
 possibleArgsPermutations = map permutations possibleArgs
 
-codegenDependingOnArgs :: [String] -> IO ()
-codegenDependingOnArgs args
-  | elem args $ possibleArgsPermutations !! 0 = codegenScriptNew "Oif"
-  | elem args $ possibleArgsPermutations !! 1 = codegenScriptNew "Oi"
-  | elem args $ possibleArgsPermutations !! 2 = codegenScriptNew "Of"
-  | elem args $ possibleArgsPermutations !! 3 = codegenScriptNew "if"
-  | elem args $ possibleArgsPermutations !! 4 = codegeniNew
-  | elem args $ possibleArgsPermutations !! 5 = codegenScriptNew "f"
+compileDependingOnArgs :: [String] -> IO ()
+compileDependingOnArgs args
+  | elem args $ possibleArgsPermutations !! 0 = compileUsingTheScript "Oif"
+  | elem args $ possibleArgsPermutations !! 1 = compileUsingTheScript "Oi"
+  | elem args $ possibleArgsPermutations !! 2 = compileUsingTheScript "Of"
+  | elem args $ possibleArgsPermutations !! 3 = compileUsingTheScript "if"
+  | elem args $ possibleArgsPermutations !! 4 = getIRString >>= putStrLn
+  | elem args $ possibleArgsPermutations !! 5 = compileUsingTheScript "f"
   | length args == 2 && elem "-O" args = dontRemember1 args
   | length args == 1 = dontRemember2 args
   | otherwise = error "Not Valid"
 
-codegenScriptNew :: String -> IO ()
-codegenScriptNew s = do
-  contents <- getContents
-  m <- contentsToModule contents 
-  llstr <- codegenIR m
-  callCommand $ "mkdir -p IntermediateFiles"
-  writeFile "./IntermediateFiles/llvmhs.ll" $ unpack llstr
-  callCommand $ "./ExecutableScripts/" ++ s ++ ".sh"
+getIRString :: IO String
+getIRString = getContents >>= contentsToIRString
 
-codegeniNew :: IO ()
-codegeniNew = do
-  contents <- getContents
-  m <- contentsToModule contents
-  llstr <- codegenIR m
-  putStrLn $ unpack llstr
+contentsToIRString :: String -> IO String
+contentsToIRString = contentsToIR >=> irToBytestring >=> ( unpack >>> return )
+
+compileUsingTheScript :: String -> IO ()
+compileUsingTheScript s =
+  callCommand "mkdir -p IntermediateFiles" >>
+  (getIRString >>= writeFile "./IntermediateFiles/llvmhs.ll") >>
+  (callCommand $ "./ExecutableScripts/" ++ s ++ ".sh")
 
 dontRemember1 args = do
-    let file = head $ filter (/="-O") args
-    let filePrefix = reverse $ tail $ dropWhile (/= '.') $ reverse file
-    contents <- readFile file
-    codegenScript' "Ofile" contents filePrefix
+  let file = head $ filter (/="-O") args
+  let filePrefix = reverse $ tail $ dropWhile (/= '.') $ reverse file
+  contents <- readFile file
+  compileUsingTheScript' "Ofile" contents filePrefix
 
 dontRemember2 args = do
-    let file = head args
-    let filePrefix = reverse $ tail $ dropWhile (/= '.') $ reverse file
-    contents <- readFile file
-    codegenScript' "file" contents filePrefix
+  let file = head args
+  let filePrefix = reverse $ tail $ dropWhile (/= '.') $ reverse file
+  contents <- readFile file
+  compileUsingTheScript' "file" contents filePrefix
 
-contentsToModule :: String -> IO A.Module
-contentsToModule s = do
+contentsToIR :: String -> IO A.Module
+contentsToIR s = do
   ast <- checkSuccessOfParsing $ lexAndParse s
   noDuplicatesAst <- checkForDuplicates ast
-  semantics noDuplicatesAst
+  semanticsAndIR noDuplicatesAst
 
 checkSuccessOfParsing :: Either Error Program -> IO Program
 checkSuccessOfParsing = \case 
@@ -80,30 +75,29 @@ checkForDuplicates :: Program -> IO Program
 checkForDuplicates ast =
   let runRemoveDoubles = removeDoubles >>> runEitherT >>> evalState
   in case runRemoveDoubles ast initUniqueState of
-    Right ast -> return ast
     Left e    -> die e
+    Right ast -> return ast
 
-semantics :: Program -> IO A.Module
-semantics ast =
-  let runProgramSems = programSemsIR >>> runEitherT >>> runState
-  in case runProgramSems ast initState of
+semanticsAndIR :: Program -> IO A.Module
+semanticsAndIR ast =
+  let runSemanticsAndIR = semanticsAndIRFunction >>> runEitherT >>> runState
+  in case runSemanticsAndIR ast initState of
     (Right _,(_,_,m,_,_)) -> return m
     (Left e,_)            -> die e
 
 codegen :: A.Module -> IO ()
 codegen m = withContext $ \context -> withModuleFromAST context m $ \m -> do
-  llstr <- moduleLLVMAssembly m
-  --putStrLn $ unpack llstr
-  writeFile "llvmhs.ll" $ unpack llstr
+  irBytestring <- moduleLLVMAssembly m
+  --putStrLn $ unpack irBytestring
+  writeFile "llvmhs.ll" $ unpack irBytestring
   callCommand "./usefulHs.sh"
 
-codegenScript' :: String -> String -> String -> IO ()
-codegenScript' s contents filePrefix = do
-  m <- contentsToModule contents
-  llstr <- codegenIR m
-  writeFile (filePrefix ++ ".ll") $ unpack llstr
+compileUsingTheScript' :: String -> String -> String -> IO ()
+compileUsingTheScript' s contents filePrefix = do
+  irString <- contentsToIRString contents
+  writeFile (filePrefix ++ ".ll") irString
   callCommand $ "./ExecutableScripts/" ++ s ++ ".sh " ++ filePrefix
 
-codegenIR :: A.Module -> IO ByteString
-codegenIR m = withContext $ \context -> withModuleFromAST context m $ \m ->
+irToBytestring :: A.Module -> IO ByteString
+irToBytestring m = withContext $ \context -> withModuleFromAST context m $ \m ->
   moduleLLVMAssembly m
