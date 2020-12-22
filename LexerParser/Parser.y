@@ -356,7 +356,7 @@ data RVal =
   Smeq    (Int,Int) Expr Expr
   deriving(Show,Eq,Ord)
 
-parser s = runAlex s parse
+lexAndParse s = runAlex s parse
 lexwrap = (alexMonadScan >>=)
 
 tokenToId :: Token -> Id

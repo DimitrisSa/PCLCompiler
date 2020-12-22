@@ -22,5 +22,5 @@ executable 0PCLCompiler
                        mtl,ghc,array,string-transform,bits,text,llvm-hs,network-byte-order,
                        bytestring,process,ilist,decimal-arithmetic,binary,long-double,
                        floating-bits
-  hs-source-dirs:      .,1LexerParser,2SemsIR,2SemsIR/BodySemsIR
+  hs-source-dirs:      .,LexerParser,SemsIR,SemsIR/BodySemsIR
   default-language:    Haskell2010

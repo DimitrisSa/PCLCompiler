@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cd ..
-for file in 0PCL/0PCLExamples/5Wrong/*
+for file in PCL/Examples/Wrong/*
 do
   echo "$file:"
   ./0PCLCompiler -f < $file

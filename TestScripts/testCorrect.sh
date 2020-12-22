@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cd ..
-for file in 0PCL/0PCLExamples/4Correct/*.pcl
+for file in PCL/Examples/Correct/*.pcl
 do
   echo "$file:"
   ./0PCLCompiler -f < $file > llvmhs.s

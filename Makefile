@@ -1,24 +1,29 @@
 l = Lexer
 p = Parser
-b = Build
-lp = 1LexerParser
-ce = CopyExec
-all: $(l) $(p) $(b) $(ce)
+lp = $(l)$(p)
+LexerHaskellFile = $(lp)/$(l).hs
+ParserHaskellFile = $(lp)/$(p).hs
 
-Lexer:
-	alex $(lp)/$(l).x -o $(lp)/$(l).hs
+all: $(LexerHaskellFile) $(ParserHaskellFile) Build CopyExecutable
 
-Parser:
-	happy $(lp)/$(p).y -o $(lp)/$(p).hs
+$(lp)/$(l).hs: $(lp)/$(l).x
+	alex $^ -o $@
+
+$(lp)/$(p).hs: $(lp)/$(p).y
+	happy $^ -o $@
 
 Build:
 	cabal build
 
-CopyExec:
+CopyExecutable:
 	cp dist/build/0PCLCompiler/0PCLCompiler .
 
+generatedByCabal = dist
+dirty = $(LexerHaskellFile) $(ParserHaskellFile) $(generatedByCabal) IntermediateFiles \
+				./a.out ./*.s ./*.asm ./*.ll ./*.imm
+
 clean:
-	rm -rf 1LexerParser/$(l).hs 1LexerParser/$(p).hs dist 3IntermediateFiles/llvmhs* ./a.out ./0PCLCompiler ./*.s ./*.asm ./*.ll ./*.imm
+	rm -rf $(dirty) ./0PCLCompiler 
 
 distclean:
-	rm -rf 1LexerParser/$(l).hs 1LexerParser/$(p).hs dist 3IntermediateFiles/llvmhs* ./a.out  ./*.s ./*.asm ./*.ll ./*.imm
+	rm -rf $(dirty)

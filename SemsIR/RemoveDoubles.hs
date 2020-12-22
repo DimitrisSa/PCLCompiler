@@ -16,8 +16,8 @@ errPos (li,co) err = left $ concat [show li,":",show co,": ",err]
 initUniqueState = ([empty],list)
 list = [1,2..]
 
-transformProgram :: Program -> Unique Program
-transformProgram (P id bod) = do
+removeDoubles :: Program -> Unique Program
+removeDoubles (P id bod) = do
   newbod <- transformBody bod
   return $ P id newbod
 
