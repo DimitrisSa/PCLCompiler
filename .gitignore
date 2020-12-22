@@ -1,7 +1,7 @@
 dist
-0PCLCompiler
-3IntermediateFiles/llvmhs*
+PCLCompiler
+IntermediateFiles/llvmhs*
 llvmhs.s
 a.out
-1LexerParser/*.hs
+LexerParser/*.hs
 *.swp
