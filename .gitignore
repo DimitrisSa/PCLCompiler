@@ -3,5 +3,5 @@ PCLCompiler
 IntermediateFiles/llvmhs*
 llvmhs.s
 a.out
-LexerParser/*.hs
+code/LexerParser/*.hs
 *.swp
