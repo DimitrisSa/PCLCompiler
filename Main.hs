@@ -6,7 +6,7 @@ import System.Exit (die)
 import Control.Monad.Trans.Either (runEitherT)
 import Control.Monad.State (runState,evalState)
 import Control.Monad ((>=>))
-import LLVM.AST as A (Module)
+import LLVM.AST (Module)
 import LLVM.Module (withModuleFromAST,moduleLLVMAssembly)
 import LLVM.Context (withContext)
 import Data.List (permutations)
@@ -15,56 +15,70 @@ import System.Process (callCommand)
 import System.Environment (getArgs)
 import RemoveDoubles (removeDoubles,initUniqueState)
 
+type Arg = String
+type Args = [Arg]
+
 main :: IO ()
 main = getArgs >>= compileDependingOnArgs
 
-possibleArgs :: [[String]]
-possibleArgs = [ ["-O","-i","-f"], ["-O","-i"], ["-O","-f"], ["-i","-f"], ["-i"], ["-f"] ]
-
-possibleArgsPermutations :: [[[String]]]
-possibleArgsPermutations = map permutations possibleArgs
-
-compileDependingOnArgs :: [String] -> IO ()
+compileDependingOnArgs :: Args -> IO ()
 compileDependingOnArgs args
-  | elem args $ possibleArgsPermutations !! 0 = compileUsingTheScript "Oif"
-  | elem args $ possibleArgsPermutations !! 1 = compileUsingTheScript "Oi"
-  | elem args $ possibleArgsPermutations !! 2 = compileUsingTheScript "Of"
-  | elem args $ possibleArgsPermutations !! 3 = compileUsingTheScript "if"
+  | elem args $ possibleArgsPermutations !! 0 = compileToStdout "Oif"
+  | elem args $ possibleArgsPermutations !! 1 = compileToStdout "Oi"
+  | elem args $ possibleArgsPermutations !! 2 = compileToStdout "Of"
+  | elem args $ possibleArgsPermutations !! 3 = compileToStdout "if"
   | elem args $ possibleArgsPermutations !! 4 = getIRString >>= putStrLn
-  | elem args $ possibleArgsPermutations !! 5 = compileUsingTheScript "f"
-  | length args == 2 && elem "-O" args = dontRemember1 args
-  | length args == 1 = dontRemember2 args
+  | elem args $ possibleArgsPermutations !! 5 = compileToStdout "f"
+  | length args == 2 && elem "-O" args = compileToFileWithOptimizations args
+  | length args == 1 = compileToFileWithoutOptimizations args
   | otherwise = error "Not Valid"
 
-getIRString :: IO String
+type ArgsList = [Args]
+possibleArgsPermutations :: [ArgsList]
+possibleArgsPermutations = map permutations possibleArgs
+possibleArgs :: ArgsList
+possibleArgs = [ ["-O","-i","-f"], ["-O","-i"], ["-O","-f"], ["-i","-f"], ["-i"], ["-f"] ]
+
+type ScriptName = String
+compileToStdout :: ScriptName -> IO ()
+compileToStdout s =
+  callCommand "mkdir -p IntermediateFiles" >>
+  (getIRString >>= writeFile "IntermediateFiles/llvmhs.ll") >>
+  (callCommand $ "ExecutableScripts/" ++ s ++ ".sh")
+
+type IRString = String
+getIRString :: IO IRString
 getIRString = getContents >>= contentsToIRString
+
+compileToFileWithOptimizations :: Args -> IO ()
+compileToFileWithOptimizations = filter (/="-O") >>> head >>> compileToFile "Ofile"
+
+compileToFileWithoutOptimizations :: Args -> IO ()
+compileToFileWithoutOptimizations = head >>> compileToFile "file"
 
 contentsToIRString :: String -> IO String
 contentsToIRString = contentsToIR >=> irToBytestring >=> ( unpack >>> return )
 
-compileUsingTheScript :: String -> IO ()
-compileUsingTheScript s =
-  callCommand "mkdir -p IntermediateFiles" >>
-  (getIRString >>= writeFile "./IntermediateFiles/llvmhs.ll") >>
-  (callCommand $ "./ExecutableScripts/" ++ s ++ ".sh")
+type Prefix = String
+type File = String
+compileToFile :: ScriptName -> File -> IO ()
+compileToFile scriptName file =
+  let filePrefix = fileToPrefix file
+  in (readFile file >>= contentsToIRString >>= writeFile (filePrefix ++ ".ll")) >>
+     (callCommand $ "./ExecutableScripts/" ++ scriptName ++ ".sh " ++ filePrefix)
 
-dontRemember1 args = do
-  let file = head $ filter (/="-O") args
-  let filePrefix = reverse $ tail $ dropWhile (/= '.') $ reverse file
-  contents <- readFile file
-  compileUsingTheScript' "Ofile" contents filePrefix
-
-dontRemember2 args = do
-  let file = head args
-  let filePrefix = reverse $ tail $ dropWhile (/= '.') $ reverse file
-  contents <- readFile file
-  compileUsingTheScript' "file" contents filePrefix
-
-contentsToIR :: String -> IO A.Module
+contentsToIR :: String -> IO Module
 contentsToIR s = do
   ast <- checkSuccessOfParsing $ lexAndParse s
   noDuplicatesAst <- checkForDuplicates ast
   semanticsAndIR noDuplicatesAst
+
+irToBytestring :: Module -> IO ByteString
+irToBytestring m = withContext $ \context -> withModuleFromAST context m $ \m ->
+  moduleLLVMAssembly m
+
+fileToPrefix :: File -> Prefix
+fileToPrefix = reverse >>> dropWhile (/= '.')  >>> tail >>> reverse
 
 checkSuccessOfParsing :: Either Error Program -> IO Program
 checkSuccessOfParsing = \case 
@@ -78,26 +92,9 @@ checkForDuplicates ast =
     Left e    -> die e
     Right ast -> return ast
 
-semanticsAndIR :: Program -> IO A.Module
+semanticsAndIR :: Program -> IO Module
 semanticsAndIR ast =
   let runSemanticsAndIR = semanticsAndIRFunction >>> runEitherT >>> runState
   in case runSemanticsAndIR ast initState of
     (Right _,(_,_,m,_,_)) -> return m
     (Left e,_)            -> die e
-
-codegen :: A.Module -> IO ()
-codegen m = withContext $ \context -> withModuleFromAST context m $ \m -> do
-  irBytestring <- moduleLLVMAssembly m
-  --putStrLn $ unpack irBytestring
-  writeFile "llvmhs.ll" $ unpack irBytestring
-  callCommand "./usefulHs.sh"
-
-compileUsingTheScript' :: String -> String -> String -> IO ()
-compileUsingTheScript' s contents filePrefix = do
-  irString <- contentsToIRString contents
-  writeFile (filePrefix ++ ".ll") irString
-  callCommand $ "./ExecutableScripts/" ++ s ++ ".sh " ++ filePrefix
-
-irToBytestring :: A.Module -> IO ByteString
-irToBytestring m = withContext $ \context -> withModuleFromAST context m $ \m ->
-  moduleLLVMAssembly m
