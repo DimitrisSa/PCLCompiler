@@ -1,6 +1,7 @@
+c = code
 l = Lexer
 p = Parser
-lp = $(l)$(p)
+lp = $(c)/$(l)$(p)
 LexerHaskellFile = $(lp)/$(l).hs
 ParserHaskellFile = $(lp)/$(p).hs
 
