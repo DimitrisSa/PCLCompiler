@@ -16,14 +16,14 @@ Build:
 	cabal build
 
 CopyExecutable:
-	cp dist/build/0PCLCompiler/0PCLCompiler .
+	cp dist/build/PCLCompiler/PCLCompiler .
 
 generatedByCabal = dist
 dirty = $(LexerHaskellFile) $(ParserHaskellFile) $(generatedByCabal) IntermediateFiles \
 				./a.out ./*.s ./*.asm ./*.ll ./*.imm
 
 clean:
-	rm -rf $(dirty) ./0PCLCompiler 
+	rm -rf $(dirty) ./PCLCompiler 
 
 distclean:
 	rm -rf $(dirty)

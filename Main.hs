@@ -39,12 +39,12 @@ possibleArgsPermutations = map permutations possibleArgs
 possibleArgs :: ArgsList
 possibleArgs = [ ["-O","-i","-f"], ["-O","-i"], ["-O","-f"], ["-i","-f"], ["-i"], ["-f"] ]
 
-type ScriptName = String
-compileToStdout :: ScriptName -> IO ()
-compileToStdout s =
+type ScriptInput = String
+compileToStdout :: ScriptInput -> IO ()
+compileToStdout scriptInput =
   callCommand "mkdir -p IntermediateFiles" >>
   (getIRString >>= writeFile "IntermediateFiles/llvmhs.ll") >>
-  (callCommand $ "ExecutableScripts/" ++ s ++ ".sh")
+  (callCommand $ "./scriptRunByExecutable.sh " ++ scriptInput)
 
 type IRString = String
 getIRString :: IO IRString
@@ -61,11 +61,11 @@ contentsToIRString = contentsToIR >=> irToBytestring >=> ( unpack >>> return )
 
 type Prefix = String
 type File = String
-compileToFile :: ScriptName -> File -> IO ()
-compileToFile scriptName file =
+compileToFile :: ScriptInput -> File -> IO ()
+compileToFile scriptInput file =
   let filePrefix = fileToPrefix file
   in (readFile file >>= contentsToIRString >>= writeFile (filePrefix ++ ".ll")) >>
-     (callCommand $ "./ExecutableScripts/" ++ scriptName ++ ".sh " ++ filePrefix)
+     (callCommand $ "./scriptRunByExecutable.sh " ++ scriptInput ++ " " ++ filePrefix)
 
 contentsToIR :: String -> IO Module
 contentsToIR s = do
