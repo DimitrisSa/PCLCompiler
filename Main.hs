@@ -67,27 +67,28 @@ dontRemember2 args = do
 
 contentsToModule :: String -> IO A.Module
 contentsToModule s = do
-  ast <- parserTransformCases $ lexAndParse s
-  astSems ast
+  ast <- checkSuccessOfParsing $ lexAndParse s
+  noDuplicatesAst <- checkForDuplicates ast
+  semantics noDuplicatesAst
 
-parserTransformCases :: Either Error Program -> IO Program
-parserTransformCases = \case 
+checkSuccessOfParsing :: Either Error Program -> IO Program
+checkSuccessOfParsing = \case 
   Left e    -> die e
-  Right ast -> transformProgramFinal ast
+  Right ast -> return ast
 
-transformProgramFinal :: Program -> IO Program
-transformProgramFinal ast =
-  let runTransformProgram = removeDoubles >>> runEitherT >>> evalState
-  in case runTransformProgram ast initUniqueState of
+checkForDuplicates :: Program -> IO Program
+checkForDuplicates ast =
+  let runRemoveDoubles = removeDoubles >>> runEitherT >>> evalState
+  in case runRemoveDoubles ast initUniqueState of
     Right ast -> return ast
     Left e    -> die e
 
-astSems :: Program -> IO A.Module
-astSems ast =
+semantics :: Program -> IO A.Module
+semantics ast =
   let runProgramSems = programSemsIR >>> runEitherT >>> runState
   in case runProgramSems ast initState of
     (Right _,(_,_,m,_,_)) -> return m
-    (Left e,_)          -> die e
+    (Left e,_)            -> die e
 
 codegen :: A.Module -> IO ()
 codegen m = withContext $ \context -> withModuleFromAST context m $ \m -> do
