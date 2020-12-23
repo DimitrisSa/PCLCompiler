@@ -60,13 +60,13 @@ tokens :-
   true                  { \(p,_,_,_) _ -> return $ TTrue          p }
   var                   { \(p,_,_,_) _ -> return $ TVar           p }
   while                 { \(p,_,_,_) _ -> return $ TWhile         p }
-  @id                   { \(p,_,_,s) l -> return $ TId            (take l s) p }
-  @int                  { \(p,_,_,s) l -> return $ TIntconst      (read $ take l s) p }
+  @id                   { \(p,_,_,s) l -> return $ TId            (take l s) p         }
+  @int                  { \(p,_,_,s) l -> return $ TIntconst      (read $ take l s) p  }
   @real                 { \(p,_,_,s) l -> return $ TRealconst (x8680Read $ take l s) p }
   @comment              ;
-  @char                 { \(p,_,_,s) l -> return $ TCharconst     (read $ take l s) p }
+  @char                 { \(p,_,_,s) l -> return $ TCharconst     (read $ take l s) p  }
   @string               { \(p,_,_,s) l ->
-                                return $ TStringconst (correctStrLit $ take l s) p }
+                                return $ TStringconst (correctStrLit $ take l s) p     }
   =                     { \(p,_,_,_) _ -> return $ TLogiceq       p }
   >                     { \(p,_,_,_) _ -> return $ TGreater       p }
   \<                    { \(p,_,_,_) _ -> return $ TSmaller       p }
