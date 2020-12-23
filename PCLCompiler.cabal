@@ -4,7 +4,7 @@ synopsis:            PCL compiler in haskell
 -- description:         
 license:             BSD3
 license-file:        LICENSE
-author:              gnostis
+author:              Dimitris Saridakis-Bitos
 maintainer:          saridakisbitos@gmail.com
 -- copyright:           
 -- category:            
