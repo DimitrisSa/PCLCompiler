@@ -16,10 +16,15 @@ $(lp)/$(p).hs: $(lp)/$(p).y
 Build:
 	cabal build
 
-CopyExecutable:
-	cp dist/build/PCLCompiler/PCLCompiler .
+executableHugePath1 = dist-newstyle/build/x86_64-linux/ghc-8.0.2/PCLCompiler-0.1.0.0/x/
+executableHugePath2 = PCLCompiler/build/PCLCompiler/PCLCompiler
+executableHugePath = $(executableHugePath1)$(executableHugePath2)
 
-generatedByCabal = dist
+CopyExecutable:
+	cp $(executableHugePath) .
+
+generatedByCabal = dist-newstyle
+
 dirty = $(LexerHaskellFile) $(ParserHaskellFile) $(generatedByCabal) IntermediateFiles \
 				./a.out ./*.s ./*.asm ./*.ll ./*.imm
 
