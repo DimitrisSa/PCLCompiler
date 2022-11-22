@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 executable PCLCompiler
   main-is:             Main.hs
   default-extensions:  LambdaCase,FlexibleInstances,OverloadedStrings
-  build-depends:       base >=4.9 && <4.10,llvm-hs-pure,containers,transformers-either,
+  build-depends:       base,llvm-hs-pure,containers,transformers-either,
                        mtl,ghc,array,string-transform,bits,text,llvm-hs,network-byte-order,
                        bytestring,process,ilist,decimal-arithmetic,binary,long-double,
                        floating-bits

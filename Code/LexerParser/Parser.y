@@ -119,11 +119,11 @@ Args       :: { [Frml] }
            : {-empty-}                          { [] }
            | Frmls                            { $1 }
 
-Frmls    :: { [Frml] }
+Frmls      :: { [Frml] }
            : Frml                             { [$1]  }
            | Frmls ';' Frml                 { $3:$1 }
 
-Frml     :: { Frml }
+Frml       :: { Frml }
            : Optvar Ids ':' Type                { ($1,$2,$4) }
 
 Optvar     :: { PassBy }
@@ -160,19 +160,19 @@ Stmt :: { Stmt }
      | id ':' Stmt                 { Label (tokenToId $1) $3 }
      | goto id                     { GoTo (tokenToId $2) }
      | return                      { Return }
-     | new New LVal              { New (posnToLiCo $1) $2 $3 }
-     | dispose Dispose LVal      { Dispose (posnToLiCo $1) $2 $3 }
+     | new New LVal                { New (posnToLiCo $1) $2 $3 }
+     | dispose Dispose LVal        { Dispose (posnToLiCo $1) $2 $3 }
 
 New        :: { New }
-           :  {-empty-}                         { NewNoExpr   }
-           | '[' Expr ']'                       { NewExpr $2 }
+           :  {-empty-}   { NewNoExpr   }
+           | '[' Expr ']' { NewExpr $2 }
 
-Dispose    : {-empty-}                          { Without }
-           | '[' ']'                            { With    }
+Dispose    : {-empty-} { Without }
+           | '[' ']'   { With    }
 
 Expr       :: { Expr }
-           : LVal %prec LExpr                 { LVal $1 }
-           | RVal %prec RExpr                 { RVal $1 }
+           : LVal %prec LExpr { LVal $1 }
+           | RVal %prec RExpr { RVal $1 }
 
 LVal     :: { LVal }
            : id                { IdL        (tokenToId $1)    }
@@ -183,32 +183,32 @@ LVal     :: { LVal }
            | '(' LVal ')'      { ParenL     $2    }
 
 RVal     :: { RVal }
-           : intconst                           { IntR     (getInt $1) }
-           | true                               { TrueR       }
-           | false                              { FalseR      }
-           | realconst                          { RealR    (getReal $1) }
-           | charconst                          { CharR    (getChar $1) }
-           | '(' RVal ')'                       { ParenR   $2 }
-           | nil                                { NilR        }
-           | Call                               { CallR    $1 }
-           | '@' LVal                           { Papaki   $2 }
-           | not  Expr                          { Not     (posnToLiCo $1) $2 }
-           | '+'  Expr %prec POS                { Pos     (posnToLiCo $1) $2 }
-           | '-'  Expr %prec NEG                { Neg     (posnToLiCo $1) $2 }
-           | Expr '+'  Expr                     { Plus    (posnToLiCo $2) $1 $3 }
-           | Expr '*'  Expr                     { Mul     (posnToLiCo $2) $1 $3 }
-           | Expr '-'  Expr                     { Minus   (posnToLiCo $2) $1 $3 }
-           | Expr '/'  Expr                     { RealDiv (posnToLiCo $2) $1 $3 }
-           | Expr div  Expr                     { Div     (posnToLiCo $2) $1 $3 }
-           | Expr mod  Expr                     { Mod     (posnToLiCo $2) $1 $3 }
-           | Expr or   Expr                     { Or      (posnToLiCo $2) $1 $3 }
-           | Expr and  Expr                     { And     (posnToLiCo $2) $1 $3 }
-           | Expr '='  Expr                     { Eq      (posnToLiCo $2) $1 $3 }
-           | Expr diff Expr                     { Diff    (posnToLiCo $2) $1 $3 }
-           | Expr '<'  Expr                     { Less    (posnToLiCo $2) $1 $3 }
-           | Expr '>'  Expr                     { Greater (posnToLiCo $2) $1 $3 }
-           | Expr greq Expr                     { Greq    (posnToLiCo $2) $1 $3 }
-           | Expr smeq Expr                     { Smeq    (posnToLiCo $2) $1 $3 }
+           : intconst            { IntR    (getInt $1)           }
+           | true                { TrueR                         }
+           | false               { FalseR                        }
+           | realconst           { RealR   (getReal $1)          }
+           | charconst           { CharR   (getChar $1)          }
+           | '(' RVal ')'        { ParenR  $2                    }
+           | nil                 { NilR                          }
+           | Call                { CallR   $1                    }
+           | '@' LVal            { Papaki  $2                    }
+           | not  Expr           { Not     (posnToLiCo $1) $2    }
+           | '+'  Expr %prec POS { Pos     (posnToLiCo $1) $2    }
+           | '-'  Expr %prec NEG { Neg     (posnToLiCo $1) $2    }
+           | Expr '+'  Expr      { Plus    (posnToLiCo $2) $1 $3 }
+           | Expr '*'  Expr      { Mul     (posnToLiCo $2) $1 $3 }
+           | Expr '-'  Expr      { Minus   (posnToLiCo $2) $1 $3 }
+           | Expr '/'  Expr      { RealDiv (posnToLiCo $2) $1 $3 }
+           | Expr div  Expr      { Div     (posnToLiCo $2) $1 $3 }
+           | Expr mod  Expr      { Mod     (posnToLiCo $2) $1 $3 }
+           | Expr or   Expr      { Or      (posnToLiCo $2) $1 $3 }
+           | Expr and  Expr      { And     (posnToLiCo $2) $1 $3 }
+           | Expr '='  Expr      { Eq      (posnToLiCo $2) $1 $3 }
+           | Expr diff Expr      { Diff    (posnToLiCo $2) $1 $3 }
+           | Expr '<'  Expr      { Less    (posnToLiCo $2) $1 $3 }
+           | Expr '>'  Expr      { Greater (posnToLiCo $2) $1 $3 }
+           | Expr greq Expr      { Greq    (posnToLiCo $2) $1 $3 }
+           | Expr smeq Expr      { Smeq    (posnToLiCo $2) $1 $3 }
 
 Call       :: { (Id,[Expr]) }
            : id '(' ArgExprs ')'                { (tokenToId $1,$3) }

@@ -1,16 +1,18 @@
-c = code
+c = Code
 l = Lexer
 p = Parser
 lp = $(c)/$(l)$(p)
+LexerFile = $(lp)/$(l).x
+ParserFile = $(lp)/$(p).y
 LexerHaskellFile = $(lp)/$(l).hs
 ParserHaskellFile = $(lp)/$(p).hs
 
 all: $(LexerHaskellFile) $(ParserHaskellFile) Build CopyExecutable
 
-$(lp)/$(l).hs: $(lp)/$(l).x
+$(LexerHaskellFile): $(LexerFile)
 	alex $^ -o $@
 
-$(lp)/$(p).hs: $(lp)/$(p).y
+$(ParserHaskellFile): $(ParserFile)
 	happy $^ -o $@
 
 Build:
