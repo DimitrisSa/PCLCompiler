@@ -27,11 +27,13 @@ executable PCLCompiler
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    other-modules:    LexerParser.Lexer, LexerParser.Parser, SemsIR.SemsIR,
-                      SemsIR.SemsIRTypes
+    other-modules:    Helpers.Common, Helpers.Helpers, Helpers.LongDouble
+                      LexerParser.Lexer, LexerParser.Parser
+                      SemsIR.SemsIR, SemsIR.SemsIRTypes
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    base ^>=4.16.4.0, array, long-double
+    build-depends:    base ^>=4.16.4.0, array, long-double, mtl, containers,
+                      floating-bits
     hs-source-dirs:   app
     default-language: Haskell2010

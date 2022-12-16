@@ -1,4 +1,4 @@
-c = Code
+c = app
 l = Lexer
 p = Parser
 lp = $(c)/$(l)$(p)
